@@ -58,7 +58,7 @@ export type IndicatorId =
   | 'body_temp'
   | 'spo2'
 
-export type IndicatorUnit = 'mg/dL' | 'mSv' | 'bpm' | 'mmHg' | 'hrs' | '°C' | '/10' | '%'
+export type IndicatorUnit = 'mg/dL' | 'mSv' | 'bpm' | 'mmHg' | 'hrs' | '°C' | '/5' | '%'
 
 export type ActionLevel = 'self_care' | 'crew_alert' | 'flight_surgeon'
 
@@ -420,7 +420,7 @@ export interface VitalsInput {
   diastolicMmHg?: number
   bodyTempC?: number
   sleepHours?: number
-  /** Self-rated 1–10 (10 = best). */
+  /** Self-rated 1–5 (5 = best). See health_rules.md. */
   mood?: number
   spo2Pct?: number
   /** Dose recorded by personal dosimeter over the last 24 h, mSv. */
@@ -431,6 +431,10 @@ export interface VitalsInput {
   boneDensityChangePct?: number
   /** Free-text symptoms from the manual check-in (headache, dizziness, ...). */
   symptoms?: string[]
+  /** Last nights' sleep, oldest → newest, INCLUDING tonight's value (for the 3-nights-in-a-row rule). */
+  sleepRecentNights?: number[]
+  /** Last days' mood, oldest → newest, INCLUDING today's value (for the 3-days-in-a-row rule). */
+  moodRecentDays?: number[]
 }
 
 /** Optional context that tightens/shifts ranges (phase, baseline, cabin). */
@@ -442,9 +446,9 @@ export interface EvaluationContext {
 
 /** Spaceflight physiology shifts applied to ranges for the current mission day. */
 export interface SpaceAdjustments {
-  /** +1 °C after day 60 in 0 g (reference doc §6). */
+  /** Top of Normal rises 37.5 → 37.9 °C after day 60 in 0 g (health_rules.md). Alert stays at 38.5. */
   bodyTempShiftC: number
-  /** In-flight 24 h BP runs 8–10 mmHg lower → high thresholds move down by this (negative). */
+  /** In-flight BP runs 8–10 mmHg lower → the LOW limits relax by this much (negative). 0 for 14 days after landing. */
   bpShiftSystolic: number
   bpShiftDiastolic: number
   /** Scheduled sleep target (8.5 h); alert below 6 h. */

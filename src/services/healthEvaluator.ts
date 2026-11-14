@@ -102,26 +102,31 @@ export const NO_ADJUSTMENTS: SpaceAdjustments = {
  * Shifts for today's mission state (reference doc §6):
  *  - body temp +1 °C after 60 continuous days in 0 g
  *  - in-flight BP 8–10 mmHg lower (scaled by (1 − g) in partial gravity — estimate)
- *  - sleep target 8.5 h, alert below 6 h
- *  - tighter SpO2 in ≤ 10.3 psia habitats
+ *  - sleep target 8.5 h, Alert after 3 nights < 6 h
+ *  - tighter SpO2 Watch in ≤ 10.3 psia habitats
+ * Values: health_rules.md.
  */
 export function getSpaceAdjustments(state?: MissionState): SpaceAdjustments {
   if (!state) return NO_ADJUSTMENTS
   const env = state.environment
   const notes: SpaceAdjustments['notes'] = {
-    sleep_hours: `Target ${ADJ.sleep.targetHours} h (the scheduled ISS sleep); alert below ${ADJ.sleep.alertBelowHours} h. Astronauts average ~6 h.`,
+    sleep_hours: `Target ${ADJ.sleep.targetHours} h (the scheduled ISS sleep). One night under ${ADJ.sleep.alertBelowHours} h is a Watch; 3 nights in a row is an Alert. Astronauts average ~6 h.`,
   }
   const zeroG = continuous0gDays(state.plan, state.missionDay)
   const tempShift = env.gravityG === 0 && zeroG >= ADJ.bodyTemp.after0gDays ? ADJ.bodyTemp.shiftC : 0
   if (tempShift)
-    notes.body_temp = `After ${Math.round(zeroG)} days in 0 g your normal temperature runs ~${tempShift} °C higher, so ranges are shifted up. A real fever is still flagged.`
+    notes.body_temp = `After ${Math.round(zeroG)} days in 0 g resting temperature runs higher, so Normal now goes up to ${(T.bodyTemp.cautionHigh - 0.1 + tempShift).toFixed(1)} °C. A fever (≥ ${T.bodyTemp.criticalHigh} °C) is still an Alert.`
   else if (env.gravityG === 0)
-    notes.body_temp = `Temperature slowly rises in 0 g; ranges shift up by ~${ADJ.bodyTemp.shiftC} °C after day ${ADJ.bodyTemp.after0gDays} (now ${Math.round(zeroG)} days).`
-  const bpScale = env.id === 'EARTH' ? 0 : 1 - env.gravityG
-  const sys = -Math.round(ADJ.bloodPressure.inFlightSystolicDrop * bpScale)
-  const dia = -Math.round(ADJ.bloodPressure.inFlightDiastolicDrop * bpScale)
+    notes.body_temp = `Temperature slowly rises in 0 g; after day ${ADJ.bodyTemp.after0gDays} Normal goes up to ${(T.bodyTemp.cautionHigh - 0.1 + ADJ.bodyTemp.shiftC).toFixed(1)} °C (now ${Math.round(zeroG)} days).`
+  // Lower BP is expected in flight, so the LOW limits relax — except just after landing (fainting risk).
+  const justLanded = state.activeAlerts.some((a) => a.kind === 'landing_after_transit')
+  const bpScale = env.id === 'EARTH' || justLanded ? 0 : 1 - env.gravityG
+  const sys = -Math.round(ADJ.bloodPressure.inFlightSystolicRelax * bpScale)
+  const dia = -Math.round(ADJ.bloodPressure.inFlightDiastolicRelax * bpScale)
   if (sys)
-    notes.blood_pressure = `In flight, 24 h blood pressure runs 8–10 mmHg lower, so the "high" limits are ${-sys} mmHg lower than on Earth${env.gravityG > 0 ? ' (partial-gravity estimate)' : ''}.`
+    notes.blood_pressure = `In flight, blood pressure runs 8–10 mmHg lower, so a top number down to ${T.bloodPressure.systolicCautionLow + sys} still counts as Normal${env.gravityG > 0 ? ' (partial-gravity estimate)' : ''}.`
+  else if (justLanded)
+    notes.blood_pressure = 'Just landed: Earth limits apply again — low blood pressure now means a fainting risk when standing. Do the standing BP check.'
   const lowPressureHabitat = env.cabinPsia <= ADJ.spo2.lowPressureHabitatPsia
   if (lowPressureHabitat)
     notes.spo2 = `This habitat runs at ${env.cabinPsia} psia / ${env.cabinO2Pct}% O2, close to the oxygen floor, so SpO2 limits are tighter.`
@@ -151,13 +156,13 @@ export function boundsFor(id: IndicatorId, adj: SpaceAdjustments = NO_ADJUSTMENT
       return { cautionLow: T.heartRate.cautionLow, criticalLow: T.heartRate.criticalLow, cautionHigh: T.heartRate.cautionHigh + 0.5, criticalHigh: T.heartRate.criticalHigh + 0.5 }
     case 'blood_pressure':
       return {
-        cautionLow: T.bloodPressure.systolicCautionLow,
+        cautionLow: T.bloodPressure.systolicCautionLow + adj.bpShiftSystolic,
         criticalLow: T.bloodPressure.systolicCriticalLow,
-        cautionHigh: T.bloodPressure.systolicCautionHigh + adj.bpShiftSystolic,
-        criticalHigh: T.bloodPressure.systolicCriticalHigh + adj.bpShiftSystolic,
+        cautionHigh: T.bloodPressure.systolicCautionHigh,
+        criticalHigh: T.bloodPressure.systolicCriticalHigh,
       }
     case 'blood_sugar':
-      return { cautionLow: T.bloodSugar.cautionLow, criticalLow: T.bloodSugar.criticalLow, cautionHigh: T.bloodSugar.nominalHighNonFasting + 0.5, criticalHigh: T.bloodSugar.cautionHigh }
+      return { cautionLow: T.bloodSugar.cautionLow, criticalLow: T.bloodSugar.criticalLow, cautionHigh: T.bloodSugar.nominalHighNonFasting + 0.5, criticalHigh: T.bloodSugar.criticalHigh + 0.5 }
     case 'body_temp':
       return tempBounds(adj)
     case 'spo2': {
@@ -187,7 +192,7 @@ function tempBounds(adj: SpaceAdjustments) {
     criticalLow: t.criticalLow,
     cautionLow: round1(t.cautionLow + sh),
     cautionHigh: round1(t.cautionHigh + sh),
-    criticalHigh: round1(t.criticalHigh + sh * ADJ.bodyTemp.criticalShiftFraction),
+    criticalHigh: t.criticalHigh, // a fever is a fever — never shifted
   }
 }
 
@@ -260,11 +265,11 @@ export function evaluateBloodSugar(mgDl: number, fasting = false): Verdict {
         'Re-check in 15 minutes; repeat sugar if still below 70.',
       ],
     }
-  if (mgDl >= b.cautionHigh)
+  if (mgDl > b.criticalHigh)
     return {
       status: 'critical',
       message: `Blood sugar is very high (${mgDl} mg/dL).`,
-      thresholdNote: `≥ ${b.cautionHigh} mg/dL`,
+      thresholdNote: `> ${b.criticalHigh} mg/dL`,
       steps: ['Drink water.', 'Note any thirst, frequent urination, blurred vision, or nausea.', 'Re-check in 1 hour.'],
     }
   if (mgDl < b.cautionLow)
@@ -274,12 +279,12 @@ export function evaluateBloodSugar(mgDl: number, fasting = false): Verdict {
       thresholdNote: `${b.criticalLow}–${b.cautionLow - 1} mg/dL`,
       steps: ['Eat a snack with 15 g of carbohydrate.', 'Re-check in 15 minutes.'],
     }
-  const high = fasting ? b.fastingCautionHigh : b.nominalHighNonFasting + 1
-  if (mgDl >= high)
+  const tooHigh = fasting ? mgDl >= b.nominalHighFasting : mgDl > b.nominalHighNonFasting
+  if (tooHigh)
     return {
       status: 'caution',
       message: `Blood sugar is above the healthy range (${mgDl} mg/dL${fasting ? ', fasting' : ''}).`,
-      thresholdNote: fasting ? `≥ ${b.fastingCautionHigh} mg/dL fasting` : `> ${b.nominalHighNonFasting} mg/dL`,
+      thresholdNote: fasting ? `${b.nominalHighFasting}–${b.criticalHigh} mg/dL fasting` : `${b.nominalHighNonFasting + 1}–${b.criticalHigh} mg/dL`,
       steps: [
         'Complete your scheduled exercise — muscle use lowers blood sugar.',
         'Cut sugary drinks and snacks today.',
@@ -289,7 +294,7 @@ export function evaluateBloodSugar(mgDl: number, fasting = false): Verdict {
   return {
     status: 'nominal',
     message: `Blood sugar is in range (${mgDl} mg/dL).`,
-    thresholdNote: `${b.cautionLow}–${fasting ? b.fastingCautionHigh - 1 : b.nominalHighNonFasting} mg/dL`,
+    thresholdNote: `${b.cautionLow}–${fasting ? b.nominalHighFasting - 1 : b.nominalHighNonFasting} mg/dL${fasting ? ' fasting' : ''}`,
     steps: ['Keep to the meal plan and daily exercise.'],
   }
 }
@@ -328,12 +333,11 @@ export function evaluateHeartRate(bpm: number): Verdict {
 
 export function evaluateBloodPressure(systolic: number, diastolic: number, adj: SpaceAdjustments = NO_ADJUSTMENTS): Verdict {
   const base = T.bloodPressure
+  // In flight the LOW limits relax (lower BP is expected); high limits stay at Earth values.
   const p = {
     ...base,
-    systolicCautionHigh: base.systolicCautionHigh + adj.bpShiftSystolic,
-    systolicCriticalHigh: base.systolicCriticalHigh + adj.bpShiftSystolic,
-    diastolicCautionHigh: base.diastolicCautionHigh + adj.bpShiftDiastolic,
-    diastolicCriticalHigh: base.diastolicCriticalHigh + adj.bpShiftDiastolic,
+    systolicCautionLow: base.systolicCautionLow + adj.bpShiftSystolic,
+    diastolicCautionLow: base.diastolicCautionLow + adj.bpShiftDiastolic,
   }
   const reading = `${systolic}/${diastolic} mmHg`
   if (systolic >= p.systolicCriticalHigh || diastolic >= p.diastolicCriticalHigh)
@@ -426,25 +430,52 @@ export function evaluateBodyTemp(c: number, adj: SpaceAdjustments = NO_ADJUSTMEN
   }
 }
 
-export function evaluateSleep(hours: number, adj: SpaceAdjustments = NO_ADJUSTMENTS): Verdict {
+/** How many of the most recent values (newest last) satisfy `pred` without a break. */
+function streak(values: number[] | undefined, pred: (v: number) => boolean): number {
+  let n = 0
+  for (let i = (values?.length ?? 0) - 1; i >= 0 && pred(values![i]); i--) n++
+  return n
+}
+
+/**
+ * Sleep (health_rules.md): Normal ≥ 7 h (target 8.5). Watch 6–6.9 h or a single night < 6 h.
+ * Alert: < 6 h for 3 nights in a row, or any night < 4 h. Pass recent nights for the pattern rule.
+ */
+export function evaluateSleep(hours: number, adj: SpaceAdjustments = NO_ADJUSTMENTS, recentNights?: number[]): Verdict {
   const s = T.sleep
   const target = adj.sleepTargetHours
-  if (hours < s.criticalLow)
+  const nights = recentNights?.length ? recentNights : [hours]
+  const shortRun = streak(nights, (h) => h < s.criticalLow)
+  if (hours < s.severeSingleNight)
     return {
       status: 'critical',
-      message: `Severe sleep loss (${hours} h) — below the ${s.criticalLow} h alert line.`,
-      thresholdNote: `< ${s.criticalLow} h (target ${target} h)`,
+      message: `Severe sleep loss (${hours} h) — not fit for EVA, robotics or piloting today.`,
+      thresholdNote: `< ${s.severeSingleNight} h in one night`,
       steps: [
         'Do not perform EVA, robotics, or piloting tasks until rested.',
         'Schedule a nap (max 30 min) and an early sleep window tonight.',
-        'Discuss sleep aid options with the flight surgeon.',
+        'Tell the crew medical officer.',
+      ],
+    }
+  if (hours < s.criticalLow && shortRun >= s.consecutiveNightsForAlert)
+    return {
+      status: 'critical',
+      message: `${shortRun} nights in a row under ${s.criticalLow} h (last night ${hours} h) — sleep debt is building.`,
+      thresholdNote: `< ${s.criticalLow} h for ${s.consecutiveNightsForAlert} nights in a row`,
+      steps: [
+        'Avoid EVA, robotics, and piloting tasks until you have had a full night.',
+        'Protect a full 8.5 h sleep window tonight: dim screens 1 h before, eye mask, earplugs.',
+        'Discuss sleep aid options and schedule changes with the flight surgeon.',
       ],
     }
   if (hours < s.cautionLow)
     return {
       status: 'caution',
-      message: `Short sleep (${hours} h) — astronauts average ~6 h; your target is ${target} h.`,
-      thresholdNote: `${s.criticalLow}–${s.cautionLow} h (target ${target} h)`,
+      message:
+        hours < s.criticalLow
+          ? `Short night (${hours} h)${shortRun > 1 ? ` — ${shortRun} nights in a row` : ''}. Alert if it happens ${s.consecutiveNightsForAlert} nights in a row.`
+          : `Short sleep (${hours} h) — astronauts average ~6 h; your target is ${target} h.`,
+      thresholdNote: hours < s.criticalLow ? `< ${s.criticalLow} h (night ${shortRun} of ${s.consecutiveNightsForAlert})` : `${s.criticalLow}–${s.cautionLow} h (target ${target} h)`,
       steps: [
         'Dim lights and screens 1 hour before your sleep window.',
         'Use eye mask and earplugs; secure sleeping bag.',
@@ -461,18 +492,24 @@ export function evaluateSleep(hours: number, adj: SpaceAdjustments = NO_ADJUSTME
   return {
     status: 'nominal',
     message: hours < target ? `OK sleep (${hours} h) — a little under your ${target} h target.` : `Good sleep (${hours} h).`,
-    thresholdNote: `${s.cautionLow}–${s.cautionHigh} h (target ${target} h)`,
+    thresholdNote: `≥ ${s.cautionLow} h (target ${target} h)`,
     steps: hours < target ? ['Try to protect a full 8.5 h sleep window tonight.'] : ['Keep the same sleep window each day.'],
   }
 }
 
-export function evaluateMood(score: number): Verdict {
+/**
+ * Mood, 1–5 (health_rules.md): Normal 4–5. Watch 3, or a single day at 1–2.
+ * Alert: 1–2 for 3 days in a row. (Self-harm mentions are an immediate Alert in ingestionEngine.)
+ */
+export function evaluateMood(score: number, recentDays?: number[]): Verdict {
   const m = T.mood
-  if (score <= m.criticalAtOrBelow)
+  const days = recentDays?.length ? recentDays : [score]
+  const lowRun = streak(days, (v) => v <= m.criticalAtOrBelow)
+  if (score <= m.criticalAtOrBelow && lowRun >= m.consecutiveDaysForAlert)
     return {
       status: 'critical',
-      message: `Mood is very low (${score}/10).`,
-      thresholdNote: `≤ ${m.criticalAtOrBelow}/10`,
+      message: `Mood has been very low for ${lowRun} days in a row (${score}/${m.scaleMax} today).`,
+      thresholdNote: `≤ ${m.criticalAtOrBelow}/${m.scaleMax} for ${m.consecutiveDaysForAlert} days in a row`,
       steps: [
         'You are not alone — talk to a crewmate you trust today.',
         'Request a private session with the behavioural health team.',
@@ -482,14 +519,17 @@ export function evaluateMood(score: number): Verdict {
   if (score <= m.cautionAtOrBelow)
     return {
       status: 'caution',
-      message: `Mood is lower than usual (${score}/10).`,
-      thresholdNote: `${m.criticalAtOrBelow + 1}–${m.cautionAtOrBelow}/10`,
-      steps: ['Schedule a family call or leisure time.', 'Exercise and get light exposure during your day window.', 'Check in again tomorrow.'],
+      message:
+        score <= m.criticalAtOrBelow
+          ? `Mood is very low today (${score}/${m.scaleMax})${lowRun > 1 ? ` — ${lowRun} days in a row` : ''}.`
+          : `Mood is lower than usual (${score}/${m.scaleMax}).`,
+      thresholdNote: score <= m.criticalAtOrBelow ? `≤ ${m.criticalAtOrBelow}/${m.scaleMax} (day ${lowRun} of ${m.consecutiveDaysForAlert})` : `${m.cautionAtOrBelow}/${m.scaleMax}`,
+      steps: ['Schedule a family call or leisure time.', 'Exercise and get light exposure during your day window.', 'Talk to a crewmate; check in again tomorrow.'],
     }
   return {
     status: 'nominal',
-    message: `Mood is good (${score}/10).`,
-    thresholdNote: `≥ ${m.cautionAtOrBelow + 1}/10`,
+    message: `Mood is good (${score}/${m.scaleMax}).`,
+    thresholdNote: `≥ ${m.cautionAtOrBelow + 1}/${m.scaleMax}`,
     steps: ['Keep up team meals and personal time.'],
   }
 }
@@ -665,7 +705,7 @@ const ALL_INDICATORS: IndicatorId[] = [
 ]
 
 /** Indicators whose personal-baseline deviation alone can raise a Watch. */
-const BASELINE_SENSITIVE: IndicatorId[] = ['heart_rate', 'spo2', 'blood_sugar']
+const BASELINE_SENSITIVE: IndicatorId[] = ['spo2', 'blood_sugar'] // heart rate uses the 15% rule
 const BASELINE_Z_WATCH = 3.5
 
 function baselineZ(id: IndicatorId, value: number, baseline?: PersonalBaseline): number | undefined {
@@ -690,7 +730,16 @@ export function evaluateVitals(input: VitalsInput, environment: EnvironmentType,
   const push = (id: IndicatorId, value: number | string, v: Verdict, numeric?: number) => {
     const z = numeric !== undefined ? baselineZ(id, numeric, opts.baseline) : undefined
     let verdict = v
-    if (z !== undefined && v.status === 'nominal' && BASELINE_SENSITIVE.includes(id) && Math.abs(z) >= BASELINE_Z_WATCH)
+    const mean = opts.baseline?.values[id]?.mean
+    const hrOff = id === 'heart_rate' && numeric !== undefined && mean ? (numeric - mean) / mean : 0
+    if (v.status === 'nominal' && Math.abs(hrOff) >= T.heartRate.baselineWatchFraction)
+      verdict = {
+        status: 'caution',
+        message: `${v.message.replace(/\.$/, '')} — but ${Math.round(Math.abs(hrOff) * 100)}% ${hrOff > 0 ? 'above' : 'below'} your usual ${Math.round(mean!)} bpm.`,
+        thresholdNote: `${v.thresholdNote}; ≥ ${T.heartRate.baselineWatchFraction * 100}% from your baseline`,
+        steps: ['Rest 10 minutes and re-measure.', ...v.steps],
+      }
+    else if (z !== undefined && v.status === 'nominal' && BASELINE_SENSITIVE.includes(id) && Math.abs(z) >= BASELINE_Z_WATCH)
       verdict = {
         status: 'caution',
         message: `${v.message.replace(/\.$/, '')} — but unusual for you (${z > 0 ? '+' : ''}${z} SD from your baseline).`,
@@ -713,8 +762,9 @@ export function evaluateVitals(input: VitalsInput, environment: EnvironmentType,
     )
   if (input.bodyTempC !== undefined) push('body_temp', input.bodyTempC, evaluateBodyTemp(input.bodyTempC, adj), input.bodyTempC)
   if (input.spo2Pct !== undefined) push('spo2', input.spo2Pct, evaluateSpO2(input.spo2Pct, env.cabinPsia), input.spo2Pct)
-  if (input.sleepHours !== undefined) push('sleep_hours', input.sleepHours, evaluateSleep(input.sleepHours, adj), input.sleepHours)
-  if (input.mood !== undefined) push('mood', input.mood, evaluateMood(input.mood), input.mood)
+  if (input.sleepHours !== undefined)
+    push('sleep_hours', input.sleepHours, evaluateSleep(input.sleepHours, adj, input.sleepRecentNights), input.sleepHours)
+  if (input.mood !== undefined) push('mood', input.mood, evaluateMood(input.mood, input.moodRecentDays), input.mood)
   if (input.radiationDailyMSv !== undefined || input.radiationMissionMSv !== undefined)
     push(
       'radiation_dose',
@@ -885,6 +935,15 @@ function valueOneDayEarlier(h: HistoryPoint[]): number | undefined {
   return span > 0 ? last.value - (last.value - first.value) / span : undefined
 }
 
+/** Last value per mission day for the last 7 days (oldest → newest), ending with `current`. */
+function dailyValues(h: HistoryPoint[], current: number): number[] {
+  const byDay = new Map<number, number>()
+  for (const p of h) byDay.set(Math.floor(p.day), p.value)
+  const vals = [...byDay.entries()].sort((a, b) => a[0] - b[0]).slice(-7).map(([, v]) => v)
+  if (!vals.length || vals[vals.length - 1] !== current) vals.push(current)
+  return vals
+}
+
 /** Convert a stored indicator list (e.g. a crew profile) into VitalsInput. Missing values are skipped. */
 export function indicatorsToVitals(indicators: HealthIndicator[]): VitalsInput {
   const input: VitalsInput = {}
@@ -895,8 +954,8 @@ export function indicatorsToVitals(indicators: HealthIndicator[]): VitalsInput {
       case 'blood_sugar': input.bloodSugarMgDl = n; break
       case 'heart_rate': input.heartRateBpm = n; break
       case 'body_temp': input.bodyTempC = n; break
-      case 'sleep_hours': input.sleepHours = n; break
-      case 'mood': input.mood = n; break
+      case 'sleep_hours': input.sleepHours = n; input.sleepRecentNights = dailyValues(ind.history, n); break
+      case 'mood': input.mood = n; input.moodRecentDays = dailyValues(ind.history, n); break
       case 'spo2': input.spo2Pct = n; break
       case 'radiation_dose': {
         input.radiationMissionMSv = n
