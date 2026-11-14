@@ -27,6 +27,7 @@ export const ANOMALY_LABELS: Record<AnomalyKind, string> = {
   tachycardia: 'Simulate Tachycardia',
   fever: 'Simulate Fever',
   sleep_deprivation: 'Simulate Sleep Deprivation',
+  hypoxia: 'Simulate Low SpO2 (habitat O2 fault)',
 }
 
 /** Create a stream controller for one crew member. Call start() to begin ticking. */
@@ -43,7 +44,7 @@ export function generateTick(
   return notImplemented('generateTick')
 }
 
-/** Format a mission timestamp label, e.g. (92, 495) → "Day 92 08:15". */
+/** Format a mission timestamp label, e.g. (45, 495) → "Day 45 08:15". */
 export function formatMissionTime(_missionDay: number, _minuteOfDay: number): string {
   return notImplemented('formatMissionTime')
 }
