@@ -28,6 +28,7 @@ import type {
   MissionPlan,
   PersonalBaseline,
   ReferenceRange,
+  VitalsInput,
   HazardName,
   HazardRiskEntry,
   HealthIndicator,
@@ -241,37 +242,52 @@ export const CSA_RADIATION_MONITORING = {
  * nominal; "critical" covers values outside caution.
  */
 export const THRESHOLDS = {
+  // All values below follow health_rules.md (reconciled team rules).
   bloodSugar: {
-    // ADA: <70 hypoglycaemia (L1), <54 clinically significant (L2); ≥200 random = hyperglycaemia.
+    // ADA: <70 hypoglycaemia (L1), <54 clinically significant (L2). Pages doc: Alert > 180.
     criticalLow: 54,
     cautionLow: 70,
+    /** Fasting: Watch from 100. */
     nominalHighFasting: 100,
+    /** Not fasting: Watch above 140. */
     nominalHighNonFasting: 140,
-    cautionHigh: 200, // ≥ this is critical
-    fastingCautionHigh: 126, // ≥126 fasting = diabetes-range
+    /** Alert above this (both). */
+    criticalHigh: 180,
   },
-  heartRate: { criticalLow: 40, cautionLow: 50, cautionHigh: 100, criticalHigh: 120 },
+  heartRate: { criticalLow: 40, cautionLow: 50, cautionHigh: 100, criticalHigh: 120, baselineWatchFraction: 0.15 },
   bloodPressure: {
-    // AHA categories; hypotension guard for orthostatic intolerance after gravity transitions.
+    // AHA categories (pages doc). Low limits relax in flight — see SPACE_ADJUSTMENT_RULES.bloodPressure.
     systolicCriticalLow: 80,
     systolicCautionLow: 90,
     systolicCautionHigh: 130,
     systolicCriticalHigh: 160,
     diastolicCautionLow: 60,
-    diastolicCautionHigh: 80,
+    diastolicCautionHigh: 85,
     diastolicCriticalHigh: 100,
   },
   bodyTemp: {
-    // Earth ranges (CDC/clinical). In space these are shifted by SPACE_ADJUSTMENT_RULES.bodyTemp
-    // (core temp rises ~1 °C over ~2.5 months in 0 g — Stahn 2017, ESA "space fever").
+    // Normal 36.1–37.5; Watch 35.0–36.0 / 37.6–38.4; Alert ≥ 38.5 or < 35.0.
     criticalLow: 35.0,
-    cautionLow: 36.0,
-    cautionHigh: 37.3,
-    criticalHigh: 38.3,
+    cautionLow: 36.1,
+    cautionHigh: 37.6,
+    criticalHigh: 38.5,
   },
-  // Reference doc: target 8.5 h (scheduled on ISS), alert below 6 h.
-  sleep: { criticalLow: 6, cautionLow: 7, target: 8.5, cautionHigh: 10 },
-  mood: { criticalAtOrBelow: 3, cautionAtOrBelow: 6 },
+  sleep: {
+    // Normal ≥ 7 h (target 8.5). One night < 6 h = Watch; Alert = < 6 h for 3 nights in a row, or any night < 4 h.
+    criticalLow: 6,
+    consecutiveNightsForAlert: 3,
+    severeSingleNight: 4,
+    cautionLow: 7,
+    target: 8.5,
+    cautionHigh: 10,
+  },
+  mood: {
+    // 1–5 scale. Normal 4–5; Watch 3 or a single day at 1–2; Alert = 1–2 for 3 days in a row.
+    scaleMax: 5,
+    cautionAtOrBelow: 3,
+    criticalAtOrBelow: 2,
+    consecutiveDaysForAlert: 3,
+  },
   radiation: {
     careerLimitMSv: 600, // NASA-STD-3001
     thirtyDayLimitMSv: 250, // NASA short-term blood-forming organ limit (mGy-Eq), used as guide
@@ -280,17 +296,58 @@ export const THRESHOLDS = {
     dailyCautionMSv: 2, // above any routine environment baseline
     dailyCriticalMSv: 10, // indicative of a solar particle event
   },
-  boneDensity: { cautionAtOrBelowPct: -3, criticalAtOrBelowPct: -6 },
+  // A normal 6-month ISS stay loses ~6–9% at the hip, so Watch/Alert flag unusual loss.
+  boneDensity: { cautionAtOrBelowPct: -5, criticalAtOrBelowPct: -10 },
   spo2: {
-    // Earth normal 95–100%. Tighter in the 8.2 psia / 34% O2 exploration habitat (close to the
-    // 127 mmHg inspired-O2 floor) — app rule from the team reference doc.
+    // Normal ≥ 95%; Alert < 90% everywhere. In the 8.2 psia / 34% O2 habitat (close to the 127 mmHg
+    // inspired-O2 floor) only the early-warning Watch is tightened to < 96%.
     cautionLow: 95,
     criticalLow: 90,
     lowPressureHabitatPsia: 10.3,
     habitatCautionLow: 96,
-    habitatCriticalLow: 92,
+    habitatCriticalLow: 90,
   },
 } as const
+
+// ── Check-in inputs (slider ranges for the UI) ──────────────────────────
+
+export interface CheckinInputSpec {
+  key: keyof Omit<VitalsInput, 'fasting' | 'symptoms'>
+  indicator: IndicatorId
+  label: string
+  unit: string
+  min: number
+  max: number
+  step: number
+  /** Shown next to the field ("normal range"). */
+  normalText: string
+}
+
+/** Use these for the Daily Check-in sliders so ranges/units always match the backend rules. */
+export const CHECKIN_INPUTS: CheckinInputSpec[] = [
+  { key: 'sleepHours', indicator: 'sleep_hours', label: 'Sleep last night', unit: 'h', min: 0, max: 14, step: 0.1, normalText: '≥ 7 h (target 8.5 h)' },
+  { key: 'mood', indicator: 'mood', label: 'Mood', unit: '/5', min: 1, max: 5, step: 1, normalText: '4–5' },
+  { key: 'heartRateBpm', indicator: 'heart_rate', label: 'Resting heart rate', unit: 'bpm', min: 30, max: 180, step: 1, normalText: '50–100 bpm' },
+  { key: 'systolicMmHg', indicator: 'blood_pressure', label: 'Blood pressure (top)', unit: 'mmHg', min: 60, max: 200, step: 1, normalText: '90–129 mmHg' },
+  { key: 'diastolicMmHg', indicator: 'blood_pressure', label: 'Blood pressure (bottom)', unit: 'mmHg', min: 30, max: 130, step: 1, normalText: '60–84 mmHg' },
+  { key: 'bodyTempC', indicator: 'body_temp', label: 'Body temperature', unit: '°C', min: 34, max: 41, step: 0.1, normalText: '36.1–37.5 °C' },
+  { key: 'spo2Pct', indicator: 'spo2', label: 'Blood oxygen (SpO2)', unit: '%', min: 80, max: 100, step: 1, normalText: '≥ 95%' },
+  { key: 'bloodSugarMgDl', indicator: 'blood_sugar', label: 'Blood sugar', unit: 'mg/dL', min: 40, max: 300, step: 1, normalText: '70–99 fasting, 70–140 after food' },
+  { key: 'radiationDailyMSv', indicator: 'radiation_dose', label: 'Dosimeter, last 24 h', unit: 'mSv', min: 0, max: 20, step: 0.01, normalText: 'depends on location' },
+  { key: 'boneDensityChangePct', indicator: 'bone_density', label: 'Bone density change', unit: '%', min: -20, max: 5, step: 0.1, normalText: 'above −5%' },
+]
+
+/** Symptom checklist for the morning check-in (pages doc §3). "Skin problem" should offer "Add photo". */
+export const CHECKIN_SYMPTOMS = [
+  'headache',
+  'nausea',
+  'dizziness',
+  'congestion',
+  'back pain',
+  'eye or vision change',
+  'skin problem',
+  'other',
+] as const
 
 // ── Spaceflight physiology adjustments (reference doc §6) ────────────────
 
@@ -298,14 +355,15 @@ export const SPACE_ADJUSTMENT_RULES = {
   bodyTemp: {
     /** Continuous days in 0 g before the shift applies. */
     after0gDays: 60,
-    shiftC: 1.0,
-    /** Fever (critical) bound moves only half as far so real fevers are still caught. */
-    criticalShiftFraction: 0.5,
+    /** Top of Normal rises from 37.5 to 37.9 °C (Watch starts at 38.0). Alert stays at 38.5. */
+    shiftC: 0.4,
   },
   bloodPressure: {
-    /** 24 h BP drops 8–10 mmHg in flight (Norsk 2015) → midpoint. */
-    inFlightSystolicDrop: 9,
-    inFlightDiastolicDrop: 5,
+    /** 24 h BP runs 8–10 mmHg lower in flight (Norsk 2015) → the LOW limits relax by this much. */
+    inFlightSystolicRelax: 8,
+    inFlightDiastolicRelax: 5,
+    /** Relaxation is switched off for this many days after landing (fainting risk on standing). */
+    offAfterLandingDays: 14,
   },
   sleep: { targetHours: 8.5, alertBelowHours: 6 },
   spo2: { lowPressureHabitatPsia: 10.3 },
@@ -319,7 +377,7 @@ export const TREND_SENSITIVITY: Record<IndicatorId, { meaningfulPerDay: number; 
   body_temp: { meaningfulPerDay: 0.04, sdFloor: 0.2 },
   spo2: { meaningfulPerDay: 0.12, sdFloor: 1 },
   sleep_hours: { meaningfulPerDay: 0.05, sdFloor: 0.5 },
-  mood: { meaningfulPerDay: 0.08, sdFloor: 1 },
+  mood: { meaningfulPerDay: 0.04, sdFloor: 0.5 },
   radiation_dose: { meaningfulPerDay: 0, sdFloor: 0 }, // judged vs environment dose rate instead
   bone_density: { meaningfulPerDay: 0, sdFloor: 0 }, // judged vs expected gravity-scaled loss instead
 }
@@ -340,14 +398,14 @@ export const STALE_AFTER_DAYS: Record<IndicatorId, number> = {
 // ── Reference tables (reference doc §5, §6, §9) ───────────────────────────
 
 export const REFERENCE_RANGES: ReferenceRange[] = [
-  { indicator: 'body_temp', unit: '°C', earthLow: 36.1, earthHigh: 37.2, spaceShift: 'Rises about 1 °C over ~2.5 months; faster during exercise.', appRule: 'After day 60 in 0 g, raise baseline by ~1 °C.', sources: [SOURCES.coreTemp, SOURCES.spaceFever] },
-  { indicator: 'blood_pressure', unit: 'mmHg', earthLow: null, earthHigh: 120, spaceShift: '24 h BP drops 8–10 mmHg.', appRule: 'Lower expected BP in flight.', sources: [SOURCES.bpInSpace, SOURCES.aha] },
+  { indicator: 'body_temp', unit: '°C', earthLow: 36.1, earthHigh: 37.2, spaceShift: 'Rises about 1 °C over ~2.5 months; faster during exercise.', appRule: 'Normal 36.1–37.5 °C; after day 60 in 0 g Normal goes up to 37.9 °C. Alert ≥ 38.5 °C.', sources: [SOURCES.coreTemp, SOURCES.spaceFever] },
+  { indicator: 'blood_pressure', unit: 'mmHg', earthLow: null, earthHigh: 120, spaceShift: '24 h BP drops 8–10 mmHg.', appRule: 'Lower BP is expected in flight, so low limits relax by 8/5 mmHg (not after landing).', sources: [SOURCES.bpInSpace, SOURCES.aha] },
   { indicator: 'heart_rate', unit: 'bpm', earthLow: 60, earthHigh: 100, spaceShift: 'Unchanged in long ISS stays.', appRule: 'Keep Earth range.', sources: [SOURCES.aha] },
-  { indicator: 'sleep_hours', unit: 'hrs', earthLow: 7, earthHigh: 9, spaceShift: '~6 h average on ISS vs 8.5 h scheduled.', appRule: 'Target 8.5 h, alert below 6 h.', sources: [SOURCES.sleep] },
+  { indicator: 'sleep_hours', unit: 'hrs', earthLow: 7, earthHigh: 9, spaceShift: '~6 h average on ISS vs 8.5 h scheduled.', appRule: 'Target 8.5 h. One night < 6 h = Watch; Alert after 3 nights < 6 h in a row (or any night < 4 h).', sources: [SOURCES.sleep] },
   { indicator: 'blood_sugar', unit: 'mg/dL', earthLow: 70, earthHigh: 99, spaceShift: 'No clear shift.', appRule: 'Earth range (fasting), personal baseline from first readings.', sources: [SOURCES.ada, SOURCES.osdr] },
   { indicator: 'spo2', unit: '%', earthLow: 95, earthHigh: 100, spaceShift: 'Watch in 8.2 psi habitat (close to O2 floor).', appRule: 'Tighter alert on Moon / Mars.', sources: [SOURCES.explorationAtmosphere, SOURCES.std3001Vol2] },
   { indicator: 'bone_density', unit: '%', earthLow: null, earthHigh: null, spaceShift: 'Loses 1–1.5% per month in 0 g.', appRule: 'Estimate by gravity: (1.25/30)·(1 − g) %/day; track exercise.', sources: [SOURCES.boneLoss, SOURCES.partialGravity] },
-  { indicator: 'mood', unit: '/10', earthLow: null, earthHigh: null, spaceShift: 'Isolation and distance from Earth.', appRule: 'Daily check-in (1–10 scale in this app).', sources: [SOURCES.hazards] },
+  { indicator: 'mood', unit: '/5', earthLow: 4, earthHigh: 5, spaceShift: 'Isolation and distance from Earth.', appRule: 'Daily check-in on a 1–5 scale; Alert only after 3 low days in a row.', sources: [SOURCES.hazards] },
   { indicator: 'radiation_dose', unit: 'mSv', earthLow: null, earthHigh: null, spaceShift: '~0.35 mSv/day ISS, ~1.84 transit, ~1.37 Moon, ~0.64 Mars surface.', appRule: 'Career limit 600 mSv; ≤ 250 mSv per solar storm.', sources: [SOURCES.nasaStd3001, SOURCES.ochmoRadiation] },
 ]
 
@@ -682,10 +740,10 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
     id: 'mood',
     system: 'behavioral',
     name: 'Mood',
-    unit: '/10',
+    unit: '/5',
     hazardLink: 'Isolation and Confinement',
     howToMeasure:
-      '1) Find a quiet moment. 2) Ask yourself: “Overall, how am I feeling today?” 3) Rate 1 (very low) to 10 (excellent). Be honest — this is private unless it needs escalation.',
+      '1) Find a quiet moment. 2) Ask yourself: “Overall, how am I feeling today?” 3) Tap 1 (very low) to 5 (great). Be honest — this is private unless it needs escalation.',
     whyNeeded:
       'Months in a small, isolated space far from family can lead to low mood, irritability, and team conflict. Spotting changes early lets the crew and support team help before it affects safety.',
     measurableInSpace: true,
@@ -725,7 +783,7 @@ export const DEFAULT_ROUTINE: RoutineTask[] = [
   { id: 'glucose_check', title: 'Fasting blood sugar check', xp: 15, completed: false, frequency: 'daily', linkedSystem: 'metabolic', refreshesIndicator: 'blood_sugar' },
   { id: 'exercise_2h', title: 'Complete 2 h resistive + aerobic exercise', xp: 40, completed: false, frequency: 'daily', linkedSystem: 'musculoskeletal' },
   { id: 'sleep_log', title: 'Log sleep from actigraphy band (target 8.5 h)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'sleep_hours' },
-  { id: 'mood_checkin', title: 'Mood check-in (1–10)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'mood' },
+  { id: 'mood_checkin', title: 'Mood check-in (1–5)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'mood' },
   { id: 'hydration', title: 'Drink ≥ 2 L water', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'metabolic' },
   { id: 'bone_ultrasound', title: 'Guided bone ultrasound scan', xp: 50, completed: false, frequency: 'weekly', linkedSystem: 'musculoskeletal', refreshesIndicator: 'bone_density' },
   { id: 'eye_exam', title: 'Eye/vision check for SANS (OCT or Amsler grid)', xp: 40, completed: false, frequency: 'weekly', linkedSystem: 'cardiovascular' },
@@ -1000,7 +1058,7 @@ export const CREW_PROFILES: AstronautProfile[] = [
     glucose: { baseline: 92, drift: 0, noise: 6, decimals: 0 },
     temp: { baseline: 37.4, drift: 0, noise: 0.2, decimals: 1 }, // past day 60 in 0 g: ~+1 °C core shift
     sleep: { baseline: 6.3, drift: 0, noise: 0.5, decimals: 1 }, // ISS average ~6 h
-    mood: { baseline: 8, drift: 0, noise: 0.8, decimals: 0 },
+    mood: { baseline: 4.3, drift: 0, noise: 0.5, decimals: 0 },
     spo2: { baseline: 98, drift: 0, noise: 0.8, decimals: 0 },
   }),
   buildProfile({
@@ -1023,7 +1081,7 @@ export const CREW_PROFILES: AstronautProfile[] = [
     glucose: { baseline: 96, drift: 1.2, noise: 6, decimals: 0 },
     temp: { baseline: 37.0, drift: 0.01, noise: 0.2, decimals: 1 },
     sleep: { baseline: 6.4, drift: -0.03, noise: 0.5, decimals: 1 },
-    mood: { baseline: 6, drift: -0.05, noise: 0.8, decimals: 0 },
+    mood: { baseline: 3.6, drift: -0.03, noise: 0.4, decimals: 0 },
     spo2: { baseline: 97, drift: 0, noise: 0.8, decimals: 0 },
   }),
   buildProfile({
@@ -1046,7 +1104,7 @@ export const CREW_PROFILES: AstronautProfile[] = [
     glucose: { baseline: 98, drift: 0, noise: 7, decimals: 0 },
     temp: { baseline: 37.1, drift: 0.11, noise: 0.15, decimals: 1 },
     sleep: { baseline: 6.0, drift: -0.08, noise: 0.4, decimals: 1 },
-    mood: { baseline: 7, drift: -0.1, noise: 0.6, decimals: 0 },
+    mood: { baseline: 4.4, drift: -0.08, noise: 0.4, decimals: 0 },
     spo2: { baseline: 96, drift: -0.15, noise: 0.6, decimals: 0 }, // 8.2 psia habitat + dust
   }),
 ]
