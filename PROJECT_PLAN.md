@@ -111,6 +111,17 @@ Admin (mission control) creates astronauts (name, role, PIN, destination, launch
 Task Board
 [x] STEP 1 — CONTRACT LOCKED v2.1 (Claude Code): src/types/astronaut.ts now covers PROJECT_PLAN v2.0 + astronaut_health_monitor_plan.md. Stubs with final signatures (bodies throw "not implemented" until Step 2): src/services/wearableStream.ts, ingestionEngine.ts, briefingEngine.ts, missionTimeline.ts, environmentFeed.ts, accountService.ts. Ready now (real, not stubs): src/data (ENVIRONMENTS ×6, MISSION_TEMPLATES, CREW_PROFILES iss_crew / mars_crew / moon_crew, INDICATOR_GUIDES incl. SpO2) and healthEvaluator (evaluateProfile, evaluateVitals, displayStatus, STATUS_COLORS / STATUS_LABELS / ESCALATION_MODE_LABELS, escalationModeFor). Parallel execution may start.
 
+
+[x] STEP 2 — SERVICES LIVE (Claude Code): every function in src/services is implemented — no "not implemented" throws remain, so no try/catch fallbacks are needed. `npx tsc --noEmit`, `tsc -p tsconfig.app.json --noEmit`, eslint on src/services|types|data, and `npm run build` all pass. All services work fully offline; Gemini is used only if VITE_GEMINI_API_KEY (or AIConfig.apiKey) is set. Wiring cheat-sheet for Codex:
+- Login: accountService.authenticate(login, pin) → getProfileForSession(session). Demo logins in DEMO_LOGINS (admin 0000, mars_crew 1111, iss_crew 2222, moon_crew 3333). Admin: listAccounts, createAstronaut, updateMissionDates.
+- Hydrate: healthEvaluator.evaluateProfile(profile) → { indicators, report, missionState }. Demo slider: evaluateProfile(profile, { missionState: getMissionState(profile.mission, day), ignoreStaleness: true }).
+- Trip bar: missionTimeline.getMissionState(plan, day?) + formatTripBarLabel(state); plan.phases for segments.
+- Live data: wearableStream.createWearableStream({ profile }) and environmentFeed.createEnvironmentFeed({ missionState }) → subscribe(tick) → healthEvaluator.applyIndicatorUpdates(profile, tick.updates) → briefingEngine.updateBriefing(briefing, { kind: 'wearable_tick' | 'environment_tick', tick }, { profile, missionState, indicators }).
+- Demo bar: wearable.tickOnce() (+15m), environmentFeed.triggerSolarEvent() + wearable.injectAnomaly('solar_flare'), ingestionEngine.ingest(createDemoInput('valid_ultrasound' | 'invalid_file' | ...)).
+- Dropzone / sliders: ingestionEngine.ingest({ file, fileName, mimeType, astronautId, day } or { manualValues, astronautId, day }) → artifact (accepted / rejectionReason) + updates → applyIndicatorUpdates → updateBriefing({ kind: 'artifact', artifact }).
+- First briefing: briefingEngine.createInitialBriefing({ profile, missionState, indicators }).
+- Colors/labels: displayStatus(ind), STATUS_COLORS, STATUS_LABELS, ESCALATION_MODE_LABELS. Cabin panel: tick.cabinEvaluation; shelter banner: tick.activeEvent?.shelterAdvised.
+
 UI implications of v2.1 (for Codex — your call how to render):
 - EnvironmentType values changed (see schema). The "Environment Switcher" becomes a mission/crew selector + trip bar ("Day 45 · Flying to Mars · 138 days to arrival"); in demo mode the trip bar is a slider that calls missionTimeline.getMissionState(plan, day).
 - Use displayStatus(indicator) for colors: 'no_data' = grey. Never show missing data as green.
@@ -128,19 +139,19 @@ Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental A
 
 [x] Create src/services/healthEvaluator.ts with real medical threshold rules (incl. SpO2, missing-data, delay-based escalation)
 
-[ ] Add slope-based trajectory detection (trend & projectedDaysToThreshold), personal-baseline scoring, and phase-adjusted ranges (temp +1 °C after day 60 in 0 g, BP −8–10 mmHg in flight, sleep target 8.5 h / alert < 6 h, tighter SpO2 in 8.2 psia habitats) to healthEvaluator.ts
+[x] Add slope-based trajectory detection (trend & projectedDaysToThreshold), personal-baseline scoring, and phase-adjusted ranges (temp +1 °C after day 60 in 0 g, BP −8–10 mmHg in flight, sleep target 8.5 h / alert < 6 h, tighter SpO2 in 8.2 psia habitats) to healthEvaluator.ts
 
-[ ] Create src/services/ingestionEngine.ts implementing the AI Biomedical Relevance Gatekeeper (accept/reject with reason) + One-Time Multimodal Normalizer (with offline mock parsers for demo reliability)
+[x] Create src/services/ingestionEngine.ts implementing the AI Biomedical Relevance Gatekeeper (accept/reject with reason) + One-Time Multimodal Normalizer (with offline mock parsers for demo reliability)
 
-[ ] Create src/services/briefingEngine.ts implementing Stateful Incremental AI Summary updates (reads prior briefing + new normalized event only; outputs color-coded plain-English diagnosis, early drift warnings, and tool instructions)
+[x] Create src/services/briefingEngine.ts implementing Stateful Incremental AI Summary updates (reads prior briefing + new normalized event only; outputs color-coded plain-English diagnosis, early drift warnings, and tool instructions)
 
-[ ] Create src/services/wearableStream.ts simulating automatic 15-minute wearable telemetry ticks (HR, SpO2, skin/core temp, steps, HRV, sleep) + demo anomaly injection triggers
+[x] Create src/services/wearableStream.ts simulating automatic 15-minute wearable telemetry ticks (HR, SpO2, skin/core temp, steps, HRV, sleep) + demo anomaly injection triggers
 
-[ ] Create src/services/missionTimeline.ts (phase lookup, Earth delay, escalation mode, cumulative exposure bank account, transition alerts, trip-bar label)
+[x] Create src/services/missionTimeline.ts (phase lookup, Earth delay, escalation mode, cumulative exposure bank account, transition alerts, trip-bar label)
 
-[ ] Create src/services/environmentFeed.ts (cabin CO2/temp/humidity replay + NASA-STD-3001 cabin limits, RadLab-style dose feed, DONKI SEP shelter alerts with offline fallback)
+[x] Create src/services/environmentFeed.ts (cabin CO2/temp/humidity replay + NASA-STD-3001 cabin limits, RadLab-style dose feed, DONKI SEP shelter alerts with offline fallback)
 
-[ ] Create src/services/accountService.ts (admin-created accounts, name + PIN login, launch-date edits, offline localStorage) + src/data reference tables (REFERENCE_RANGES, CABIN_LIMITS, HAZARD_RISK_MAP)
+[x] Create src/services/accountService.ts (admin-created accounts, name + PIN login, launch-date edits, offline localStorage) + src/data reference tables (REFERENCE_RANGES, CABIN_LIMITS, HAZARD_RISK_MAP)
 
 Codex Tasks (Movie-Grade Spacecraft HUD, Interactive Body Map & Demo Controls)
 [ ] Build Dark-Mode Spacecraft Medical HUD with animated deep-space canvas/nebula backdrop, glowing glassmorphic telemetry panels, Environment Switcher (ISS, Lunar Base, Mars Transit, Rover), and Crew Profile selector
