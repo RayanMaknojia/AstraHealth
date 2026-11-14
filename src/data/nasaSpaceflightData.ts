@@ -18,9 +18,13 @@
 import type {
   AstronautProfile,
   BodySystem,
+  CrewRole,
   DataModality,
   EnvironmentProfile,
   EnvironmentType,
+  MissionDestination,
+  MissionPlan,
+  PersonalBaseline,
   HazardName,
   HealthIndicator,
   HistoryPoint,
@@ -55,6 +59,22 @@ export const SOURCES = {
   sleep: { label: 'Barger et al., Lancet Neurology 2014 — astronaut sleep', url: 'https://doi.org/10.1016/S1474-4422(14)70122-X' },
   ada: { label: 'American Diabetes Association — Standards of Care (glycemic thresholds)', url: 'https://diabetesjournals.org/care' },
   aha: { label: 'American Heart Association — Blood pressure categories', url: 'https://www.heart.org/en/health-topics/high-blood-pressure' },
+  // From astronaut_health_monitor_plan.md (team reference doc)
+  std3001Vol2: { label: 'NASA-STD-3001 Vol. 2 §6 — Natural and induced environments', url: 'https://www.nasa.gov/reference/6-0-natural-and-induced-environments-vol-2' },
+  ochmoCo2: { label: 'NASA OCHMO Technical Brief — Carbon dioxide', url: 'https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf' },
+  ochmoRadiation: { label: 'NASA OCHMO Technical Brief — Radiation protection', url: 'https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf' },
+  explorationAtmosphere: { label: 'NASA NTRS — Exploration atmosphere (8.2 psia / 34% O2)', url: 'https://ntrs.nasa.gov/citations/20230015380' },
+  partialGravity: { label: 'NASA NTRS — Partial gravity and human health', url: 'https://ntrs.nasa.gov/citations/20210019591' },
+  issRadiation: { label: 'ISS crew radiation exposure (PMC10919966)', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC10919966' },
+  marsRad: { label: 'SwRI — Curiosity RAD Mars surface radiation', url: 'https://swri.org/node/9140' },
+  bpInSpace: { label: 'Norsk et al. 2015 — Blood pressure in space', url: 'https://pmc.ncbi.nlm.nih.gov/articles/4324706/' },
+  spaceFever: { label: 'ESA — Space fever', url: 'https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Research/Space_fever' },
+  lunarDust: { label: 'Stony Brook Medicine — Lunar dust health risk', url: 'https://news.stonybrookmedicine.edu/news/breathing-lunar-dust-could-pose-health-risk-to-future-astronauts/' },
+  marsFacts: { label: 'NASA NSSDC — Mars Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html' },
+  moonFacts: { label: 'NASA NSSDC — Moon Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html' },
+  osdr: { label: 'NASA Open Science Data Repository (OSDR)', url: 'https://osdr.nasa.gov' },
+  radlab: { label: 'NASA OSDR RadLab', url: 'https://visualization.osdr.nasa.gov/radlab/' },
+  donki: { label: 'NASA DONKI — Space weather (SEP events)', url: 'https://api.nasa.gov' },
 } as const satisfies Record<string, SourceRef>
 
 // ── NASA HRP: 5 Hazards ────────────────────────────────────────────────────
@@ -255,63 +275,191 @@ export const THRESHOLDS = {
     dailyCriticalMSv: 10, // indicative of a solar particle event
   },
   boneDensity: { cautionAtOrBelowPct: -3, criticalAtOrBelowPct: -6 },
+  spo2: {
+    // Earth normal 95–100%. Tighter in the 8.2 psia / 34% O2 exploration habitat (close to the
+    // 127 mmHg inspired-O2 floor) — app rule from the team reference doc.
+    cautionLow: 95,
+    criticalLow: 90,
+    lowPressureHabitatPsia: 10.3,
+    habitatCautionLow: 96,
+    habitatCriticalLow: 92,
+  },
 } as const
 
 // ── Mission environments ──────────────────────────────────────────────────
 
 export const ENVIRONMENTS: Record<EnvironmentType, EnvironmentProfile> = {
-  ISS_ORBIT: {
-    id: 'ISS_ORBIT',
-    label: 'ISS (Low Earth Orbit)',
-    description: 'Space station ~400 km up, still partly protected by Earth’s magnetic field.',
+  // Values from astronaut_health_monitor_plan.md §4/§7; some are midpoints of published ranges.
+  EARTH: {
+    id: 'EARTH',
+    label: 'Earth (training / baseline)',
+    description: 'Pre-launch Earth mode: readings become the personal baseline for the mission.',
+    gravityG: 1,
+    dayLengthHours: 24,
+    typicalDoseRateMSvPerDay: 0.01,
+    commDelay: 'None',
+    commDelaySecondsMin: 0,
+    commDelaySecondsMax: 0,
+    dustRisk: 'none',
+    cabinPsia: 14.7,
+    cabinO2Pct: 21,
+    notes: ['Collect normal readings here — they become your personal baseline.'],
+    sources: [],
+  },
+  EARTH_ORBIT: {
+    id: 'EARTH_ORBIT',
+    label: 'Earth Orbit (ISS)',
+    description: 'Station ~400 km up, still partly protected by Earth’s magnetic field.',
     gravityG: 0,
-    typicalDoseRateMSvPerDay: 0.5,
+    dayLengthHours: 1.5,
+    typicalDoseRateMSvPerDay: 0.35,
     commDelay: '< 1 s (near real-time)',
+    commDelaySecondsMin: 0,
     commDelaySecondsMax: 1,
+    dustRisk: 'none',
+    cabinPsia: 14.7,
+    cabinO2Pct: 21,
     notes: [
-      'Flight surgeons reachable in near real-time.',
+      '90-minute orbit: ~16 sunrises a day disrupt sleep.',
       'Neutrons ≈ 30% of total dose (CSA).',
-      'Emergency return to Earth possible within hours.',
+      'Flight surgeon reachable in near real-time.',
     ],
+    sources: [SOURCES.issRadiation, SOURCES.csaRadiation],
   },
-  LUNAR_BASE: {
-    id: 'LUNAR_BASE',
-    label: 'Lunar Base',
-    description: 'Surface habitat on the Moon, outside Earth’s magnetosphere.',
-    gravityG: 0.166,
-    typicalDoseRateMSvPerDay: 1.4,
-    commDelay: '~1.3 s one-way',
-    commDelaySecondsMax: 1.3,
-    notes: ['~3 days from Earth (NASA HRP).', 'Lunar dust is an extra closed-environment hazard.'],
-  },
-  MARS_TRANSIT: {
-    id: 'MARS_TRANSIT',
-    label: 'Mars Transit',
-    description: 'Deep-space cruise between Earth and Mars in microgravity.',
+  DEEP_SPACE: {
+    id: 'DEEP_SPACE',
+    label: 'Deep Space Transit',
+    description: 'Cruise outside Earth’s magnetosphere in microgravity — highest continuous radiation.',
     gravityG: 0,
+    dayLengthHours: null,
+    typicalDoseRateMSvPerDay: 1.84,
+    commDelay: 'Grows from seconds to minutes',
+    commDelaySecondsMin: 1,
+    commDelaySecondsMax: 1440,
+    dustRisk: 'none',
+    cabinPsia: 14.7,
+    cabinO2Pct: 21,
+    notes: ['No natural day — keep a strict light/sleep schedule.', 'Crew must act on medical issues before Earth can respond.'],
+    sources: [SOURCES.msLRad],
+  },
+  MARS_ORBIT: {
+    id: 'MARS_ORBIT',
+    label: 'Mars Orbit & Landing',
+    description: 'Arrival, orbit insertion and descent — microgravity until touchdown.',
+    gravityG: 0,
+    dayLengthHours: null,
     typicalDoseRateMSvPerDay: 1.8,
     commDelay: '4–24 min one-way',
+    commDelaySecondsMin: 240,
     commDelaySecondsMax: 1440,
+    dustRisk: 'none',
+    cabinPsia: 14.7,
+    cabinO2Pct: 21,
+    notes: ['Prepare for gravity transition: hydrate and plan standing BP checks after landing.'],
+    sources: [SOURCES.marsFacts],
+  },
+  MARS_SURFACE: {
+    id: 'MARS_SURFACE',
+    label: 'Mars Surface Base',
+    description: 'Habitat at 0.38 g; thin CO2 atmosphere outside (avg 6.36 mb).',
+    gravityG: 0.38,
+    dayLengthHours: 24.65,
+    typicalDoseRateMSvPerDay: 0.64,
+    commDelay: '4–24 min one-way (2–3 week blackout at solar conjunction)',
+    commDelaySecondsMin: 240,
+    commDelaySecondsMax: 1440,
+    dustRisk: 'moderate',
+    cabinPsia: 8.2,
+    cabinO2Pct: 34,
     notes: [
-      'Mars ≈ 140 million miles away; whole mission ≈ 3 years (NASA HRP).',
-      'Crew must act on medical issues before Earth can respond.',
-      'Highest continuous radiation exposure of any profile.',
+      'Sol is ~40 min longer than an Earth day — sleep can drift.',
+      '0.38 g is likely not enough to fully protect bone and muscle (estimate).',
+      'Fine dust: keep airlock hygiene.',
+    ],
+    sources: [SOURCES.marsRad, SOURCES.marsFacts, SOURCES.partialGravity, SOURCES.explorationAtmosphere],
+  },
+  MOON_SURFACE: {
+    id: 'MOON_SURFACE',
+    label: 'Moon Surface Base',
+    description: 'Habitat at 0.165 g with no atmosphere or magnetic field; ~2.6× ISS dose.',
+    gravityG: 0.165,
+    dayLengthHours: 708,
+    typicalDoseRateMSvPerDay: 1.37,
+    commDelay: '~1.3 s one-way',
+    commDelaySecondsMin: 1.3,
+    commDelaySecondsMax: 1.3,
+    dustRisk: 'high',
+    cabinPsia: 8.2,
+    cabinO2Pct: 34,
+    notes: [
+      '~2 weeks of light then ~2 weeks of dark — use scheduled lighting.',
+      '“Lunar hay fever”: dust causes sneezing, watery eyes, sore throat.',
+    ],
+    sources: [SOURCES.lunarLnd, SOURCES.moonFacts, SOURCES.lunarDust, SOURCES.explorationAtmosphere],
+  },
+}
+
+/** One-way delay above this (seconds) → act now on onboard guidance, then report. */
+export const ACT_THEN_REPORT_DELAY_S = 60
+
+// ── Mission plans (phase schedules) ───────────────────────────────────────
+
+function isoDaysAgo(days: number): string {
+  const d = new Date()
+  d.setUTCHours(0, 0, 0, 0)
+  d.setUTCDate(d.getUTCDate() - days)
+  return d.toISOString().slice(0, 10)
+}
+
+/** Template phase schedules (reference doc §7). Launch dates are set per crew. */
+export const MISSION_TEMPLATES: Record<MissionDestination, Omit<MissionPlan, 'id' | 'launchDate'>> = {
+  EARTH_TRAINING: {
+    name: 'Pre-flight training (Earth mode)',
+    destination: 'EARTH_TRAINING',
+    totalDays: 30,
+    phases: [{ order: 1, name: 'Earth training', startDay: 0, endDay: 30, environment: 'EARTH', habitat: 'ground' }],
+  },
+  ISS: {
+    name: 'ISS Expedition (180 days)',
+    destination: 'ISS',
+    totalDays: 180,
+    phases: [
+      { order: 1, name: 'Launch & docking', startDay: 0, endDay: 2, environment: 'EARTH_ORBIT', habitat: 'spacecraft' },
+      { order: 2, name: 'Living on the ISS', startDay: 2, endDay: 178, environment: 'EARTH_ORBIT', habitat: 'station' },
+      { order: 3, name: 'Return to Earth', startDay: 178, endDay: 180, environment: 'EARTH_ORBIT', habitat: 'spacecraft' },
     ],
   },
-  SURFACE_ROVER: {
-    id: 'SURFACE_ROVER',
-    label: 'Pressurised Rover',
-    description: 'Multi-day surface traverse in a small pressurised rover with thin shielding.',
-    gravityG: 0.166,
-    typicalDoseRateMSvPerDay: 1.4,
-    commDelay: '~1.3 s via relay (may drop out)',
-    commDelaySecondsMax: 1.3,
-    notes: [
-      'Very confined: 2 crew, limited exercise equipment.',
-      'Return to base storm shelter if a solar event is forecast.',
+  MOON: {
+    name: 'Lunar surface mission (30 days)',
+    destination: 'MOON',
+    totalDays: 30,
+    phases: [
+      { order: 1, name: 'Flying to the Moon', startDay: 0, endDay: 3, environment: 'DEEP_SPACE', habitat: 'spacecraft' },
+      { order: 2, name: 'Living on the Moon', startDay: 3, endDay: 27, environment: 'MOON_SURFACE', habitat: 'moon_base' },
+      { order: 3, name: 'Flying home', startDay: 27, endDay: 30, environment: 'DEEP_SPACE', habitat: 'spacecraft' },
+    ],
+  },
+  MARS: {
+    name: 'Mars conjunction-class mission (866 days)',
+    destination: 'MARS',
+    totalDays: 866,
+    phases: [
+      { order: 1, name: 'Leaving Earth', startDay: 0, endDay: 3, environment: 'EARTH_ORBIT', habitat: 'spacecraft' },
+      { order: 2, name: 'Flying to Mars', startDay: 3, endDay: 183, environment: 'DEEP_SPACE', habitat: 'spacecraft' },
+      { order: 3, name: 'Mars orbit and landing', startDay: 183, endDay: 186, environment: 'MARS_ORBIT', habitat: 'spacecraft' },
+      { order: 4, name: 'Living on Mars', startDay: 186, endDay: 686, environment: 'MARS_SURFACE', habitat: 'mars_base' },
+      { order: 5, name: 'Flying home', startDay: 686, endDay: 866, environment: 'DEEP_SPACE', habitat: 'spacecraft' },
     ],
   },
 }
+
+export function buildMissionPlan(id: string, destination: MissionDestination, launchDate: string): MissionPlan {
+  const t = MISSION_TEMPLATES[destination]
+  return { id, launchDate, ...t, phases: t.phases.map((ph) => ({ ...ph })) }
+}
+
+/** Reference doc: bone_loss_per_day = (1.25 / 30) × (1 − gravity_g), % per day. */
+export const BONE_LOSS_PCT_PER_DAY_AT_0G = 1.25 / 30
 
 // ── Plain-English indicator guides ────────────────────────────────────────
 
@@ -411,6 +559,18 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
       'Months in a small, isolated space far from family can lead to low mood, irritability, and team conflict. Spotting changes early lets the crew and support team help before it affects safety.',
     measurableInSpace: true,
   },
+  spo2: {
+    id: 'spo2',
+    system: 'cardiovascular',
+    name: 'Blood Oxygen (SpO2)',
+    unit: '%',
+    hazardLink: 'Hostile Closed Environments',
+    howToMeasure:
+      '1) Sit still for 1 minute with warm hands. 2) Clip the pulse oximeter on a fingertip (no nail polish). 3) Wait until the number stops changing (~30 s). 4) Log the % value.',
+    whyNeeded:
+      'Shows how well your blood carries oxygen. Moon and Mars habitats run at lower pressure (8.2 psi, 34% O2), close to the minimum safe oxygen level, so a small drop matters more there. A falling value can also mean a life-support or lung problem (e.g. lunar dust).',
+    measurableInSpace: true,
+  },
   body_temp: {
     id: 'body_temp',
     system: 'radiation_immune',
@@ -428,14 +588,15 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
 // ── Routine tasks (gamification) ──────────────────────────────────────────
 
 export const DEFAULT_ROUTINE: RoutineTask[] = [
-  { id: 'log_vitals_am', title: 'Morning vitals: HR, BP, temperature', xp: 20, completed: false, frequency: 'daily', linkedSystem: 'cardiovascular' },
-  { id: 'dosimeter_read', title: 'Read and log personal dosimeter', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'radiation_immune' },
-  { id: 'glucose_check', title: 'Fasting blood sugar check', xp: 15, completed: false, frequency: 'daily', linkedSystem: 'metabolic' },
+  { id: 'log_vitals_am', title: 'Morning vitals: HR, BP, temperature', xp: 20, completed: false, frequency: 'daily', linkedSystem: 'cardiovascular', refreshesIndicator: 'blood_pressure' },
+  { id: 'spo2_check', title: 'Pulse-oximeter SpO2 check', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'cardiovascular', refreshesIndicator: 'spo2' },
+  { id: 'dosimeter_read', title: 'Read and log personal dosimeter', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'radiation_immune', refreshesIndicator: 'radiation_dose' },
+  { id: 'glucose_check', title: 'Fasting blood sugar check', xp: 15, completed: false, frequency: 'daily', linkedSystem: 'metabolic', refreshesIndicator: 'blood_sugar' },
   { id: 'exercise_2h', title: 'Complete 2 h resistive + aerobic exercise', xp: 40, completed: false, frequency: 'daily', linkedSystem: 'musculoskeletal' },
-  { id: 'sleep_log', title: 'Log sleep from actigraphy band', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral' },
-  { id: 'mood_checkin', title: 'Mood check-in (1–10)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral' },
+  { id: 'sleep_log', title: 'Log sleep from actigraphy band (target 8.5 h)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'sleep_hours' },
+  { id: 'mood_checkin', title: 'Mood check-in (1–10)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'mood' },
   { id: 'hydration', title: 'Drink ≥ 2 L water', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'metabolic' },
-  { id: 'bone_ultrasound', title: 'Guided bone ultrasound scan', xp: 50, completed: false, frequency: 'weekly', linkedSystem: 'musculoskeletal' },
+  { id: 'bone_ultrasound', title: 'Guided bone ultrasound scan', xp: 50, completed: false, frequency: 'weekly', linkedSystem: 'musculoskeletal', refreshesIndicator: 'bone_density' },
   { id: 'eye_exam', title: 'Eye/vision check for SANS (OCT or Amsler grid)', xp: 40, completed: false, frequency: 'weekly', linkedSystem: 'cardiovascular' },
   { id: 'family_conference', title: 'Private family video conference', xp: 25, completed: false, frequency: 'weekly', linkedSystem: 'behavioral' },
 ]
@@ -506,13 +667,10 @@ const HISTORY_SOURCE: Record<IndicatorId, DataModality> = {
   blood_sugar: 'manual_slider',
   mood: 'manual_slider',
   bone_density: 'ultrasound_image',
+  spo2: 'wearable_auto',
 }
 
-function indicator(
-  id: IndicatorId,
-  value: number | string,
-  history: HistoryPoint[],
-): HealthIndicator {
+function indicator(id: IndicatorId, value: number | string, history: HistoryPoint[]): HealthIndicator {
   const g = INDICATOR_GUIDES[id]
   const source = HISTORY_SOURCE[id]
   return {
@@ -521,28 +679,46 @@ function indicator(
     name: g.name,
     value,
     unit: g.unit,
-    // Placeholder; recomputed by healthEvaluator.evaluateIndicators() at runtime.
+    // Placeholders; recomputed by healthEvaluator at runtime.
     status: 'nominal',
+    dataState: 'fresh',
+    lastMeasuredDay: history[history.length - 1]?.day,
     trend: 'stable',
     hazardLink: g.hazardLink,
     howToMeasure: g.howToMeasure,
     whyNeeded: g.whyNeeded,
     actionPlan: { level: 'self_care', steps: [] },
     history: history.map((pt) => ({ ...pt, source })),
+    simulated: true,
   }
+}
+
+/** Personal baseline from the first 7 readings (reference doc §9 scoring). */
+function baselineFromHistory(astronautId: string, series: Partial<Record<IndicatorId, HistoryPoint[]>>): PersonalBaseline {
+  const values: PersonalBaseline['values'] = {}
+  for (const [id, h] of Object.entries(series) as [IndicatorId, HistoryPoint[]][]) {
+    const first = h.slice(0, 7).map((pt) => pt.value)
+    if (!first.length) continue
+    const mean = first.reduce((a, v) => a + v, 0) / first.length
+    const sd = Math.sqrt(first.reduce((a, v) => a + (v - mean) ** 2, 0) / first.length)
+    values[id] = { mean: Math.round(mean * 100) / 100, sd: Math.round(sd * 100) / 100, n: first.length }
+  }
+  return { astronautId, source: 'first_7_days', values }
 }
 
 interface ProfileSeed {
   id: string
   name: string
   role: string
+  crewRole: CrewRole
   agency: AstronautProfile['agency']
   age: number
   sex: AstronautProfile['sex']
-  environment: EnvironmentType
+  login: string
+  destination: MissionDestination
   missionDay: number
-  missionLengthDays: number
   priorCareerDoseMSv: number
+  notes: string[]
   seed: number
   hr: TrendSpec
   sys: TrendSpec
@@ -551,27 +727,32 @@ interface ProfileSeed {
   temp: TrendSpec
   sleep: TrendSpec
   mood: TrendSpec
-  boneMonthlyLossPct: number
+  spo2: TrendSpec
 }
 
 function buildProfile(p: ProfileSeed): AstronautProfile {
-  const start = p.missionDay - HISTORY_DAYS + 1
-  const env = ENVIRONMENTS[p.environment]
+  const mission = buildMissionPlan(`mission-${p.id}`, p.destination, isoDaysAgo(p.missionDay))
+  const phase = mission.phases.find((ph) => p.missionDay >= ph.startDay && p.missionDay < ph.endDay) ?? mission.phases[0]
+  const env = ENVIRONMENTS[phase.environment]
+  const start = Math.max(1, p.missionDay - HISTORY_DAYS + 1)
+  const days = p.missionDay - start + 1
   const last = (h: HistoryPoint[]) => h[h.length - 1].value
 
-  const hr = generateHistory(p.hr, HISTORY_DAYS, p.seed + 1, start)
-  const sys = generateHistory(p.sys, HISTORY_DAYS, p.seed + 2, start)
-  const dia = generateHistory(p.dia, HISTORY_DAYS, p.seed + 3, start)
-  const glucose = generateHistory(p.glucose, HISTORY_DAYS, p.seed + 4, start)
-  const temp = generateHistory(p.temp, HISTORY_DAYS, p.seed + 5, start)
-  const sleep = generateHistory(p.sleep, HISTORY_DAYS, p.seed + 6, start)
-  const mood = generateHistory(p.mood, HISTORY_DAYS, p.seed + 7, start)
+  const hr = generateHistory(p.hr, days, p.seed + 1, start)
+  const sys = generateHistory(p.sys, days, p.seed + 2, start)
+  const dia = generateHistory(p.dia, days, p.seed + 3, start)
+  const glucose = generateHistory(p.glucose, days, p.seed + 4, start)
+  const temp = generateHistory(p.temp, days, p.seed + 5, start)
+  const sleep = generateHistory(p.sleep, days, p.seed + 6, start)
+  const mood = generateHistory(p.mood, days, p.seed + 7, start)
+  const spo2 = generateHistory(p.spo2, days, p.seed + 10, start)
   const doseBefore = env.typicalDoseRateMSvPerDay * (start - 1)
-  const radiation = generateCumulative(env.typicalDoseRateMSvPerDay, env.typicalDoseRateMSvPerDay * 0.15, HISTORY_DAYS, p.seed + 8, start, doseBefore)
-  const dailyBoneLoss = p.boneMonthlyLossPct / 30
+  const radiation = generateCumulative(env.typicalDoseRateMSvPerDay, env.typicalDoseRateMSvPerDay * 0.15, days, p.seed + 8, start, doseBefore)
+  // Bone: reference-doc formula, scaled by current gravity (Step 2 replaces this with the full phase "bank account").
+  const dailyBoneLoss = -BONE_LOSS_PCT_PER_DAY_AT_0G * (1 - env.gravityG)
   const bone = generateHistory(
     { baseline: dailyBoneLoss * (start - 1), drift: dailyBoneLoss, noise: 0.05, decimals: 2 },
-    HISTORY_DAYS,
+    days,
     p.seed + 9,
     start,
   ).map((pt) => ({ ...pt, baseline: 0 }))
@@ -580,19 +761,26 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
     id: p.id,
     name: p.name,
     role: p.role,
+    crewRole: p.crewRole,
     agency: p.agency,
     age: p.age,
     sex: p.sex,
-    environment: p.environment,
+    login: p.login,
+    mission,
+    environment: phase.environment,
+    habitat: phase.habitat,
     missionDay: p.missionDay,
-    missionLengthDays: p.missionLengthDays,
+    missionLengthDays: mission.totalDays,
     priorCareerDoseMSv: p.priorCareerDoseMSv,
+    notes: p.notes,
+    baseline: baselineFromHistory(p.id, { heart_rate: hr, blood_pressure: sys, blood_sugar: glucose, body_temp: temp, sleep_hours: sleep, mood, spo2 }),
     indicators: [
       indicator('heart_rate', last(hr), hr),
       // Chart series for BP tracks systolic; value carries both numbers.
       indicator('blood_pressure', `${Math.round(last(sys))}/${Math.round(last(dia))}`, sys),
       indicator('blood_sugar', last(glucose), glucose),
       indicator('body_temp', last(temp), temp),
+      indicator('spo2', last(spo2), spo2),
       indicator('sleep_hours', last(sleep), sleep),
       indicator('mood', last(mood), mood),
       indicator('radiation_dose', last(radiation), radiation),
@@ -602,69 +790,79 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
   }
 }
 
+/**
+ * Fictional, SIMULATED demo crew (real daily vitals are not public — NASA LSDA
+ * holds them by request only). Logins match the reference doc's demo accounts.
+ */
 export const CREW_PROFILES: AstronautProfile[] = [
   buildProfile({
-    id: 'crew-01',
+    id: 'crew-iss',
     name: 'Cmdr. Maya Okafor',
     role: 'Commander',
+    crewRole: 'commander',
     agency: 'NASA',
     age: 44,
     sex: 'female',
-    environment: 'ISS_ORBIT',
+    login: 'iss_crew',
+    destination: 'ISS',
     missionDay: 92,
-    missionLengthDays: 180,
     priorCareerDoseMSv: 85,
+    notes: ['No known allergies.'],
     seed: 101,
     hr: { baseline: 62, drift: 0, noise: 3, decimals: 0 },
-    sys: { baseline: 116, drift: 0.1, noise: 4, decimals: 0 },
-    dia: { baseline: 74, drift: 0, noise: 3, decimals: 0 },
+    sys: { baseline: 110, drift: 0.1, noise: 4, decimals: 0 }, // in-flight BP runs ~8–10 mmHg lower
+    dia: { baseline: 70, drift: 0, noise: 3, decimals: 0 },
     glucose: { baseline: 92, drift: 0, noise: 6, decimals: 0 },
-    temp: { baseline: 36.8, drift: 0, noise: 0.2, decimals: 1 },
-    sleep: { baseline: 7.2, drift: 0, noise: 0.5, decimals: 1 },
+    temp: { baseline: 37.4, drift: 0, noise: 0.2, decimals: 1 }, // past day 60 in 0 g: ~+1 °C core shift
+    sleep: { baseline: 6.3, drift: 0, noise: 0.5, decimals: 1 }, // ISS average ~6 h
     mood: { baseline: 8, drift: 0, noise: 0.8, decimals: 0 },
-    boneMonthlyLossPct: -0.4, // good exercise compliance
+    spo2: { baseline: 98, drift: 0, noise: 0.8, decimals: 0 },
   }),
   buildProfile({
-    id: 'crew-02',
+    id: 'crew-mars',
     name: 'Dr. Étienne Lavoie',
     role: 'Flight Engineer / Crew Medical Officer',
+    crewRole: 'medical_officer',
     agency: 'CSA',
     age: 39,
     sex: 'male',
-    environment: 'MARS_TRANSIT',
-    missionDay: 140,
-    missionLengthDays: 210,
+    login: 'mars_crew',
+    destination: 'MARS',
+    missionDay: 45, // "Day 45 · Flying to Mars"
     priorCareerDoseMSv: 120,
+    notes: ['Penicillin allergy.'],
     seed: 202,
     hr: { baseline: 68, drift: 0.4, noise: 3, decimals: 0 },
-    sys: { baseline: 124, drift: 0.5, noise: 4, decimals: 0 },
-    dia: { baseline: 80, drift: 0.2, noise: 3, decimals: 0 },
-    glucose: { baseline: 112, drift: 1.2, noise: 8, decimals: 0 },
-    temp: { baseline: 37.0, drift: 0, noise: 0.2, decimals: 1 },
+    sys: { baseline: 116, drift: 0.5, noise: 4, decimals: 0 },
+    dia: { baseline: 76, drift: 0.2, noise: 3, decimals: 0 },
+    glucose: { baseline: 96, drift: 1.2, noise: 6, decimals: 0 },
+    temp: { baseline: 37.0, drift: 0.01, noise: 0.2, decimals: 1 },
     sleep: { baseline: 6.4, drift: -0.03, noise: 0.5, decimals: 1 },
     mood: { baseline: 6, drift: -0.05, noise: 0.8, decimals: 0 },
-    boneMonthlyLossPct: -1.2,
+    spo2: { baseline: 97, drift: 0, noise: 0.8, decimals: 0 },
   }),
   buildProfile({
-    id: 'crew-03',
+    id: 'crew-moon',
     name: 'Spc. Kenji Arai',
     role: 'Mission Specialist / Geologist',
+    crewRole: 'specialist',
     agency: 'JAXA',
     age: 35,
     sex: 'male',
-    environment: 'SURFACE_ROVER',
+    login: 'moon_crew',
+    destination: 'MOON',
     missionDay: 21,
-    missionLengthDays: 30,
     priorCareerDoseMSv: 40,
+    notes: ['Naturally low resting BP.', 'Dust sensitivity reported on day 9 (sneezing, watery eyes).'],
     seed: 303,
     hr: { baseline: 74, drift: 1.5, noise: 4, decimals: 0 },
-    sys: { baseline: 120, drift: 0, noise: 5, decimals: 0 },
-    dia: { baseline: 78, drift: 0, noise: 3, decimals: 0 },
+    sys: { baseline: 112, drift: 0, noise: 5, decimals: 0 },
+    dia: { baseline: 72, drift: 0, noise: 3, decimals: 0 },
     glucose: { baseline: 98, drift: 0, noise: 7, decimals: 0 },
     temp: { baseline: 37.1, drift: 0.11, noise: 0.15, decimals: 1 },
     sleep: { baseline: 6.0, drift: -0.08, noise: 0.4, decimals: 1 },
     mood: { baseline: 7, drift: -0.1, noise: 0.6, decimals: 0 },
-    boneMonthlyLossPct: -0.8,
+    spo2: { baseline: 96, drift: -0.15, noise: 0.6, decimals: 0 }, // 8.2 psia habitat + dust
   }),
 ]
 
