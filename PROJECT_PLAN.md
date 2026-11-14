@@ -169,16 +169,19 @@ Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental A
 [ ] PHASE 3 backend: Photo Check (skin first-look with "unsure" < 70% → flight-surgeon queue; guided ultrasound capture + quality check), sync outbox/inbox, triage trees, medication list, device-only journal
 
 Codex Tasks (Movie-Grade Spacecraft HUD, Interactive Body Map & Demo Controls)
-[ ] Build Dark-Mode Spacecraft Medical HUD with animated deep-space canvas/nebula backdrop, glowing glassmorphic telemetry panels, Environment Switcher (ISS, Lunar Base, Mars Transit, Rover), and Crew Profile selector
+[x] Build Dark-Mode Spacecraft Medical HUD with animated deep-space canvas/nebula backdrop, glowing glassmorphic telemetry panels, mission timeline and demo crew selector (ISS / Moon / Mars)
 
-[ ] Build Interactive Clickable SVG Human Body Map highlighting all 5 BodySystem zones with dynamic Emerald (nominal), Amber (caution / drifting_caution), and pulsing Crimson (critical) glow filters
+[x] Build Interactive Clickable SVG Human Body Map highlighting all 5 BodySystem zones with dynamic Emerald (nominal), Amber (caution / drifting_caution), and pulsing Crimson (critical) glow filters
 
-[ ] Build Universal Data Ingestion & Manual Vitals Panel combining manual sliders (blood_sugar, blood_pressure, body_temp, sleep_hours, mood) with a drag-and-drop Multimodal Diagnostic Dropzone (shows Gatekeeper "Accepted & Normalized" vs. "Rejected: Non-Biomedical Data" toast feedback)
+[x] Build Universal Data Ingestion & Manual Vitals Panel combining manual sliders (blood_sugar, blood_pressure, body_temp, sleep_hours, mood) with a drag-and-drop Multimodal Diagnostic Dropzone (shows Gatekeeper "Accepted & Normalized" vs. "Rejected: Non-Biomedical Data" toast feedback)
 
-[ ] Build Live AI Medical Briefing Card displaying color-coded overall status, plain-English health explanation, "Emerging Trajectory Warnings" callouts, and preventive steps
+[x] Build Live AI Medical Briefing Card displaying color-coded overall status, plain-English health explanation, "Emerging Trajectory Warnings" callouts, and preventive steps
 
-[ ] Build Recharts Dynamic Trend Graphs (showing baseline vs. actual + projected drift) paired with the "How to Measure / Why Needed / Action Protocol" slide-over drawer
+[x] Build Recharts Dynamic Trend Graphs (showing baseline vs. actual + projected drift) paired with the "How to Measure / Why Needed / Action Protocol" slide-over drawer
 
-[ ] Build Gamified Daily Countermeasure Checklist with Mission Readiness Score gauge, XP bar, and streak tracker
+[x] Build Gamified Daily Countermeasure Checklist with Mission Readiness Score gauge, XP bar, and session checklist progress (real streaks / badges remain Phase 3)
 
-[ ] Add Mission Control Demo Bar in header (+15m Wearable Sync, Trigger Solar Flare Spike, Test Valid Ultrasound vs. Invalid File) for live hackathon judging
+[x] Add Mission Control Demo Bar in header (+15m Wearable Sync, Trigger Solar Flare Spike, Test Valid Ultrasound vs. Invalid File) for live hackathon judging
+
+
+UI MVP integration (Codex): login and admin account creation / mission-date editing; shared mission state; Home, Check-in, Body Map, Trends, Streaks checklist, More, briefing, timeline; live wearable and cabin subscriptions; demo anomalies and normalized-file ingestion; confirmable critical-health / solar-shelter overlays. Phase 3 pages remain explicit Coming soon views. Services, types, data, and health thresholds were not edited.
