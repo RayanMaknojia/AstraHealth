@@ -15,6 +15,8 @@ import {
   Orbit,
   Sparkles,
   Camera,
+  Clock3,
+  CalendarCheck2,
   Check,
 } from "lucide-react";
 import type { HealthIndicator } from "@/types/astronaut";
@@ -31,6 +33,8 @@ const VitalChart = lazy(() =>
   import("./charts").then((m) => ({ default: m.VitalChart })),
 );
 import type { MissionModel } from "./use-mission";
+import { getCheckinReminder, formatOnboardTime } from "./checkin-schedule";
+import { HumanScan } from "./human-scan";
 const icons = {
   heart_rate: Heart,
   blood_pressure: Activity,
@@ -58,42 +62,161 @@ export function TripBar({
   onTimeline: () => void;
 }) {
   const state = model.missionState;
+  const destination = {
+    EARTH_TRAINING: { emoji: "🌍", label: "Earth" },
+    ISS: { emoji: "🛰️", label: "International Space Station" },
+    MARS: { emoji: "🔴", label: "Mars" },
+    MOON: { emoji: "🌕", label: "Moon" },
+  }[state.plan.destination];
+  const progress = Math.max(0, Math.min(1, state.progress));
   return (
     <button
-      className="trip-bar"
+      className="trip-bar mission-journey"
       onClick={onTimeline}
       aria-label="Open mission timeline"
     >
-      <div className="trip-top">
-        <span>
-          <Orbit size={16} /> {state.plan.name}
-        </span>
-        <span>{formatTripBarLabel(state)}</span>
+      <div className="journey-heading">
+        <h2>Mission journey</h2>
+        <span>{state.plan.name}</span>
+        <ArrowUpRight size={18} />
+      </div>
+      <div className="journey-details">
+        <div className="mission-day">
+          <strong>Day {state.missionDay}</strong>
+          <span>of {state.plan.totalDays}</span>
+        </div>
+        <div className="journey-phase">
+          <strong>{state.phase.name}</strong>
+          <span>
+            {formatTripBarLabel(state).split(" · ").slice(2).join(" · ") ||
+              (state.missionDay < 0
+                ? "Earth baseline collection"
+                : "Mission complete")}
+          </span>
+        </div>
       </div>
       <div className="trip-route">
-        <span>EARTH</span>
-        <div className="trip-track">
-          {state.plan.phases.map((p) => (
-            <span
-              key={p.order}
-              title={`${p.name}: days ${p.startDay}–${p.endDay}`}
-              style={{
-                flex: Math.max(1, p.endDay - p.startDay),
-                background:
-                  p.endDay <= state.missionDay ? "var(--primary)" : undefined,
-              }}
-            />
-          ))}
-          <i style={{ left: `${state.progress * 100}%` }} />
-        </div>
-        <span>
-          {state.plan.destination === "EARTH_TRAINING"
-            ? "EARTH"
-            : state.plan.destination}
+        <span
+          className="journey-endpoint"
+          role="img"
+          aria-label="Earth"
+          title="Earth"
+        >
+          🌍
         </span>
-        <ArrowUpRight size={14} />
+        <div
+          className="trip-track"
+          role="progressbar"
+          aria-label="Mission progress"
+          aria-valuemin={0}
+          aria-valuemax={100}
+          aria-valuenow={Math.round(progress * 100)}
+        >
+          <span
+            className="journey-progress-fill"
+            style={{ transform: `scaleX(${progress})` }}
+          />
+          {state.plan.phases
+            .filter((p) => p.endDay < state.plan.totalDays)
+            .map((p) => (
+              <span
+                key={p.order}
+                className="phase-tick"
+                style={{ left: `${(p.endDay / state.plan.totalDays) * 100}%` }}
+                title={`${p.name} ends on day ${p.endDay}`}
+              />
+            ))}
+          <span
+            className="journey-spacecraft"
+            style={{ left: `${progress * 100}%` }}
+            role="img"
+            aria-label={`Spacecraft at ${Math.round(progress * 100)} percent`}
+          >
+            <span>🚀</span>
+            <small>{Math.round(progress * 100)}%</small>
+          </span>
+        </div>
+        <span
+          className="journey-endpoint"
+          role="img"
+          aria-label={destination.label}
+          title={destination.label}
+        >
+          {destination.emoji}
+        </span>
+      </div>
+      <div className="journey-phases">
+        {state.plan.phases.map((p) => (
+          <span
+            key={p.order}
+            className={p.order === state.phase.order ? "current" : ""}
+            style={{ flex: Math.max(1, p.endDay - p.startDay) }}
+            title={`${p.name}: Day ${p.startDay}–${p.endDay}`}
+          >
+            {p.name}
+          </span>
+        ))}
       </div>
     </button>
+  );
+}
+export function CheckinReminder({
+  model,
+  onCheckin,
+}: {
+  model: MissionModel;
+  onCheckin: () => void;
+}) {
+  const reminder = getCheckinReminder(
+    model.missionState.missionDay,
+    model.onboardMinute,
+    model.checkins,
+    model.scheduleStartedDay,
+  );
+  const slot = reminder.slot === "morning" ? "Morning" : "Evening";
+  const heading =
+    reminder.state === "overdue"
+      ? `${slot} check-in overdue`
+      : reminder.state === "due"
+        ? `${slot} check-in due`
+        : "Next check-in";
+  return (
+    <section
+      className={`checkin-reminder ${reminder.state}`}
+      aria-label="Check-in reminder"
+    >
+      <div className="reminder-label">
+        <CalendarCheck2 size={18} />
+        <h2>{heading}</h2>
+        {reminder.optional && <span>Optional</span>}
+      </div>
+      <div className="reminder-time">
+        <Clock3 size={22} />
+        <strong>{formatOnboardTime(reminder.minute)}</strong>
+        <span>
+          {reminder.day === model.missionState.missionDay
+            ? "Today"
+            : `Day ${reminder.day}`}
+          <small>Onboard time</small>
+        </span>
+      </div>
+      <p>
+        {reminder.state === "overdue"
+          ? `Please complete the check-in due on Day ${reminder.day} at ${formatOnboardTime(reminder.minute)}.`
+          : reminder.state === "due"
+            ? "A few readings to start your day."
+            : "Your readings are saved for this session."}
+      </p>
+      <Button onClick={onCheckin}>
+        {reminder.state === "overdue"
+          ? "Complete overdue check-in"
+          : "Start check-in"}
+        <ArrowRight data-icon="inline-end" />
+      </Button>
+      <small className="schedule-note">
+        Demo schedule · morning 08:00 / evening 20:00
+      </small>
+    </section>
   );
 }
 export function VitalTile({
@@ -331,18 +454,35 @@ export function Home({
   ];
   return (
     <>
-      <TripBar model={model} onTimeline={() => onPage("Mission Timeline")} />
-      <div className="vital-grid">
-        {vitalIds.map((id) => {
-          const i = model.profile.indicators.find((i) => i.id === id)!;
-          return (
-            <VitalTile key={id} indicator={i} onClick={() => onTrend(id)} />
-          );
-        })}
+      <div className="home-mission-band">
+        <TripBar model={model} onTimeline={() => onPage("Mission Timeline")} />
+        <CheckinReminder model={model} onCheckin={() => onPage("Check-in")} />
       </div>
-      <div className="home-main">
-        <Briefing model={model} onOpen={() => onPage("Medical briefing")} />
-        <Tasks model={model} toggle={toggle} onOpen={() => onPage("Streaks")} />
+      <div className="home-health-layout">
+        <div className="home-health-main">
+          <Panel
+            title="Your readings"
+            accessory={<span className="meta">{model.lastEvent}</span>}
+            className="readings-panel"
+          >
+            <div className="vital-grid">
+              {vitalIds.map((id) => {
+                const i = model.profile.indicators.find((i) => i.id === id)!;
+                return (
+                  <VitalTile
+                    key={id}
+                    indicator={i}
+                    onClick={() => onTrend(id)}
+                  />
+                );
+              })}
+            </div>
+          </Panel>
+          <div className="home-briefing">
+            <Briefing model={model} onOpen={() => onPage("Medical briefing")} />
+          </div>
+        </div>
+        <HumanScan model={model} onBodyMap={() => onPage("Body Map")} />
       </div>
       <div className="exposure-grid">
         <div>
@@ -396,6 +536,7 @@ export function Home({
           </section>
         </div>
       </div>
+      <Tasks model={model} toggle={toggle} onOpen={() => onPage("Streaks")} />
       <section className="cabin-strip">
         <h2>
           <Wind size={17} />
@@ -456,10 +597,11 @@ export function Home({
             </Button>
           )}
         </Panel>
-        <Panel title="A moment for yourself">
+        <Panel title="Your next check-in">
           <p>
-            Keep your next check-in on course. Small, consistent actions make a
-            long mission possible.
+            Check-in reminders use onboard mission time. Accepted manual
+            readings and symptom reports complete the offered check-in for this
+            session.
           </p>
           <Button variant="outline" onClick={() => onPage("Check-in")}>
             Log vitals <ArrowRight data-icon="inline-end" />

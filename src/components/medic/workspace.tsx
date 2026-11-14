@@ -1,5 +1,6 @@
 import { statusOf } from "./status";
-import { lazy, Suspense, useEffect, useState } from "react";
+import { getCheckinReminder } from "./checkin-schedule";
+import { lazy, Suspense, startTransition, useEffect, useState } from "react";
 import {
   Home as HomeIcon,
   ClipboardList,
@@ -31,7 +32,7 @@ import {
   STATUS_COLORS,
   ESCALATION_MODE_LABELS,
 } from "@/services/healthEvaluator";
-import { formatTripBarLabel } from "@/services/missionTimeline";
+
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import {
@@ -101,6 +102,12 @@ export function Workspace({
     feed,
     toggleTask,
   } = controller;
+  const nextCheckin = getCheckinReminder(
+    model.missionState.missionDay,
+    model.onboardMinute,
+    model.checkins,
+    model.scheduleStartedDay,
+  );
   const [page, setPage] = useState("Home");
   const [indicator, setIndicator] = useState("heart_rate");
   const [sos, setSos] = useState(false);
@@ -133,7 +140,7 @@ export function Workspace({
     ? "no_data"
     : model.briefing.overallStatus;
   const go = (target: string) => {
-    setPage(target);
+    startTransition(() => setPage(target));
     window.scrollTo({ top: 0, behavior: "instant" });
   };
   const trend = (id: string) => {
@@ -208,7 +215,14 @@ export function Workspace({
               className="status-dot"
               style={{ background: STATUS_COLORS[overall] }}
             />
-            <strong>{formatTripBarLabel(model.missionState)}</strong>
+            <strong>
+              <span className="header-mission-day">
+                Day {model.missionState.missionDay}
+              </span>
+              <span className="header-mission-phase">
+                {model.missionState.phase.name}
+              </span>
+            </strong>
           </div>
           <span className="earth-delay">
             <Radio size={15} />
@@ -232,7 +246,7 @@ export function Workspace({
           <PageTitle
             title={
               page === "Home"
-                ? "Your health, in orbit."
+                ? "Mission overview"
                 : page === "Streaks"
                   ? "Consistency is your superpower."
                   : page === "More"
@@ -250,7 +264,9 @@ export function Workspace({
                               : page
             }
             description={
-              descriptions[page] ?? "The next chapter of onboard care."
+              page === "Home"
+                ? `${model.profile.name} · ${model.profile.agency}`
+                : (descriptions[page] ?? "The next chapter of onboard care.")
             }
           >
             <div className="page-live">
@@ -389,6 +405,11 @@ export function Workspace({
                 busy={busy}
                 result={result}
                 photo={() => go("Photo Check")}
+                slotLabel={
+                  nextCheckin.slot === "morning"
+                    ? "Morning"
+                    : "Evening (optional)"
+                }
               />
             )}
             {page === "Body Map" && (
