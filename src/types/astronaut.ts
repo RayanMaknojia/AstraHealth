@@ -13,6 +13,8 @@
  *   §4 Reference tables         (ranges, cabin limits, hazard→risk map)
  *   §5 Evaluator helper types   (vitals input, reports, trajectory)
  *   §6 Service contracts        (wearable, environment feed, ingestion, briefing)
+ *   §7 Phase 3 contracts        (check-ins & streaks, exercise & body mass, override
+ *                                alerts, sync, Photo Check, wellbeing, guidance)
  *
  * Rule: fields may be ADDED here, but existing fields must not be renamed or
  * removed without telling the other agent.
@@ -592,6 +594,10 @@ export interface CabinReading {
   humidityPct: number
   cabinPsia: number
   o2Pct: number
+  /** Cabin noise, dB(A). */
+  noiseDb?: number
+  /** Lighting phase that matches the crew sleep schedule. */
+  lightPhase?: 'day' | 'evening' | 'night'
 }
 
 export interface CabinEvaluation {
@@ -659,6 +665,8 @@ export interface EnvironmentFeedController {
   /** Demo: force a solar particle event ("Trigger Solar Flare Spike"). */
   triggerSolarEvent(): RadiationEvent
   subscribe(listener: EnvironmentTickListener): () => void
+  /** Last 24 h of cabin readings (oldest → newest) for charts and "Is it me or the air?". */
+  cabinHistory(): CabinReading[]
 }
 
 // ── ingestionEngine.ts ────────────────────────────────────────────────────
@@ -742,3 +750,448 @@ export interface AIConfig {
   forceOffline?: boolean
   timeoutMs?: number
 }
+
+// ════════════════════════════════════════════════════════════════════════════
+// §7 Phase 3 contracts (astronaut_health_monitor_pages.md pages 3–13, O1–O4)
+// ════════════════════════════════════════════════════════════════════════════
+
+/** A 1–5 self-rating. Which end is "good" depends on the field — see each field's doc. */
+export type Rating5 = 1 | 2 | 3 | 4 | 5
+
+// ── checkinService.ts ─────────────────────────────────────────────────────
+
+export type CheckinSlot = 'morning' | 'evening' | 'weekly' | 'monthly' | 'eye_exam'
+
+/** Extra check-in answers that are not dashboard indicators. */
+export interface CheckinExtras {
+  /** 1 = terrible, 5 = great. */
+  sleepQuality?: Rating5
+  /** 1 = none, 5 = exhausted. */
+  fatigue?: Rating5
+  /** 1 = none / normal appetite, 5 = severe nausea / no appetite. */
+  nauseaAppetite?: Rating5
+  headache?: boolean
+  exerciseMinutes?: number
+  exerciseType?: WorkoutType
+  bodyMassKg?: number
+  reactionMs?: number
+  notes?: string
+}
+
+export interface CheckinScheduleItem {
+  slot: CheckinSlot
+  title: string
+  required: boolean
+  estMinutes: number
+  /** What the form should ask (labels for the UI). */
+  fields: string[]
+}
+
+export interface CheckinTaskDue extends CheckinScheduleItem {
+  due: boolean
+  done: boolean
+  excused: boolean
+  /** e.g. "Due today", "Day 90 eye exam", "Weekly — due by day 49". */
+  dueReason: string
+}
+
+export interface CheckinRecord {
+  id: string
+  astronautId: string
+  missionDay: number
+  slot: CheckinSlot
+  /** ISO time it was saved. */
+  completedAt: string
+  values?: VitalsInput
+  extras?: CheckinExtras
+  symptoms: string[]
+  /** Set when admin excused a missed check-in instead. */
+  excused?: { by: string; reason: string }
+}
+
+export type StreakDayState = 'done' | 'excused' | 'missed' | 'today' | 'future'
+
+export interface StreakInfo {
+  current: number
+  best: number
+  /** Last 28 days for the streak calendar (oldest → newest). */
+  calendar: { day: number; state: StreakDayState }[]
+}
+
+export type BadgeId =
+  | 'streak_7'
+  | 'streak_30'
+  | 'streak_100'
+  | 'weekly_all'
+  | 'monthly_exam'
+  | 'exercise_6'
+  | 'team_steady_orbit'
+
+export interface Badge {
+  id: BadgeId
+  label: string
+  description: string
+  team: boolean
+  earned: boolean
+  /** 0–1 progress toward the badge (1 when earned). */
+  progress: number
+  /** e.g. "3 more days". */
+  progressText: string
+}
+
+/** Consistency only — never health values (pages doc §7). */
+export interface LeaderboardRow {
+  rank: number
+  astronautId: string
+  displayName: string
+  role: string
+  currentStreak: number
+  /** % of required check-ins done in the last 7 days. */
+  weekPct: number
+  exerciseDays: number
+  exerciseDaysGoal: number
+  badgeCount: number
+}
+
+export interface TeamGoal {
+  weekPct: number
+  goalPct: number
+  met: boolean
+  badgeLabel: string
+}
+
+export interface CrewOverviewRow {
+  astronautId: string
+  displayName: string
+  role: string
+  status: DisplayStatus
+  lastCheckinDay: number | null
+  currentStreak: number
+  openAlerts: number
+}
+
+// ── exerciseService.ts ────────────────────────────────────────────────────
+
+export type WorkoutType = 'treadmill' | 'bike' | 'resistance' | 'other'
+
+export interface WorkoutLog {
+  id: string
+  astronautId: string
+  day: number
+  type: WorkoutType
+  minutes: number
+  /** 1 = easy, 5 = max effort. */
+  effort: Rating5
+}
+
+export interface ExerciseSummary {
+  todayMinutes: number
+  goalMinutes: number
+  /** Status from completed days (health_rules.md: Watch 60–119, Alert < 60 for 3 days). */
+  status: StatusLevel
+  message: string
+  /** Days in the last 7 that met the goal, out of exerciseDaysGoal. */
+  weeklyDays: number
+  exerciseDaysGoal: number
+  /** Consecutive days meeting the goal. */
+  streakDays: number
+  /** Minutes per day, last 7 days (oldest → newest, today last). */
+  last7: { day: number; minutes: number }[]
+  byType: Record<WorkoutType, number>
+}
+
+export interface BodyMassReading {
+  day: number
+  kg: number
+}
+
+export interface BodyMassSummary {
+  preflightKg: number | null
+  latestKg: number | null
+  changePct: number | null
+  status: DisplayStatus
+  message: string
+  history: BodyMassReading[]
+}
+
+export interface BoneProjectionPoint {
+  day: number
+  /** Estimated % change with no countermeasures. */
+  noExercisePct: number
+  /** Estimated % change at the astronaut's actual exercise compliance. */
+  actualPct: number
+}
+
+export interface BoneProjection {
+  /** 0–1 share of days meeting the exercise goal over the last 30 days. */
+  compliance: number
+  points: BoneProjectionPoint[]
+  /** Projected loss at mission end, actual compliance. */
+  endOfMissionPct: number
+  note: string
+}
+
+// ── alertService.ts (override layer) ──────────────────────────────────────
+
+export type OverrideKind = 'critical_health' | 'cabin_emergency' | 'radiation_storm' | 'sos'
+
+/** Full-screen alert that covers any page until someone taps Confirm. */
+export interface OverrideAlert {
+  id: string
+  kind: OverrideKind
+  astronautId: string
+  /** Stable key so the same problem isn't raised twice (e.g. "critical_health:spo2"). */
+  key: string
+  title: string
+  headline: string
+  /** "Which reading, the value and the normal range" etc. */
+  details: string[]
+  /** "Do this now" steps. */
+  steps: string[]
+  indicatorId?: IndicatorId
+  raisedAt: string
+  missionDay: number
+  missionTimestamp: string
+  confirmedBy?: string
+  confirmedAt?: string
+  /** Outbox item created for the ground. */
+  outboxItemId?: string
+}
+
+export interface BannerAlert {
+  kind: 'comms_blackout' | 'link_waiting'
+  message: string
+  expectedBackInDays?: number
+}
+
+export interface OverrideInputs {
+  profile: AstronautProfile
+  report: HealthReport
+  missionState: MissionState
+  /** Latest environment tick, if any. */
+  environmentTick?: EnvironmentTick
+  /** Recent cabin readings (environmentFeed.cabinHistory()) for the 1-hour CO2 rule. */
+  cabinHistory?: CabinReading[]
+}
+
+// ── syncService.ts ────────────────────────────────────────────────────────
+
+export type SyncItemType = 'checkin' | 'photo' | 'scan' | 'alert' | 'sos' | 'private_request' | 'report'
+export type SyncPriority = 'high' | 'normal' | 'low'
+export type SyncStatus = 'queued' | 'sent' | 'received'
+
+export interface SyncItem {
+  id: string
+  astronautId: string
+  type: SyncItemType
+  priority: SyncPriority
+  title: string
+  /** Short, non-private description (private requests never include content). */
+  summary: string
+  createdAt: string
+  missionDay: number
+  sizeKb: number
+  status: SyncStatus
+  /** Links back to a photo / alert / check-in record. */
+  refId?: string
+}
+
+export interface InboxMessage {
+  id: string
+  astronautId: string
+  from: 'flight_surgeon' | 'mission_control' | 'admin'
+  type: 'reply' | 'photo_review' | 'mission_change' | 'note'
+  title: string
+  body: string
+  at: string
+  missionDay: number
+  read: boolean
+  refId?: string
+}
+
+export type LinkState = 'connected' | 'waiting' | 'blackout'
+
+export interface LinkStatus {
+  state: LinkState
+  earthDelaySeconds: number
+  /** Human text, e.g. "Last sync 2 h ago". */
+  lastSyncText: string
+  lastSyncAt: string | null
+  nextWindowInHours: number | null
+  blackoutEndsInDays?: number
+}
+
+export interface SyncRunResult {
+  link: LinkStatus
+  sent: number
+  received: number
+  newInbox: InboxMessage[]
+}
+
+// ── photoCheckService.ts ──────────────────────────────────────────────────
+
+export type PhotoMode = 'skin' | 'ultrasound'
+export type SkinLabel = 'laceration' | 'burn' | 'bruise' | 'abrasion' | 'normal' | 'unsure'
+export type UltrasoundScanType = 'eye' | 'neck_vein' | 'heart' | 'bladder' | 'other'
+export type ScanQuality = 'ok' | 'too_dark' | 'too_bright' | 'blurry' | 'unreadable'
+
+/** Pixel statistics computed in the browser (photoCheckService.computeImageStats). */
+export interface ImageStats {
+  width: number
+  height: number
+  /** 0–255 average luminance. */
+  meanBrightness: number
+  /** Variance of the Laplacian — higher = sharper. */
+  sharpness: number
+}
+
+export interface PhotoRecord {
+  id: string
+  astronautId: string
+  mode: PhotoMode
+  missionDay: number
+  timestamp: string
+  phaseName: string
+  bodyLocation: string
+  fileName?: string
+  /** Small data-URL thumbnail supplied by the UI (≤ ~100 KB; larger ones are dropped). */
+  thumbnailDataUrl?: string
+  notes?: string
+  painLevel?: Rating5
+  // Skin first look
+  aiLabel?: SkinLabel
+  /** 0–1. */
+  aiConfidence?: number
+  alternatives?: { label: SkinLabel; confidence: number }[]
+  status?: StatusLevel
+  firstAid?: string[]
+  escalateWhen?: string[]
+  // Ultrasound
+  scanType?: UltrasoundScanType
+  quality?: ScanQuality
+  qualityMessage?: string
+  // Ground review
+  reviewStatus: 'pending' | 'reviewed'
+  reviewNotes?: string
+  engine: 'gemini' | 'offline_mock'
+}
+
+export interface SkinPhotoInput {
+  astronautId: string
+  day: number
+  file?: Blob
+  fileName?: string
+  mimeType?: string
+  bodyLocation: string
+  notes?: string
+  painLevel?: Rating5
+  imageStats?: ImageStats
+  thumbnailDataUrl?: string
+}
+
+export interface UltrasoundCaptureInput {
+  astronautId: string
+  day: number
+  scanType: UltrasoundScanType
+  file?: Blob
+  fileName?: string
+  mimeType?: string
+  imageStats?: ImageStats
+  thumbnailDataUrl?: string
+  bodyLocation?: string
+}
+
+export interface PhotoComparison {
+  sameLocation: boolean
+  daysApart: number
+  before: PhotoRecord
+  after: PhotoRecord
+  trend: 'healing' | 'unchanged' | 'worse' | 'unknown'
+  note: string
+}
+
+// ── wellbeingService.ts ───────────────────────────────────────────────────
+
+/** Private journal entry — stored on this device only, never synced or shared. */
+export interface JournalEntry {
+  id: string
+  astronautId: string
+  at: string
+  missionDay: number
+  text: string
+}
+
+export interface ReactionResult {
+  ms: number
+  baselineMs: number | null
+  slowerPct: number | null
+  status: DisplayStatus
+  message: string
+}
+
+export interface SleepMoodSummary {
+  sleepLastNight: number | null
+  sleep7DayAvg: number | null
+  sleepTargetHours: number
+  /** Local day length (24 h Earth/ISS, 24.65 h Mars sol). */
+  dayLengthHours: number | null
+  mood7DayAvg: number | null
+  moodCalendar: { day: number; value: number | null; status: DisplayStatus }[]
+  circadian: 'on_schedule' | 'shifted'
+  circadianNote: string
+  tips: string[]
+}
+
+// ── guidanceService.ts ────────────────────────────────────────────────────
+
+export type TriageSymptom = 'headache' | 'chest_pain' | 'dizziness' | 'nausea' | 'burn' | 'cut' | 'eye_change' | 'fever'
+
+export interface TriageQuestion {
+  kind: 'question'
+  id: string
+  question: string
+  yes: string
+  no: string
+}
+
+export interface TriageOutcome {
+  kind: 'outcome'
+  id: string
+  level: ActionLevel
+  title: string
+  steps: string[]
+}
+
+export type TriageNode = TriageQuestion | TriageOutcome
+
+export interface TriageTree {
+  symptom: TriageSymptom
+  label: string
+  start: string
+  nodes: Record<string, TriageNode>
+}
+
+export interface GuidedProcedure {
+  id: 'blood_pressure' | 'eye_ultrasound' | 'wound_care' | 'standing_bp'
+  title: string
+  steps: string[]
+  tips: string[]
+}
+
+export interface Medication {
+  id: string
+  name: string
+  use: string
+  qtyLeft: number
+  unit: string
+  /** ISO date. */
+  expiryDate: string
+  spaceNote?: string
+}
+
+export interface MedicationStatus extends Medication {
+  status: StatusLevel
+  /** e.g. "Expires in 12 days", "Expired 3 days ago", "Low stock". */
+  statusText: string
+}
+

@@ -71,7 +71,7 @@ A reading can be 🟢 and still be **drifting**. The app fits a line through the
 | ISS, Moon (short delay) | **Contact the flight surgeon** |
 | Mars transit, Mars orbit, Mars surface (long delay) | **Act now with onboard guidance, then report** |
 
-## Coming in Phase 3 (backend), with these rules
+## Phase 3 rules (live in exerciseService / wellbeingService / alertService)
 
 | KPI | 🟢 Normal | 🟡 Watch | 🔴 Alert | Source |
 |---|---|---|---|---|
@@ -79,6 +79,9 @@ A reading can be 🟢 and still be **drifting**. The app fits a line through the
 | Exercise (min/day) | ≥ 120 | 60–119 | < 60 for 3 days in a row | Pages doc, ISS 2 h/day |
 | Reaction test (ms) | within 10% of baseline | 10–20% slower | > 20% slower | Our choice (pages doc gives no limits) |
 | Cabin CO2 override | — | — | > 3.0 mmHg for 1 hour → Cabin Emergency | Pages doc O2 |
+| Skin photo first look | — | label with ≥ 70% confidence (cut, burn, abrasion → Watch) | burn with blister / large / face / hand | Below 70% → "Unsure", sent to the flight surgeon; never guess |
+| Medication | > 30 days to expiry | expires within 30 days, or ≤ 5 left | expired | Our choice |
+| Bone loss projection | — | — | — | No exercise ≈ 1.5× the doc formula; your line scales with exercise compliance. Estimate. |
 
 ## What changed from Phase 2
 
