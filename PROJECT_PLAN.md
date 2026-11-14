@@ -125,6 +125,10 @@ Stateful Incremental AI Briefing (briefingEngine.ts):
 Takes (currentBriefing + newNormalizedEvent + updatedIndicators) and incrementally rewrites MissionHealthBriefing in plain English—highlighting color-coded abnormalities, early trajectory warnings, and actionable prevention steps.
 
 Task Board
+[x] STEP 1 — CONTRACT LOCKED (Claude Code): src/types/astronaut.ts upgraded to v2.0 + service contracts; stubs created for src/services/ingestionEngine.ts, briefingEngine.ts, wearableStream.ts (final signatures; bodies throw "not implemented" until Step 2). Additive vs. the schema above: HistoryPoint.day (numeric day), IndicatorId alias, EmergingRisk, IndicatorUpdate, WearableTick / WearableStreamController, IngestionInput / GatekeeperVerdict / IngestionResult, BriefingEvent / BriefingContext / BriefingUpdateResult, AIConfig, TrajectoryResult. Parallel execution may start.
+
+Folder ownership: Claude Code → src/types, src/data, src/services only. Codex → src/components, src/App.tsx, src/index.css, and package.json / package-lock.json (only Codex runs npm install / npx shadcn).
+
 Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental AI)
 [x] Create src/types/astronaut.ts matching the v2.0 schema above
 
