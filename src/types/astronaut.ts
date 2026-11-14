@@ -440,6 +440,21 @@ export interface EvaluationContext {
   priorCareerDoseMSv?: number
 }
 
+/** Spaceflight physiology shifts applied to ranges for the current mission day. */
+export interface SpaceAdjustments {
+  /** +1 °C after day 60 in 0 g (reference doc §6). */
+  bodyTempShiftC: number
+  /** In-flight 24 h BP runs 8–10 mmHg lower → high thresholds move down by this (negative). */
+  bpShiftSystolic: number
+  bpShiftDiastolic: number
+  /** Scheduled sleep target (8.5 h); alert below 6 h. */
+  sleepTargetHours: number
+  /** 8.2 psia exploration habitat → tighter SpO2 limits. */
+  lowPressureHabitat: boolean
+  /** Plain-English note per affected indicator, copied to HealthIndicator.spaceShiftNote. */
+  notes: Partial<Record<IndicatorId, string>>
+}
+
 export interface IndicatorEvaluation {
   id: IndicatorId
   system: BodySystem
@@ -624,6 +639,10 @@ export interface EnvironmentFeedConfig {
   /** Optional NASA API key for DONKI; offline simulated events when absent. */
   nasaApiKey?: string
   seed?: number
+  /** Mission minutes per tick. Default 15 (matches the wearable loop). */
+  missionMinutesPerTick?: number
+  /** Cumulative mission dose to continue from (e.g. last radiation_dose value). Default: missionState.exposure.totalRadiationMSv. */
+  startingMissionDoseMSv?: number
 }
 
 export type EnvironmentTickListener = (tick: EnvironmentTick) => void
@@ -655,6 +674,8 @@ export interface IngestionInput {
   manualValues?: VitalsInput
   timestamp?: string
   day?: number
+  /** Current environment, used to grade severity of extracted values. Default EARTH_ORBIT. */
+  environment?: EnvironmentType
 }
 
 export interface GatekeeperVerdict {
