@@ -60,7 +60,7 @@ function shortHowTo(ind: HealthIndicator): string {
 
 function valueText(ind: HealthIndicator): string {
   if (ind.value === null) return 'no reading'
-  const unit = ind.unit === '/10' ? '/10' : ind.unit === '%' ? '%' : ` ${ind.unit}`
+  const unit = ind.unit === '/5' ? '/5' : ind.unit === '%' ? '%' : ` ${ind.unit}`
   return `${ind.value}${unit}`
 }
 
@@ -86,7 +86,7 @@ function emergingRisks(ctx: BriefingContext): EmergingRisk[] {
       environment: ctx.missionState.phase.environment,
       status: ind.status,
     })
-    const unit = ind.unit === '/10' ? ' points' : ` ${ind.unit}`
+    const unit = ind.unit === '/5' ? ' points' : ` ${ind.unit}`
     const dir = t.slopePerDay > 0 ? 'rising' : 'falling'
     const rate = Math.abs(t.slopePerDay) < 0.1 ? Math.abs(t.slopePerDay).toFixed(2) : Math.abs(t.slopePerDay).toFixed(1)
     const target = t.projectedStatus ? STATUS_LABELS[t.projectedStatus] : null

@@ -135,14 +135,14 @@ interface Extraction {
 const num = (s: string) => Number(s.replace('−', '-').replace(',', '.'))
 
 /** Physiologically possible ranges — values outside are rejected as bad input, not graded. */
-const PLAUSIBLE: Record<keyof Omit<VitalsInput, 'fasting' | 'symptoms'>, [number, number]> = {
+const PLAUSIBLE: Record<keyof Omit<VitalsInput, 'fasting' | 'symptoms' | 'sleepRecentNights' | 'moodRecentDays'>, [number, number]> = {
   bloodSugarMgDl: [20, 600],
   heartRateBpm: [20, 250],
   systolicMmHg: [50, 260],
   diastolicMmHg: [30, 160],
   bodyTempC: [30, 43],
   sleepHours: [0, 24],
-  mood: [1, 10],
+  mood: [1, 5],
   spo2Pct: [50, 100],
   radiationDailyMSv: [0, 1000],
   radiationMissionMSv: [0, 2000],
@@ -174,8 +174,9 @@ function extractVitals(text: string): VitalsInput {
   if ((r = m(/\b(?:temp|temperature)\b[^\d\n]{0,15}(\d{2}(?:[.,]\d)?)/i)) || (r = m(/\b(\d{2}[.,]\d)\s*°\s*c\b/i))) v.bodyTempC = num(r[1])
   if ((r = m(/\b(?:spo2|sp02|oxygen saturation|o2 sat)\b[^\d\n]{0,15}(\d{2,3})/i))) v.spo2Pct = num(r[1])
   if ((r = m(/\b(?:slept|sleep)\b[^\d\n]{0,25}(\d{1,2}(?:[.,]\d)?)\s*(?:h|hr|hrs|hours)\b/i))) v.sleepHours = num(r[1])
-  if ((r = m(/\bmood\b[^\d\n]{0,30}(\d{1,2})\s*(?:\/\s*10|out of 10)/i)) || (r = m(/\bfeeling\b[^\d\n]{0,20}(\d{1,2})\s*(?:\/\s*10|out of 10)/i)))
-    v.mood = num(r[1])
+  // Mood is 1–5 (health_rules.md); answers given out of 10 are converted.
+  if ((r = m(/\b(?:mood|feeling)\b[^\d\n]{0,30}(\d{1,2})\s*(?:\/\s*|out of\s*)(5|10)\b/i)))
+    v.mood = r[2] === '10' ? Math.max(1, Math.round(num(r[1]) / 2)) : num(r[1])
   if ((r = m(/\b(?:24\s*h|daily|today)\b[^\d\n]{0,15}(\d+(?:[.,]\d+)?)\s*msv/i))) v.radiationDailyMSv = num(r[1])
   if ((r = m(/\b(?:mission|total|cumulative)\b[^\d\n]{0,15}(\d+(?:[.,]\d+)?)\s*msv/i))) v.radiationMissionMSv = num(r[1])
   if (v.radiationDailyMSv === undefined && v.radiationMissionMSv === undefined && (r = m(/(\d+(?:[.,]\d+)?)\s*msv/i))) {
@@ -334,7 +335,7 @@ const AI_PROMPT = `You are the biomedical gatekeeper for an astronaut self-care 
 Reply with JSON only:
 {"accepted":bool,"detectedModality":"lab_document|ultrasound_image|voice_log|manual_slider","confidence":0..1,"rejectionReason":string?,
  "summary":"1–3 plain-English sentences for a non-doctor","severity":"nominal|caution|critical",
- "values":{"bloodSugarMgDl"?:n,"fasting"?:bool,"heartRateBpm"?:n,"systolicMmHg"?:n,"diastolicMmHg"?:n,"bodyTempC"?:n,"spo2Pct"?:n,"sleepHours"?:n,"mood"?:n(1-10),"radiationDailyMSv"?:n,"radiationMissionMSv"?:n,"boneDensityChangePct"?:n},
+ "values":{"bloodSugarMgDl"?:n,"fasting"?:bool,"heartRateBpm"?:n,"systolicMmHg"?:n,"diastolicMmHg"?:n,"bodyTempC"?:n,"spo2Pct"?:n,"sleepHours"?:n,"mood"?:n(1-5, convert /10 answers),"radiationDailyMSv"?:n,"radiationMissionMSv"?:n,"boneDensityChangePct"?:n},
  "labs":[{"analyte":s,"value":n,"unit":s,"status":"nominal|caution|critical","note":s}],
  "symptoms":[s]}
 Only include values that are actually present. Units: mg/dL, bpm, mmHg, °C, %, hours, mSv.`
@@ -438,7 +439,7 @@ function updatesFromValues(v: VitalsInput, source: DataModality, timestamp: stri
   if (v.bodyTempC !== undefined) u('body_temp', v.bodyTempC, '°C')
   if (v.spo2Pct !== undefined) u('spo2', v.spo2Pct, '%')
   if (v.sleepHours !== undefined) u('sleep_hours', v.sleepHours, 'hrs')
-  if (v.mood !== undefined) u('mood', Math.round(v.mood), '/10')
+  if (v.mood !== undefined) u('mood', Math.round(v.mood), '/5')
   // History is cumulative mission dose, so only a mission total becomes a data point.
   if (v.radiationMissionMSv !== undefined) u('radiation_dose', v.radiationMissionMSv, 'mSv')
   if (v.boneDensityChangePct !== undefined) u('bone_density', v.boneDensityChangePct, '%')
@@ -453,7 +454,7 @@ function describeValues(v: VitalsInput): string[] {
   if (v.bodyTempC !== undefined) out.push(`temperature ${v.bodyTempC} °C`)
   if (v.spo2Pct !== undefined) out.push(`SpO2 ${v.spo2Pct}%`)
   if (v.sleepHours !== undefined) out.push(`sleep ${v.sleepHours} h`)
-  if (v.mood !== undefined) out.push(`mood ${v.mood}/10`)
+  if (v.mood !== undefined) out.push(`mood ${v.mood}/5`)
   if (v.radiationDailyMSv !== undefined) out.push(`radiation ${v.radiationDailyMSv} mSv in 24 h`)
   if (v.radiationMissionMSv !== undefined) out.push(`mission dose ${v.radiationMissionMSv} mSv`)
   if (v.boneDensityChangePct !== undefined) out.push(`bone density ${v.boneDensityChangePct > 0 ? '+' : ''}${v.boneDensityChangePct}% vs pre-flight`)
@@ -600,7 +601,7 @@ export function createDemoInput(kind: DemoIngestionCase): IngestionInput {
         fileName: 'voice_log_evening.webm',
         mimeType: 'audio/webm',
         file: new Blob([new Uint8Array(32)], { type: 'audio/webm' }),
-        text: 'Evening log. Slept about 5 hours last night, woke up twice. Mild headache since this morning and a bit dizzy when I turned quickly. Mood maybe 5 out of 10, missing home.',
+        text: 'Evening log. Slept about 5 hours last night, woke up twice. Mild headache since this morning and a bit dizzy when I turned quickly. Mood maybe 2 out of 5, missing home.',
       }
     case 'invalid_file':
       return {
