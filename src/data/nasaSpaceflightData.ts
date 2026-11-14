@@ -18,14 +18,18 @@
 import type {
   AstronautProfile,
   BodySystem,
+  CabinLimit,
   CrewRole,
   DataModality,
   EnvironmentProfile,
   EnvironmentType,
   MissionDestination,
+  MissionPhase,
   MissionPlan,
   PersonalBaseline,
+  ReferenceRange,
   HazardName,
+  HazardRiskEntry,
   HealthIndicator,
   HistoryPoint,
   IndicatorId,
@@ -258,13 +262,15 @@ export const THRESHOLDS = {
     diastolicCriticalHigh: 100,
   },
   bodyTemp: {
-    // Spaceflight core temp runs ~1 °C high (Stahn 2017) — cabin thermometers read peripheral temp.
+    // Earth ranges (CDC/clinical). In space these are shifted by SPACE_ADJUSTMENT_RULES.bodyTemp
+    // (core temp rises ~1 °C over ~2.5 months in 0 g — Stahn 2017, ESA "space fever").
     criticalLow: 35.0,
     cautionLow: 36.0,
-    cautionHigh: 37.6,
-    criticalHigh: 38.5,
+    cautionHigh: 37.3,
+    criticalHigh: 38.3,
   },
-  sleep: { criticalLow: 5, cautionLow: 7, cautionHigh: 10 },
+  // Reference doc: target 8.5 h (scheduled on ISS), alert below 6 h.
+  sleep: { criticalLow: 6, cautionLow: 7, target: 8.5, cautionHigh: 10 },
   mood: { criticalAtOrBelow: 3, cautionAtOrBelow: 6 },
   radiation: {
     careerLimitMSv: 600, // NASA-STD-3001
@@ -285,6 +291,103 @@ export const THRESHOLDS = {
     habitatCriticalLow: 92,
   },
 } as const
+
+// ── Spaceflight physiology adjustments (reference doc §6) ────────────────
+
+export const SPACE_ADJUSTMENT_RULES = {
+  bodyTemp: {
+    /** Continuous days in 0 g before the shift applies. */
+    after0gDays: 60,
+    shiftC: 1.0,
+    /** Fever (critical) bound moves only half as far so real fevers are still caught. */
+    criticalShiftFraction: 0.5,
+  },
+  bloodPressure: {
+    /** 24 h BP drops 8–10 mmHg in flight (Norsk 2015) → midpoint. */
+    inFlightSystolicDrop: 9,
+    inFlightDiastolicDrop: 5,
+  },
+  sleep: { targetHours: 8.5, alertBelowHours: 6 },
+  spo2: { lowPressureHabitatPsia: 10.3 },
+} as const
+
+/** Expected rate of change used to decide whether a trend is meaningful (units per day). */
+export const TREND_SENSITIVITY: Record<IndicatorId, { meaningfulPerDay: number; sdFloor: number }> = {
+  heart_rate: { meaningfulPerDay: 0.4, sdFloor: 3 },
+  blood_pressure: { meaningfulPerDay: 0.5, sdFloor: 4 },
+  blood_sugar: { meaningfulPerDay: 0.8, sdFloor: 6 },
+  body_temp: { meaningfulPerDay: 0.04, sdFloor: 0.2 },
+  spo2: { meaningfulPerDay: 0.12, sdFloor: 1 },
+  sleep_hours: { meaningfulPerDay: 0.05, sdFloor: 0.5 },
+  mood: { meaningfulPerDay: 0.08, sdFloor: 1 },
+  radiation_dose: { meaningfulPerDay: 0, sdFloor: 0 }, // judged vs environment dose rate instead
+  bone_density: { meaningfulPerDay: 0, sdFloor: 0 }, // judged vs expected gravity-scaled loss instead
+}
+
+/** Days without a reading before an indicator is "stale" (painted grey). */
+export const STALE_AFTER_DAYS: Record<IndicatorId, number> = {
+  heart_rate: 1,
+  blood_pressure: 2,
+  blood_sugar: 2,
+  body_temp: 1,
+  spo2: 1,
+  sleep_hours: 2,
+  mood: 2,
+  radiation_dose: 2,
+  bone_density: 10,
+}
+
+// ── Reference tables (reference doc §5, §6, §9) ───────────────────────────
+
+export const REFERENCE_RANGES: ReferenceRange[] = [
+  { indicator: 'body_temp', unit: '°C', earthLow: 36.1, earthHigh: 37.2, spaceShift: 'Rises about 1 °C over ~2.5 months; faster during exercise.', appRule: 'After day 60 in 0 g, raise baseline by ~1 °C.', sources: [SOURCES.coreTemp, SOURCES.spaceFever] },
+  { indicator: 'blood_pressure', unit: 'mmHg', earthLow: null, earthHigh: 120, spaceShift: '24 h BP drops 8–10 mmHg.', appRule: 'Lower expected BP in flight.', sources: [SOURCES.bpInSpace, SOURCES.aha] },
+  { indicator: 'heart_rate', unit: 'bpm', earthLow: 60, earthHigh: 100, spaceShift: 'Unchanged in long ISS stays.', appRule: 'Keep Earth range.', sources: [SOURCES.aha] },
+  { indicator: 'sleep_hours', unit: 'hrs', earthLow: 7, earthHigh: 9, spaceShift: '~6 h average on ISS vs 8.5 h scheduled.', appRule: 'Target 8.5 h, alert below 6 h.', sources: [SOURCES.sleep] },
+  { indicator: 'blood_sugar', unit: 'mg/dL', earthLow: 70, earthHigh: 99, spaceShift: 'No clear shift.', appRule: 'Earth range (fasting), personal baseline from first readings.', sources: [SOURCES.ada, SOURCES.osdr] },
+  { indicator: 'spo2', unit: '%', earthLow: 95, earthHigh: 100, spaceShift: 'Watch in 8.2 psi habitat (close to O2 floor).', appRule: 'Tighter alert on Moon / Mars.', sources: [SOURCES.explorationAtmosphere, SOURCES.std3001Vol2] },
+  { indicator: 'bone_density', unit: '%', earthLow: null, earthHigh: null, spaceShift: 'Loses 1–1.5% per month in 0 g.', appRule: 'Estimate by gravity: (1.25/30)·(1 − g) %/day; track exercise.', sources: [SOURCES.boneLoss, SOURCES.partialGravity] },
+  { indicator: 'mood', unit: '/10', earthLow: null, earthHigh: null, spaceShift: 'Isolation and distance from Earth.', appRule: 'Daily check-in (1–10 scale in this app).', sources: [SOURCES.hazards] },
+  { indicator: 'radiation_dose', unit: 'mSv', earthLow: null, earthHigh: null, spaceShift: '~0.35 mSv/day ISS, ~1.84 transit, ~1.37 Moon, ~0.64 Mars surface.', appRule: 'Career limit 600 mSv; ≤ 250 mSv per solar storm.', sources: [SOURCES.nasaStd3001, SOURCES.ochmoRadiation] },
+]
+
+export const CABIN_LIMITS: CabinLimit[] = [
+  { param: 'co2_mmhg', label: 'Cabin CO2', unit: 'mmHg', nominalHigh: 2.5, watch: 2.5, alert: 3.0, note: '1 h average ≤ 3 mmHg; 7-day average < 2.5 mmHg keeps headache risk < 1%. Headaches at 2.8–4.5 mmHg; fatigue, poor sleep, nausea above 4.5 mmHg.' },
+  { param: 'temp_c', label: 'Cabin temperature', unit: '°C', nominalLow: 18, nominalHigh: 27, note: 'Comfort band 18 °C (at 75% humidity) to 27 °C (at 25% humidity).' },
+  { param: 'humidity_pct', label: 'Relative humidity', unit: '%', nominalLow: 25, nominalHigh: 75, note: 'Comfort band 25–75%.' },
+  { param: 'cabin_psia', label: 'Cabin pressure', unit: 'psia', nominalLow: 5, nominalHigh: 15, note: 'Allowed 5–15 psia (34.5–103 kPa). ISS 14.7; Moon/Mars habitats 8.2.' },
+  { param: 'ppo2_mmhg', label: 'Inspired oxygen (ppO2)', unit: 'mmHg', watch: 135, alert: 127, note: 'Minimum inspired O2 127 mmHg. The 8.2 psia / 34% O2 habitat sits just above it (~128 mmHg).' },
+]
+
+export const CABIN_STANDARD_LIMITS = {
+  co2WatchMmHg: 2.5,
+  co2AlertMmHg: 3.0,
+  co2SymptomMmHg: 4.5,
+  minInspiredO2MmHg: 127,
+  o2WatchMmHg: 135,
+  tempLowC: 18,
+  tempHighC: 27,
+  humidityLowPct: 25,
+  humidityHighPct: 75,
+  pressureLowPsia: 5,
+  pressureHighPsia: 15,
+  /** Radiation dose limit per solar storm event. */
+  perStormLimitMSv: 250,
+} as const
+
+export const HAZARD_RISK_MAP: HazardRiskEntry[] = [
+  { hazard: 'Space Radiation', risk: 'Radiation-induced cancers', indicators: ['radiation_dose'], why: 'Space radiation damages DNA and raises lifetime cancer risk; it also weakens the immune system.', action: 'Wear your dosimeter, shelter during solar storms, limit time outside shielding.', escalateToGround: true },
+  { hazard: 'Space Radiation', risk: 'Altered immune system responses', indicators: ['body_temp', 'radiation_dose'], why: 'Radiation and stress weaken immunity, so infections and fevers appear more easily.', action: 'Hand hygiene, sleep, and report any fever early.', escalateToGround: false },
+  { hazard: 'Isolation and Confinement', risk: 'Behavioral changes and psychiatric disorders', indicators: ['mood'], why: 'Months in a small space far from family can lower mood and cause conflict.', action: 'Daily mood check-in; talk to a crewmate; protect private time.', escalateToGround: true },
+  { hazard: 'Isolation and Confinement', risk: 'Inadequate sleep and irregular schedules', indicators: ['sleep_hours', 'mood'], why: 'Noise, light and odd day lengths cut sleep, which harms mood, reaction time and immunity.', action: 'Fixed sleep window, eye mask, scheduled lighting; target 8.5 h.', escalateToGround: false },
+  { hazard: 'Distance from Earth', risk: 'Inadequate systems operations support (medical autonomy)', indicators: ['heart_rate', 'blood_pressure', 'spo2'], why: 'With long signal delays the crew must act before Earth can answer.', action: 'Follow onboard action plans first, then report.', escalateToGround: true },
+  { hazard: 'Gravity Fields', risk: 'Spaceflight-induced bone changes', indicators: ['bone_density'], why: 'Without weight on the skeleton, hips and spine lose 1–1.5% of mineral per month.', action: '~2 h daily resistive + aerobic exercise; calcium, vitamin D, protein.', escalateToGround: false },
+  { hazard: 'Gravity Fields', risk: 'Cardiovascular adaptations', indicators: ['heart_rate', 'blood_pressure'], why: 'Fluid shifts to the head; the heart de-conditions; standing up after landing can cause fainting.', action: 'Aerobic exercise; fluid loading and compression garments before landing.', escalateToGround: true },
+  { hazard: 'Gravity Fields', risk: 'Spaceflight Associated Neuro-ocular Syndrome (SANS)', indicators: ['blood_pressure'], why: 'Head-ward fluid shift is linked to eye and brain changes.', action: 'Weekly vision check; report blurry vision.', escalateToGround: true },
+  { hazard: 'Hostile Closed Environments', risk: 'Hypoxia', indicators: ['spo2'], why: 'Low-pressure habitats run close to the oxygen floor; a life-support fault can lower blood oxygen fast.', action: 'Daily SpO2 check; know the emergency O2 mask location.', escalateToGround: true },
+  { hazard: 'Hostile Closed Environments', risk: 'Host-microorganism interactions', indicators: ['body_temp'], why: 'Germs spread easily in a closed cabin while immunity is weakened.', action: 'Hand hygiene, masks when ill, report fevers.', escalateToGround: false },
+  { hazard: 'Hostile Closed Environments', risk: 'Inadequate food and nutrition', indicators: ['blood_sugar'], why: 'Packaged food, less activity and insulin resistance shift blood sugar.', action: 'Stick to the meal plan and daily exercise.', escalateToGround: false },
+]
 
 // ── Mission environments ──────────────────────────────────────────────────
 
@@ -404,7 +507,7 @@ export const ACT_THEN_REPORT_DELAY_S = 60
 
 // ── Mission plans (phase schedules) ───────────────────────────────────────
 
-function isoDaysAgo(days: number): string {
+export function isoDaysAgo(days: number): string {
   const d = new Date()
   d.setUTCHours(0, 0, 0, 0)
   d.setUTCDate(d.getUTCDate() - days)
@@ -460,6 +563,34 @@ export function buildMissionPlan(id: string, destination: MissionDestination, la
 
 /** Reference doc: bone_loss_per_day = (1.25 / 30) × (1 − gravity_g), % per day. */
 export const BONE_LOSS_PCT_PER_DAY_AT_0G = 1.25 / 30
+
+/** Synthetic phases used before launch and after the mission ends. */
+export const PRE_LAUNCH_PHASE: MissionPhase = {
+  order: 0,
+  name: 'Pre-launch (Earth mode)',
+  startDay: Number.NEGATIVE_INFINITY,
+  endDay: 0,
+  environment: 'EARTH',
+  habitat: 'ground',
+}
+
+export function postMissionPhase(plan: MissionPlan): MissionPhase {
+  return {
+    order: plan.phases.length + 1,
+    name: 'Back on Earth',
+    startDay: plan.totalDays,
+    endDay: Number.POSITIVE_INFINITY,
+    environment: 'EARTH',
+    habitat: 'ground',
+  }
+}
+
+/** Phase active on a (possibly fractional) mission day, including pre-launch / post-mission. */
+export function phaseForDay(plan: MissionPlan, day: number): MissionPhase {
+  if (day < 0) return PRE_LAUNCH_PHASE
+  if (day >= plan.totalDays) return postMissionPhase(plan)
+  return plan.phases.find((ph) => day >= ph.startDay && day < ph.endDay) ?? plan.phases[plan.phases.length - 1]
+}
 
 // ── Plain-English indicator guides ────────────────────────────────────────
 
@@ -604,7 +735,7 @@ export const DEFAULT_ROUTINE: RoutineTask[] = [
 // ── History generation (deterministic) ────────────────────────────────────
 
 /** Small seeded PRNG so trend charts are stable across renders/builds. */
-function mulberry32(seed: number): () => number {
+export function mulberry32(seed: number): () => number {
   let a = seed >>> 0
   return () => {
     a = (a + 0x6d2b79f5) >>> 0
@@ -630,25 +761,6 @@ export function generateHistory(spec: TrendSpec, days: number, seed: number, sta
   for (let i = 0; i < days; i++) {
     const value = spec.baseline + spec.drift * i + (rand() * 2 - 1) * spec.noise
     out.push({ day: startDay + i, timestamp: `Day ${startDay + i}`, value: Math.round(value * f) / f, baseline: spec.baseline, source: 'wearable_auto' })
-  }
-  return out
-}
-
-/** Cumulative series (e.g. mission radiation dose). */
-function generateCumulative(dailyRate: number, noise: number, days: number, seed: number, startDay = 1, start = 0): HistoryPoint[] {
-  const rand = mulberry32(seed)
-  let total = start
-  const out: HistoryPoint[] = []
-  for (let i = 0; i < days; i++) {
-    total += dailyRate + (rand() * 2 - 1) * noise
-    const expected = start + dailyRate * (i + 1)
-    out.push({
-      day: startDay + i,
-      timestamp: `Day ${startDay + i}`,
-      value: Math.round(total * 100) / 100,
-      baseline: Math.round(expected * 100) / 100,
-      source: 'wearable_auto',
-    })
   }
   return out
 }
@@ -730,10 +842,45 @@ interface ProfileSeed {
   spo2: TrendSpec
 }
 
+/** Expected cumulative value at the START of a day, integrating a per-day rate over the phase schedule. */
+function integrateOverPhases(plan: MissionPlan, untilDay: number, rate: (env: EnvironmentProfile) => number): number {
+  let total = 0
+  for (let d = 0; d < untilDay; d++) total += rate(ENVIRONMENTS[phaseForDay(plan, d).environment])
+  return total
+}
+
+function phaseAwareCumulative(plan: MissionPlan, start: number, days: number, seed: number): HistoryPoint[] {
+  const rand = mulberry32(seed)
+  let total = integrateOverPhases(plan, start - 1, (e) => e.typicalDoseRateMSvPerDay)
+  let expected = total
+  const out: HistoryPoint[] = []
+  for (let i = 0; i < days; i++) {
+    const d = start + i
+    const rate = ENVIRONMENTS[phaseForDay(plan, d - 1).environment].typicalDoseRateMSvPerDay
+    total += rate + (rand() * 2 - 1) * rate * 0.15
+    expected += rate
+    out.push({ day: d, timestamp: `Day ${d}`, value: Math.round(total * 100) / 100, baseline: Math.round(expected * 100) / 100, source: 'wearable_auto' })
+  }
+  return out
+}
+
+function phaseAwareBoneLoss(plan: MissionPlan, start: number, days: number, seed: number): HistoryPoint[] {
+  const rand = mulberry32(seed)
+  const lossRate = (e: EnvironmentProfile) => -BONE_LOSS_PCT_PER_DAY_AT_0G * (1 - e.gravityG)
+  let expected = integrateOverPhases(plan, start - 1, lossRate)
+  const out: HistoryPoint[] = []
+  for (let i = 0; i < days; i++) {
+    const d = start + i
+    expected += lossRate(ENVIRONMENTS[phaseForDay(plan, d - 1).environment])
+    const value = expected + (rand() * 2 - 1) * 0.05
+    out.push({ day: d, timestamp: `Day ${d}`, value: Math.round(value * 100) / 100, baseline: 0, source: 'ultrasound_image' })
+  }
+  return out
+}
+
 function buildProfile(p: ProfileSeed): AstronautProfile {
   const mission = buildMissionPlan(`mission-${p.id}`, p.destination, isoDaysAgo(p.missionDay))
-  const phase = mission.phases.find((ph) => p.missionDay >= ph.startDay && p.missionDay < ph.endDay) ?? mission.phases[0]
-  const env = ENVIRONMENTS[phase.environment]
+  const phase = phaseForDay(mission, p.missionDay)
   const start = Math.max(1, p.missionDay - HISTORY_DAYS + 1)
   const days = p.missionDay - start + 1
   const last = (h: HistoryPoint[]) => h[h.length - 1].value
@@ -746,16 +893,9 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
   const sleep = generateHistory(p.sleep, days, p.seed + 6, start)
   const mood = generateHistory(p.mood, days, p.seed + 7, start)
   const spo2 = generateHistory(p.spo2, days, p.seed + 10, start)
-  const doseBefore = env.typicalDoseRateMSvPerDay * (start - 1)
-  const radiation = generateCumulative(env.typicalDoseRateMSvPerDay, env.typicalDoseRateMSvPerDay * 0.15, days, p.seed + 8, start, doseBefore)
-  // Bone: reference-doc formula, scaled by current gravity (Step 2 replaces this with the full phase "bank account").
-  const dailyBoneLoss = -BONE_LOSS_PCT_PER_DAY_AT_0G * (1 - env.gravityG)
-  const bone = generateHistory(
-    { baseline: dailyBoneLoss * (start - 1), drift: dailyBoneLoss, noise: 0.05, decimals: 2 },
-    days,
-    p.seed + 9,
-    start,
-  ).map((pt) => ({ ...pt, baseline: 0 }))
+  // Radiation + bone follow the phase schedule day by day (the body's "bank account").
+  const radiation = phaseAwareCumulative(mission, start, days, p.seed + 8)
+  const bone = phaseAwareBoneLoss(mission, start, days, p.seed + 9)
 
   return {
     id: p.id,
@@ -786,6 +926,51 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
       indicator('radiation_dose', last(radiation), radiation),
       indicator('bone_density', last(bone), bone),
     ],
+    routine: DEFAULT_ROUTINE.map((t) => ({ ...t })),
+  }
+}
+
+export interface EmptyProfileSeed {
+  id: string
+  name: string
+  role: string
+  crewRole: CrewRole
+  agency?: AstronautProfile['agency']
+  age?: number
+  sex?: AstronautProfile['sex']
+  login: string
+  destination: MissionDestination
+  launchDate: string
+  missionDay: number
+  notes?: string[]
+}
+
+/**
+ * New astronaut created by admin: no readings yet, so every indicator is
+ * value null / dataState 'missing' (renders grey) until Earth-mode check-ins.
+ */
+export function buildEmptyProfile(p: EmptyProfileSeed): AstronautProfile {
+  const mission = buildMissionPlan(`mission-${p.id}`, p.destination, p.launchDate)
+  const phase = phaseForDay(mission, p.missionDay)
+  const ids = Object.keys(INDICATOR_GUIDES) as IndicatorId[]
+  return {
+    id: p.id,
+    name: p.name,
+    role: p.role,
+    crewRole: p.crewRole,
+    agency: p.agency ?? 'NASA',
+    age: p.age ?? 40,
+    sex: p.sex ?? 'female',
+    login: p.login,
+    mission,
+    environment: phase.environment,
+    habitat: phase.habitat,
+    missionDay: p.missionDay,
+    missionLengthDays: mission.totalDays,
+    priorCareerDoseMSv: 0,
+    notes: p.notes ?? [],
+    baseline: { astronautId: p.id, source: 'population_default', values: {} },
+    indicators: ids.map((id) => ({ ...indicator(id, 0, []), value: null, dataState: 'missing' as const, lastMeasuredDay: undefined, simulated: false })),
     routine: DEFAULT_ROUTINE.map((t) => ({ ...t })),
   }
 }

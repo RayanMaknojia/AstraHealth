@@ -12,25 +12,38 @@
  */
 
 import {
-  ACT_THEN_REPORT_DELAY_S,
+  BONE_LOSS_PCT_PER_DAY_AT_0G,
   ENVIRONMENTS,
   INDICATOR_GUIDES,
+  SPACE_ADJUSTMENT_RULES as ADJ,
+  STALE_AFTER_DAYS,
   THRESHOLDS as T,
+  TREND_SENSITIVITY,
 } from '@/data/nasaSpaceflightData'
+import { continuous0gDays, escalationModeForDelay, getMissionState } from '@/services/missionTimeline'
 import type {
   ActionLevel,
   ActionPlan,
   AstronautProfile,
   BodySystem,
+  DataFreshness,
   DisplayStatus,
   EnvironmentType,
   EscalationMode,
+  EvaluationContext,
   HealthIndicator,
   HealthReport,
+  HistoryPoint,
   IndicatorEvaluation,
   IndicatorId,
+  IndicatorUpdate,
+  MissionState,
+  PersonalBaseline,
+  SpaceAdjustments,
   StatusLevel,
   SystemStatus,
+  TrajectoryResult,
+  TrendDirection,
   VitalsInput,
 } from '@/types/astronaut'
 
@@ -71,9 +84,115 @@ export function displayStatus(ind: Pick<HealthIndicator, 'status' | 'dataState' 
 }
 
 /** Short delay (ISS, Moon) → contact ground; long delay (transit, Mars) → act then report. */
-export function escalationModeFor(oneWayDelaySeconds: number): EscalationMode {
-  return oneWayDelaySeconds > ACT_THEN_REPORT_DELAY_S ? 'act_then_report' : 'contact_ground'
+export const escalationModeFor: (oneWayDelaySeconds: number) => EscalationMode = escalationModeForDelay
+
+// ── Spaceflight physiology adjustments ─────────────────────────────────────
+
+/** Earth / no-shift adjustments (also used when no mission context is given). */
+export const NO_ADJUSTMENTS: SpaceAdjustments = {
+  bodyTempShiftC: 0,
+  bpShiftSystolic: 0,
+  bpShiftDiastolic: 0,
+  sleepTargetHours: ADJ.sleep.targetHours,
+  lowPressureHabitat: false,
+  notes: {},
 }
+
+/**
+ * Shifts for today's mission state (reference doc §6):
+ *  - body temp +1 °C after 60 continuous days in 0 g
+ *  - in-flight BP 8–10 mmHg lower (scaled by (1 − g) in partial gravity — estimate)
+ *  - sleep target 8.5 h, alert below 6 h
+ *  - tighter SpO2 in ≤ 10.3 psia habitats
+ */
+export function getSpaceAdjustments(state?: MissionState): SpaceAdjustments {
+  if (!state) return NO_ADJUSTMENTS
+  const env = state.environment
+  const notes: SpaceAdjustments['notes'] = {
+    sleep_hours: `Target ${ADJ.sleep.targetHours} h (the scheduled ISS sleep); alert below ${ADJ.sleep.alertBelowHours} h. Astronauts average ~6 h.`,
+  }
+  const zeroG = continuous0gDays(state.plan, state.missionDay)
+  const tempShift = env.gravityG === 0 && zeroG >= ADJ.bodyTemp.after0gDays ? ADJ.bodyTemp.shiftC : 0
+  if (tempShift)
+    notes.body_temp = `After ${Math.round(zeroG)} days in 0 g your normal temperature runs ~${tempShift} °C higher, so ranges are shifted up. A real fever is still flagged.`
+  else if (env.gravityG === 0)
+    notes.body_temp = `Temperature slowly rises in 0 g; ranges shift up by ~${ADJ.bodyTemp.shiftC} °C after day ${ADJ.bodyTemp.after0gDays} (now ${Math.round(zeroG)} days).`
+  const bpScale = env.id === 'EARTH' ? 0 : 1 - env.gravityG
+  const sys = -Math.round(ADJ.bloodPressure.inFlightSystolicDrop * bpScale)
+  const dia = -Math.round(ADJ.bloodPressure.inFlightDiastolicDrop * bpScale)
+  if (sys)
+    notes.blood_pressure = `In flight, 24 h blood pressure runs 8–10 mmHg lower, so the "high" limits are ${-sys} mmHg lower than on Earth${env.gravityG > 0 ? ' (partial-gravity estimate)' : ''}.`
+  const lowPressureHabitat = env.cabinPsia <= ADJ.spo2.lowPressureHabitatPsia
+  if (lowPressureHabitat)
+    notes.spo2 = `This habitat runs at ${env.cabinPsia} psia / ${env.cabinO2Pct}% O2, close to the oxygen floor, so SpO2 limits are tighter.`
+  if (env.gravityG < 1)
+    notes.bone_density = `Expected loss here ≈ ${(BONE_LOSS_PCT_PER_DAY_AT_0G * (1 - env.gravityG) * 30).toFixed(2)}% per month at ${env.gravityG} g (estimate).`
+  return {
+    bodyTempShiftC: tempShift,
+    bpShiftSystolic: sys,
+    bpShiftDiastolic: dia,
+    sleepTargetHours: ADJ.sleep.targetHours,
+    lowPressureHabitat,
+    notes,
+  }
+}
+
+/** Numeric limits for an indicator after adjustments (history units; BP = systolic). */
+interface Bounds {
+  cautionLow?: number
+  criticalLow?: number
+  cautionHigh?: number
+  criticalHigh?: number
+}
+
+export function boundsFor(id: IndicatorId, adj: SpaceAdjustments = NO_ADJUSTMENTS, priorCareerDoseMSv = 0): Bounds {
+  switch (id) {
+    case 'heart_rate':
+      return { cautionLow: T.heartRate.cautionLow, criticalLow: T.heartRate.criticalLow, cautionHigh: T.heartRate.cautionHigh + 0.5, criticalHigh: T.heartRate.criticalHigh + 0.5 }
+    case 'blood_pressure':
+      return {
+        cautionLow: T.bloodPressure.systolicCautionLow,
+        criticalLow: T.bloodPressure.systolicCriticalLow,
+        cautionHigh: T.bloodPressure.systolicCautionHigh + adj.bpShiftSystolic,
+        criticalHigh: T.bloodPressure.systolicCriticalHigh + adj.bpShiftSystolic,
+      }
+    case 'blood_sugar':
+      return { cautionLow: T.bloodSugar.cautionLow, criticalLow: T.bloodSugar.criticalLow, cautionHigh: T.bloodSugar.nominalHighNonFasting + 0.5, criticalHigh: T.bloodSugar.cautionHigh }
+    case 'body_temp':
+      return tempBounds(adj)
+    case 'spo2': {
+      const o = T.spo2
+      return adj.lowPressureHabitat ? { cautionLow: o.habitatCautionLow, criticalLow: o.habitatCriticalLow } : { cautionLow: o.cautionLow, criticalLow: o.criticalLow }
+    }
+    case 'sleep_hours':
+      return { cautionLow: T.sleep.cautionLow, criticalLow: T.sleep.criticalLow, cautionHigh: T.sleep.cautionHigh + 0.05 }
+    case 'mood':
+      return { cautionLow: T.mood.cautionAtOrBelow + 0.5, criticalLow: T.mood.criticalAtOrBelow + 0.5 }
+    case 'bone_density':
+      return { cautionLow: T.boneDensity.cautionAtOrBelowPct + 0.005, criticalLow: T.boneDensity.criticalAtOrBelowPct + 0.005 }
+    case 'radiation_dose': {
+      const r = T.radiation
+      return {
+        cautionHigh: r.careerLimitMSv * r.cautionCareerFraction - priorCareerDoseMSv,
+        criticalHigh: r.careerLimitMSv * r.criticalCareerFraction - priorCareerDoseMSv,
+      }
+    }
+  }
+}
+
+function tempBounds(adj: SpaceAdjustments) {
+  const t = T.bodyTemp
+  const sh = adj.bodyTempShiftC
+  return {
+    criticalLow: t.criticalLow,
+    cautionLow: round1(t.cautionLow + sh),
+    cautionHigh: round1(t.cautionHigh + sh),
+    criticalHigh: round1(t.criticalHigh + sh * ADJ.bodyTemp.criticalShiftFraction),
+  }
+}
+
+const round1 = (v: number) => Math.round(v * 10) / 10
+const round2 = (v: number) => Math.round(v * 100) / 100
 
 export const ACTION_LABELS: Record<ActionLevel, string> = {
   self_care: 'Self-care — keep your routine',
@@ -207,8 +326,15 @@ export function evaluateHeartRate(bpm: number): Verdict {
   }
 }
 
-export function evaluateBloodPressure(systolic: number, diastolic: number): Verdict {
-  const p = T.bloodPressure
+export function evaluateBloodPressure(systolic: number, diastolic: number, adj: SpaceAdjustments = NO_ADJUSTMENTS): Verdict {
+  const base = T.bloodPressure
+  const p = {
+    ...base,
+    systolicCautionHigh: base.systolicCautionHigh + adj.bpShiftSystolic,
+    systolicCriticalHigh: base.systolicCriticalHigh + adj.bpShiftSystolic,
+    diastolicCautionHigh: base.diastolicCautionHigh + adj.bpShiftDiastolic,
+    diastolicCriticalHigh: base.diastolicCriticalHigh + adj.bpShiftDiastolic,
+  }
   const reading = `${systolic}/${diastolic} mmHg`
   if (systolic >= p.systolicCriticalHigh || diastolic >= p.diastolicCriticalHigh)
     return {
@@ -252,18 +378,19 @@ export function evaluateBloodPressure(systolic: number, diastolic: number): Verd
   return {
     status: 'nominal',
     message: `Blood pressure is normal (${reading}).`,
-    thresholdNote: `${p.systolicCautionLow}–${p.systolicCautionHigh - 1} / ${p.diastolicCautionLow}–${p.diastolicCautionHigh - 1} mmHg`,
+    thresholdNote: `${p.systolicCautionLow}–${p.systolicCautionHigh - 1} / ${p.diastolicCautionLow}–${p.diastolicCautionHigh - 1} mmHg${adj.bpShiftSystolic ? ' (in-flight adjusted)' : ''}`,
     steps: ['Stay hydrated and keep up exercise.'],
   }
 }
 
-export function evaluateBodyTemp(c: number): Verdict {
-  const t = T.bodyTemp
+export function evaluateBodyTemp(c: number, adj: SpaceAdjustments = NO_ADJUSTMENTS): Verdict {
+  const t = tempBounds(adj)
+  const shifted = adj.bodyTempShiftC ? ` (space-adjusted +${adj.bodyTempShiftC} °C)` : ''
   if (c >= t.criticalHigh)
     return {
       status: 'critical',
       message: `High fever (${c} °C).`,
-      thresholdNote: `≥ ${t.criticalHigh} °C`,
+      thresholdNote: `≥ ${t.criticalHigh} °C${shifted}`,
       steps: [
         'Take fever reducer from the medical kit as directed (e.g. acetaminophen).',
         'Wear a mask and limit contact — infections spread fast in a closed cabin.',
@@ -281,31 +408,32 @@ export function evaluateBodyTemp(c: number): Verdict {
     return {
       status: 'caution',
       message: `Temperature is slightly raised (${c} °C).`,
-      thresholdNote: `${t.cautionHigh}–${(t.criticalHigh - 0.1).toFixed(1)} °C (note: core temp runs ~1 °C high in space)`,
+      thresholdNote: `${t.cautionHigh}–${(t.criticalHigh - 0.1).toFixed(1)} °C${shifted}`,
       steps: ['Rest and hydrate.', 'Watch for chills, cough, or sore throat.', 'Re-check in 4 hours.'],
     }
   if (c < t.cautionLow)
     return {
       status: 'caution',
       message: `Temperature is a little low (${c} °C).`,
-      thresholdNote: `${t.criticalLow}–${(t.cautionLow - 0.1).toFixed(1)} °C`,
+      thresholdNote: `${t.criticalLow}–${(t.cautionLow - 0.1).toFixed(1)} °C${shifted}`,
       steps: ['Add a layer and re-measure in 30 minutes.'],
     }
   return {
     status: 'nominal',
-    message: `Temperature is normal (${c} °C).`,
-    thresholdNote: `${t.cautionLow}–${(t.cautionHigh - 0.1).toFixed(1)} °C`,
+    message: `Temperature is normal for you right now (${c} °C).`,
+    thresholdNote: `${t.cautionLow}–${(t.cautionHigh - 0.1).toFixed(1)} °C${shifted}`,
     steps: ['Keep up hand hygiene.'],
   }
 }
 
-export function evaluateSleep(hours: number): Verdict {
+export function evaluateSleep(hours: number, adj: SpaceAdjustments = NO_ADJUSTMENTS): Verdict {
   const s = T.sleep
+  const target = adj.sleepTargetHours
   if (hours < s.criticalLow)
     return {
       status: 'critical',
-      message: `Severe sleep loss (${hours} h).`,
-      thresholdNote: `< ${s.criticalLow} h`,
+      message: `Severe sleep loss (${hours} h) — below the ${s.criticalLow} h alert line.`,
+      thresholdNote: `< ${s.criticalLow} h (target ${target} h)`,
       steps: [
         'Do not perform EVA, robotics, or piloting tasks until rested.',
         'Schedule a nap (max 30 min) and an early sleep window tonight.',
@@ -315,8 +443,8 @@ export function evaluateSleep(hours: number): Verdict {
   if (hours < s.cautionLow)
     return {
       status: 'caution',
-      message: `Short sleep (${hours} h) — astronauts average ~6 h, aim for 7–9 h.`,
-      thresholdNote: `${s.criticalLow}–${s.cautionLow} h`,
+      message: `Short sleep (${hours} h) — astronauts average ~6 h; your target is ${target} h.`,
+      thresholdNote: `${s.criticalLow}–${s.cautionLow} h (target ${target} h)`,
       steps: [
         'Dim lights and screens 1 hour before your sleep window.',
         'Use eye mask and earplugs; secure sleeping bag.',
@@ -332,9 +460,9 @@ export function evaluateSleep(hours: number): Verdict {
     }
   return {
     status: 'nominal',
-    message: `Good sleep (${hours} h).`,
-    thresholdNote: `${s.cautionLow}–${s.cautionHigh} h`,
-    steps: ['Keep the same sleep window each day.'],
+    message: hours < target ? `OK sleep (${hours} h) — a little under your ${target} h target.` : `Good sleep (${hours} h).`,
+    thresholdNote: `${s.cautionLow}–${s.cautionHigh} h (target ${target} h)`,
+    steps: hours < target ? ['Try to protect a full 8.5 h sleep window tonight.'] : ['Keep the same sleep window each day.'],
   }
 }
 
@@ -498,21 +626,32 @@ export function readinessScore(statuses: StatusLevel[]): number {
   return Math.max(0, Math.min(100, 100 - penalty))
 }
 
-function environmentAdvisories(env: EnvironmentType, overall: StatusLevel): string[] {
+function environmentAdvisories(env: EnvironmentType, overall: StatusLevel, mode: EscalationMode, state?: MissionState): string[] {
   const e = ENVIRONMENTS[env]
   const out: string[] = []
-  if (overall === 'critical' && e.commDelaySecondsMax > ACT_THEN_REPORT_DELAY_S)
+  const delay = state?.earthDelaySeconds ?? e.commDelaySecondsMax
+  if (overall !== 'nominal' && mode === 'act_then_report')
     out.push(
-      `Signal delay to Earth is ${e.commDelay}. Begin the action plan now with your crew medical officer — do not wait for a reply from the flight surgeon.`,
+      `Signal delay to Earth is about ${formatDelay(delay)} one way. Begin the action plan now with your crew medical officer — do not wait for a reply from the flight surgeon.`,
     )
   if (e.gravityG === 0) out.push('Microgravity: complete daily resistive exercise to protect bones and muscles.')
   else if (e.gravityG < 1) out.push(`Partial gravity (${e.gravityG} g): rise slowly after rest; bones still need resistive loading.`)
   if (e.typicalDoseRateMSvPerDay >= 1)
     out.push(`Higher background radiation here (~${e.typicalDoseRateMSvPerDay} mSv/day). Sleep in the shielded area.`)
+  if (e.dustRisk === 'high') out.push('Lunar dust: clean suits in the airlock; report sneezing, watery eyes or sore throat ("lunar hay fever").')
+  else if (e.dustRisk === 'moderate') out.push('Fine surface dust: keep airlock hygiene and report any cough.')
+  if (e.cabinPsia <= ADJ.spo2.lowPressureHabitatPsia)
+    out.push(`Habitat air is ${e.cabinPsia} psia / ${e.cabinO2Pct}% O2 — check SpO2 daily and after heavy work.`)
+  for (const a of state?.activeAlerts ?? []) out.push(`${a.title}: ${a.guidance[0]}`)
   return out
 }
 
-/** Evaluate raw values from the Log Vitals panel. Missing fields are skipped. */
+export function formatDelay(seconds: number): string {
+  if (seconds < 1) return '< 1 s'
+  if (seconds < 90) return `${Math.round(seconds * 10) / 10} s`
+  return `${Math.round(seconds / 60)} min`
+}
+
 const ALL_INDICATORS: IndicatorId[] = [
   'heart_rate',
   'blood_pressure',
@@ -525,30 +664,57 @@ const ALL_INDICATORS: IndicatorId[] = [
   'bone_density',
 ]
 
-/** Evaluate raw values from the Log Vitals panel. Missing fields are skipped and listed in missingIndicators. */
-export function evaluateVitals(
-  input: VitalsInput,
-  environment: EnvironmentType,
-  opts: { priorCareerDoseMSv?: number } = {},
-): HealthReport {
+/** Indicators whose personal-baseline deviation alone can raise a Watch. */
+const BASELINE_SENSITIVE: IndicatorId[] = ['heart_rate', 'spo2', 'blood_sugar']
+const BASELINE_Z_WATCH = 3.5
+
+function baselineZ(id: IndicatorId, value: number, baseline?: PersonalBaseline): number | undefined {
+  const b = baseline?.values[id]
+  if (!b || b.n < 3) return undefined
+  const sd = Math.max(b.sd, TREND_SENSITIVITY[id].sdFloor)
+  return sd > 0 ? round2((value - b.mean) / sd) : undefined
+}
+
+/**
+ * Evaluate raw values from the Log Vitals panel. Missing fields are skipped and listed in missingIndicators.
+ * Pass `opts.missionState` to apply spaceflight shifts and delay-based escalation; `opts.baseline` for
+ * personal-baseline scoring.
+ */
+export function evaluateVitals(input: VitalsInput, environment: EnvironmentType, opts: EvaluationContext = {}): HealthReport {
   const evals: IndicatorEvaluation[] = []
   const env = ENVIRONMENTS[environment]
-  const mode = escalationModeFor(env.commDelaySecondsMax)
-  const push = (id: IndicatorId, value: number | string, v: Verdict) => evals.push(toEvaluation(id, value, v, mode))
+  const state = opts.missionState
+  const adj = getSpaceAdjustments(state)
+  const mode = state?.escalationMode ?? escalationModeFor(env.commDelaySecondsMax)
+
+  const push = (id: IndicatorId, value: number | string, v: Verdict, numeric?: number) => {
+    const z = numeric !== undefined ? baselineZ(id, numeric, opts.baseline) : undefined
+    let verdict = v
+    if (z !== undefined && v.status === 'nominal' && BASELINE_SENSITIVE.includes(id) && Math.abs(z) >= BASELINE_Z_WATCH)
+      verdict = {
+        status: 'caution',
+        message: `${v.message.replace(/\.$/, '')} — but unusual for you (${z > 0 ? '+' : ''}${z} SD from your baseline).`,
+        thresholdNote: `${v.thresholdNote}; personal baseline |z| ≥ ${BASELINE_Z_WATCH}`,
+        steps: ['Re-measure in 30 minutes to confirm.', ...v.steps],
+      }
+    const e = toEvaluation(id, value, verdict, mode)
+    evals.push(z !== undefined ? { ...e, baselineZ: z } : e)
+  }
 
   if (input.bloodSugarMgDl !== undefined)
-    push('blood_sugar', input.bloodSugarMgDl, evaluateBloodSugar(input.bloodSugarMgDl, input.fasting))
-  if (input.heartRateBpm !== undefined) push('heart_rate', input.heartRateBpm, evaluateHeartRate(input.heartRateBpm))
+    push('blood_sugar', input.bloodSugarMgDl, evaluateBloodSugar(input.bloodSugarMgDl, input.fasting), input.bloodSugarMgDl)
+  if (input.heartRateBpm !== undefined) push('heart_rate', input.heartRateBpm, evaluateHeartRate(input.heartRateBpm), input.heartRateBpm)
   if (input.systolicMmHg !== undefined && input.diastolicMmHg !== undefined)
     push(
       'blood_pressure',
       `${input.systolicMmHg}/${input.diastolicMmHg}`,
-      evaluateBloodPressure(input.systolicMmHg, input.diastolicMmHg),
+      evaluateBloodPressure(input.systolicMmHg, input.diastolicMmHg, adj),
+      input.systolicMmHg,
     )
-  if (input.bodyTempC !== undefined) push('body_temp', input.bodyTempC, evaluateBodyTemp(input.bodyTempC))
-  if (input.spo2Pct !== undefined) push('spo2', input.spo2Pct, evaluateSpO2(input.spo2Pct, env.cabinPsia))
-  if (input.sleepHours !== undefined) push('sleep_hours', input.sleepHours, evaluateSleep(input.sleepHours))
-  if (input.mood !== undefined) push('mood', input.mood, evaluateMood(input.mood))
+  if (input.bodyTempC !== undefined) push('body_temp', input.bodyTempC, evaluateBodyTemp(input.bodyTempC, adj), input.bodyTempC)
+  if (input.spo2Pct !== undefined) push('spo2', input.spo2Pct, evaluateSpO2(input.spo2Pct, env.cabinPsia), input.spo2Pct)
+  if (input.sleepHours !== undefined) push('sleep_hours', input.sleepHours, evaluateSleep(input.sleepHours, adj), input.sleepHours)
+  if (input.mood !== undefined) push('mood', input.mood, evaluateMood(input.mood), input.mood)
   if (input.radiationDailyMSv !== undefined || input.radiationMissionMSv !== undefined)
     push(
       'radiation_dose',
@@ -564,29 +730,165 @@ export function evaluateVitals(
   const statuses = evals.map((e) => e.status)
   const overallStatus = worstStatus(statuses)
   const seen = new Set(evals.map((e) => e.id))
+  const missingIndicators = ALL_INDICATORS.filter((id) => !seen.has(id))
   return {
     environment,
     overallStatus,
     escalation: STATUS_TO_ACTION[overallStatus],
     escalationMode: mode,
-    readinessScore: readinessScore(statuses),
+    readinessScore: Math.max(0, readinessScore(statuses) - missingIndicators.length * 2),
     indicators: evals,
     systems: rollupSystems(evals),
-    missingIndicators: ALL_INDICATORS.filter((id) => !seen.has(id)),
-    environmentAdvisories: environmentAdvisories(environment, overallStatus),
+    missingIndicators,
+    environmentAdvisories: environmentAdvisories(environment, overallStatus, mode, state),
   }
 }
+
+// ── Trajectory (slope) detection ───────────────────────────────────────────
+
+/** Days of history used for the slope. */
+export const TRAJECTORY_WINDOW_DAYS = 7
+/** Projections further out than this are not shown. */
+export const PROJECTION_HORIZON_DAYS = 90
+
+function linearFit(points: { x: number; y: number }[]): { slope: number; intercept: number } {
+  const n = points.length
+  const mx = points.reduce((a, p) => a + p.x, 0) / n
+  const my = points.reduce((a, p) => a + p.y, 0) / n
+  let num = 0
+  let den = 0
+  for (const p of points) {
+    num += (p.x - mx) * (p.y - my)
+    den += (p.x - mx) ** 2
+  }
+  const slope = den === 0 ? 0 : num / den
+  return { slope, intercept: my - slope * mx }
+}
+
+export interface TrajectoryContext {
+  adjustments?: SpaceAdjustments
+  /** Environment for expected radiation-rate / bone-loss rate. */
+  environment?: EnvironmentType
+  priorCareerDoseMSv?: number
+  /** Current status, if already evaluated (chooses which boundary is "next"). */
+  status?: StatusLevel
+}
+
+function statusFromBounds(v: number, b: Bounds): StatusLevel {
+  if ((b.criticalLow !== undefined && v < b.criticalLow) || (b.criticalHigh !== undefined && v >= b.criticalHigh)) return 'critical'
+  if ((b.cautionLow !== undefined && v < b.cautionLow) || (b.cautionHigh !== undefined && v >= b.cautionHigh)) return 'caution'
+  return 'nominal'
+}
+
+/**
+ * Slope-based trajectory over the last TRAJECTORY_WINDOW_DAYS of history.
+ * Flags drifting_caution / rapid_decline BEFORE a hard limit is crossed and
+ * estimates days until the next limit (projectedDaysToThreshold).
+ */
+export function computeTrajectory(id: IndicatorId, history: HistoryPoint[], ctx: TrajectoryContext = {}): TrajectoryResult {
+  const stable: TrajectoryResult = { trend: 'stable', slopePerDay: 0 }
+  if (history.length < 3) return stable
+  const lastDay = history[history.length - 1].day
+  // One point per mission day (mean; last value for cumulative series) so 15-minute
+  // wearable ticks and circadian swings don't masquerade as a multi-day trend.
+  const cumulativeSeries = id === 'radiation_dose' || id === 'bone_density'
+  const byDay = new Map<number, number[]>()
+  for (const h of history) {
+    if (h.day < lastDay - TRAJECTORY_WINDOW_DAYS) continue
+    const d = Math.floor(h.day)
+    byDay.set(d, [...(byDay.get(d) ?? []), h.value])
+  }
+  const pts = [...byDay.entries()]
+    .sort((a, b) => a[0] - b[0])
+    .map(([d, vs]) => ({ x: d, y: cumulativeSeries ? vs[vs.length - 1] : vs.reduce((a, v) => a + v, 0) / vs.length }))
+  if (pts.length < 3 || pts[pts.length - 1].x - pts[0].x < 2) return stable
+
+  const { slope, intercept } = linearFit(pts)
+  const fitted = intercept + slope * lastDay
+  const bounds = boundsFor(id, ctx.adjustments, ctx.priorCareerDoseMSv)
+  const status = ctx.status ?? statusFromBounds(fitted, bounds)
+  const env = ENVIRONMENTS[ctx.environment ?? 'EARTH_ORBIT']
+  const slopePerDay = Math.round(slope * 1000) / 1000
+
+  // Which way is "bad", and is the change meaningful?
+  let worsening: boolean
+  let meaningful: number
+  if (id === 'radiation_dose') {
+    meaningful = env.typicalDoseRateMSvPerDay * 0.5 + 0.02
+    worsening = slope > env.typicalDoseRateMSvPerDay * 1.5 + 0.02
+  } else if (id === 'bone_density') {
+    const expected = -BONE_LOSS_PCT_PER_DAY_AT_0G * (1 - env.gravityG)
+    meaningful = Math.abs(expected) * 0.5 + 0.005
+    worsening = slope < expected * 1.5 - 0.005
+  } else {
+    meaningful = TREND_SENSITIVITY[id].meaningfulPerDay
+    const lo = bounds.cautionLow
+    const hi = bounds.cautionHigh
+    const center = lo !== undefined && hi !== undefined ? (lo + hi) / 2 : lo !== undefined ? Number.POSITIVE_INFINITY : Number.NEGATIVE_INFINITY
+    const towardBad = (slope > 0 && fitted >= center) || (slope < 0 && fitted <= center)
+    if (Math.abs(slope) < meaningful) return { ...stable, slopePerDay }
+    worsening = towardBad
+  }
+
+  // Cumulative metrics (dose, bone) always move toward their limit; project even when the rate is normal.
+  const cumulative = id === 'radiation_dose' || id === 'bone_density'
+  if (!worsening && !cumulative) return { trend: status !== 'nominal' ? 'improving' : 'stable', slopePerDay }
+
+  const goingUp = slope > 0
+  const next =
+    status === 'nominal'
+      ? goingUp ? bounds.cautionHigh : bounds.cautionLow
+      : status === 'caution'
+        ? goingUp ? bounds.criticalHigh : bounds.criticalLow
+        : undefined
+  const projectedStatus: TrajectoryResult['projectedStatus'] = status === 'nominal' ? 'caution' : status === 'caution' ? 'critical' : undefined
+  let projected: number | undefined
+  if (next !== undefined && slope !== 0) {
+    const d = (next - fitted) / slope
+    projected = d <= 0 ? 0.5 : d
+  }
+  const inHorizon = projected !== undefined && projected <= PROJECTION_HORIZON_DAYS
+  const result = (trend: TrendDirection): TrajectoryResult => ({
+    trend,
+    slopePerDay,
+    ...(inHorizon ? { projectedDaysToThreshold: Math.max(1, Math.round(projected!)), projectedStatus } : {}),
+  })
+
+  if (cumulative && !worsening) return inHorizon && projected! <= 30 ? result('drifting_caution') : { ...result('stable') }
+  if (status === 'critical' || (inHorizon && projected! <= 3) || Math.abs(slope) >= 3 * meaningful) return result('rapid_decline')
+  return result('drifting_caution')
+}
+
+// ── Profile-level evaluation ───────────────────────────────────────────────
 
 function parseBloodPressure(v: number | string): [number, number] | null {
   const m = /^\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*$/.exec(String(v))
   return m ? [Number(m[1]), Number(m[2])] : null
 }
 
-/** Convert a stored indicator list (e.g. a crew profile) into VitalsInput. */
+/** Value of a cumulative series ~24 h before its last point (linear interpolation). */
+function valueOneDayEarlier(h: HistoryPoint[]): number | undefined {
+  if (h.length < 2) return undefined
+  const last = h[h.length - 1]
+  const target = last.day - 1
+  for (let i = h.length - 2; i >= 0; i--) {
+    if (h[i].day <= target) {
+      const a = h[i]
+      const b = h[i + 1]
+      const f = b.day === a.day ? 0 : (target - a.day) / (b.day - a.day)
+      return a.value + (b.value - a.value) * f
+    }
+  }
+  // Less than a day of history: scale what we have to a 24 h rate.
+  const first = h[0]
+  const span = last.day - first.day
+  return span > 0 ? last.value - (last.value - first.value) / span : undefined
+}
+
+/** Convert a stored indicator list (e.g. a crew profile) into VitalsInput. Missing values are skipped. */
 export function indicatorsToVitals(indicators: HealthIndicator[]): VitalsInput {
   const input: VitalsInput = {}
   for (const ind of indicators) {
-    // Missing / stale readings are not evaluated (they render grey, never green).
     if (ind.value === null || ind.dataState === 'missing') continue
     const n = typeof ind.value === 'number' ? ind.value : Number(ind.value)
     switch (ind.id) {
@@ -598,8 +900,8 @@ export function indicatorsToVitals(indicators: HealthIndicator[]): VitalsInput {
       case 'spo2': input.spo2Pct = n; break
       case 'radiation_dose': {
         input.radiationMissionMSv = n
-        const h = ind.history
-        if (h.length >= 2) input.radiationDailyMSv = Math.round((h[h.length - 1].value - h[h.length - 2].value) * 100) / 100
+        const prev = valueOneDayEarlier(ind.history)
+        if (prev !== undefined) input.radiationDailyMSv = round2(ind.history[ind.history.length - 1].value - prev)
         break
       }
       case 'bone_density': input.boneDensityChangePct = n; break
@@ -613,19 +915,120 @@ export function indicatorsToVitals(indicators: HealthIndicator[]): VitalsInput {
   return input
 }
 
+function freshness(ind: HealthIndicator, today: number, ignoreStaleness: boolean): { state: DataFreshness; lastDay?: number } {
+  const lastDay = ind.history.length ? ind.history[ind.history.length - 1].day : ind.lastMeasuredDay
+  if (ind.value === null || lastDay === undefined) return { state: 'missing' }
+  if (!ignoreStaleness && today - lastDay > STALE_AFTER_DAYS[ind.id]) return { state: 'stale', lastDay }
+  return { state: 'fresh', lastDay }
+}
+
+export interface EvaluateProfileOptions {
+  /** Mission state to evaluate against (e.g. from the demo slider). Default: state on profile.missionDay. */
+  missionState?: MissionState
+  /** Demo slider: don't grey out readings just because the slider moved past them. */
+  ignoreStaleness?: boolean
+}
+
 /**
- * Re-evaluate every indicator on a profile, returning new HealthIndicator
- * objects with `status` and `actionPlan` filled in. Use this to hydrate
- * CREW_PROFILES before rendering.
+ * Re-evaluate every indicator on a profile: status, action plan (with escalation mode),
+ * trend + projectedDaysToThreshold, data freshness and space-shift notes.
+ * Use this to hydrate CREW_PROFILES before rendering, and after every new reading.
  */
-export function evaluateProfile(profile: AstronautProfile): { indicators: HealthIndicator[]; report: HealthReport } {
-  const report = evaluateVitals(indicatorsToVitals(profile.indicators), profile.environment, {
+export function evaluateProfile(
+  profile: AstronautProfile,
+  options: EvaluateProfileOptions = {},
+): { indicators: HealthIndicator[]; report: HealthReport; missionState: MissionState } {
+  const state = options.missionState ?? getMissionState(profile.mission, profile.missionDay)
+  const adj = getSpaceAdjustments(state)
+  const ignore = options.ignoreStaleness ?? false
+
+  const withFreshness = profile.indicators.map((ind) => {
+    const f = freshness(ind, state.missionDay, ignore)
+    return { ...ind, dataState: f.state, lastMeasuredDay: f.lastDay }
+  })
+  const report = evaluateVitals(indicatorsToVitals(withFreshness), state.phase.environment, {
+    missionState: state,
+    baseline: profile.baseline,
     priorCareerDoseMSv: profile.priorCareerDoseMSv,
   })
   const byId = new Map(report.indicators.map((e) => [e.id, e]))
-  const indicators = profile.indicators.map((ind) => {
+  const indicators = withFreshness.map((ind): HealthIndicator => {
     const e = byId.get(ind.id)
-    return e ? { ...ind, status: e.status, actionPlan: e.actionPlan } : ind
+    const traj = computeTrajectory(ind.id, ind.history, {
+      adjustments: adj,
+      environment: state.phase.environment,
+      priorCareerDoseMSv: profile.priorCareerDoseMSv,
+      status: e?.status,
+    })
+    const { projectedDaysToThreshold: _drop, ...rest } = ind
+    void _drop
+    return {
+      ...rest,
+      status: e?.status ?? ind.status,
+      actionPlan: e?.actionPlan ?? ind.actionPlan,
+      trend: ind.dataState === 'missing' ? 'stable' : traj.trend,
+      ...(traj.projectedDaysToThreshold !== undefined ? { projectedDaysToThreshold: traj.projectedDaysToThreshold } : {}),
+      spaceShiftNote: adj.notes[ind.id],
+    }
   })
-  return { indicators, report }
+  // Stale readings count as missing in the report (painted grey).
+  const stale = indicators.filter((i) => i.dataState === 'stale').map((i) => i.id)
+  return {
+    indicators,
+    report: { ...report, missingIndicators: [...new Set([...report.missingIndicators, ...stale])] },
+    missionState: state,
+  }
+}
+
+/** Max history points kept per indicator (15-minute ticks add up fast). */
+export const MAX_HISTORY_POINTS = 400
+
+function numericValue(u: IndicatorUpdate): number | null {
+  if (typeof u.value === 'number') return u.value
+  if (u.id === 'blood_pressure') return parseBloodPressure(u.value)?.[0] ?? null
+  const n = Number(u.value)
+  return Number.isFinite(n) ? n : null
+}
+
+/**
+ * Merge new readings (wearable tick, environment tick, manual check-in, ingested file)
+ * into a profile and re-evaluate. Returns a NEW profile; the input is not mutated.
+ */
+export function applyIndicatorUpdates(
+  profile: AstronautProfile,
+  updates: IndicatorUpdate[],
+  options: EvaluateProfileOptions = {},
+): { profile: AstronautProfile; report: HealthReport; missionState: MissionState } {
+  const byId = new Map<IndicatorId, IndicatorUpdate[]>()
+  for (const u of updates) byId.set(u.id, [...(byId.get(u.id) ?? []), u])
+  let maxDay = profile.missionDay
+
+  const indicators = profile.indicators.map((ind) => {
+    const ups = byId.get(ind.id)
+    if (!ups?.length) return ind
+    const history = [...ind.history]
+    let value = ind.value
+    for (const u of [...ups].sort((a, b) => a.day - b.day)) {
+      const n = numericValue(u)
+      if (n === null) continue
+      const baseline = profile.baseline.values[ind.id]?.mean ?? history[history.length - 1]?.baseline ?? n
+      history.push({ timestamp: u.timestamp, value: n, baseline, source: u.source, day: u.day })
+      value = u.value
+      maxDay = Math.max(maxDay, Math.floor(u.day))
+    }
+    history.sort((a, b) => a.day - b.day)
+    return {
+      ...ind,
+      value,
+      dataState: 'fresh' as const,
+      lastMeasuredDay: history[history.length - 1]?.day,
+      history: history.slice(-MAX_HISTORY_POINTS),
+      simulated: ind.simulated || ups.some((u) => u.source === 'wearable_auto' || u.source === 'environment_feed'),
+    }
+  })
+
+  const next: AstronautProfile = { ...profile, missionDay: maxDay, indicators }
+  const state = options.missionState ?? getMissionState(next.mission, maxDay)
+  const { indicators: evaluated, report, missionState } = evaluateProfile(next, { ...options, missionState: state })
+  return { profile: { ...next, environment: missionState.phase.environment, habitat: missionState.phase.habitat, indicators: evaluated }, report, missionState }
 }
