@@ -17,7 +17,11 @@ import {
   createInitialBriefing,
   updateBriefing,
 } from "@/services/briefingEngine";
-import { createWearableStream } from "@/services/wearableStream";
+import { getCheckinReminder, type CheckinStamp } from "./checkin-schedule";
+import {
+  createWearableStream,
+  STREAM_START_MINUTE_OF_DAY,
+} from "@/services/wearableStream";
 import { createEnvironmentFeed } from "@/services/environmentFeed";
 import { getMissionState } from "@/services/missionTimeline";
 import { ingest } from "@/services/ingestionEngine";
@@ -40,6 +44,9 @@ function hydrate(profile: AstronautProfile) {
     }),
     environmentTick: null as EnvironmentTick | null,
     lastEvent: "Awaiting wearable sync",
+    onboardMinute: STREAM_START_MINUTE_OF_DAY,
+    scheduleStartedDay: profile.missionDay,
+    checkins: [] as CheckinStamp[],
   };
 }
 export type MissionModel = ReturnType<typeof hydrate>;
@@ -50,7 +57,7 @@ export function useMission(initialProfile: AstronautProfile) {
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<IngestionResult | null>(null);
   const current = useRef(model);
-  const queue = useRef(Promise.resolve());
+  const queue = useRef<Promise<unknown>>(Promise.resolve());
   const generation = useRef(0);
   const wearable = useRef<WearableStreamController | null>(null);
   const feed = useRef<EnvironmentFeedController | null>(null);
@@ -86,6 +93,16 @@ export function useMission(initialProfile: AstronautProfile) {
               routine: current.current.profile.routine,
             },
             briefing: revised.briefing,
+            onboardMinute:
+              change.kind === "wearable_tick" ||
+              change.kind === "environment_tick"
+                ? (() => {
+                    const time = change.tick.timestamp.match(/(\d{2}):(\d{2})/);
+                    return time
+                      ? Number(time[1]) * 60 + Number(time[2])
+                      : old.onboardMinute;
+                  })()
+                : old.onboardMinute,
             environmentTick: environmentTick ?? old.environmentTick,
             lastEvent:
               change.kind === "wearable_tick" ||
@@ -94,6 +111,7 @@ export function useMission(initialProfile: AstronautProfile) {
                 : revised.briefing.lastUpdated,
           });
           revised.changes.forEach((message) => notify(message));
+          return true;
         })
         .catch((error: unknown) => {
           if (ticket === generation.current)
@@ -103,6 +121,7 @@ export function useMission(initialProfile: AstronautProfile) {
                 ? error.message
                 : "Please try again. Last good state retained.",
             );
+          return false;
         });
       queue.current = work;
       return work;
@@ -177,6 +196,8 @@ export function useMission(initialProfile: AstronautProfile) {
         briefing: revised.briefing,
         environmentTick: null,
         lastEvent: `Mission day ${day}`,
+        onboardMinute: STREAM_START_MINUTE_OF_DAY,
+        scheduleStartedDay: day,
       });
       setStreamDay(day);
       revised.changes.forEach((message) => notify(message));
@@ -201,10 +222,37 @@ export function useMission(initialProfile: AstronautProfile) {
       if (ticket !== generation.current) return;
       setResult(response);
       if (response.verdict.accepted) {
-        await event(response.updates, {
+        const applied = await event(response.updates, {
           kind: "artifact",
           artifact: response.artifact,
         });
+        if (applied !== true || ticket !== generation.current) return;
+        if (input.manualValues) {
+          const latest = current.current;
+          const due = getCheckinReminder(
+            latest.missionState.missionDay,
+            latest.onboardMinute,
+            latest.checkins,
+            latest.scheduleStartedDay,
+          );
+          // An early manual check-in completes the currently offered slot; uploaded files never dismiss reminders.
+          const stamp: CheckinStamp = {
+            day: due.day,
+            slot: due.slot,
+            completedDay: latest.missionState.missionDay,
+            completedMinute: latest.onboardMinute,
+          };
+          if (stamp.day <= latest.missionState.missionDay)
+            commit({
+              ...latest,
+              checkins: [
+                ...latest.checkins.filter(
+                  (r) => r.day !== stamp.day || r.slot !== stamp.slot,
+                ),
+                stamp,
+              ],
+            });
+        }
         notify("Accepted & Normalized", response.artifact.extractedSummary);
       } else
         notify(

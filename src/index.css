@@ -257,7 +257,7 @@ body:has(.medic-app) {
 }
 .medic-app {
   min-height: 100dvh;
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: "Medic Sans", "Segoe UI", sans-serif;
   font-size: 13px;
   line-height: 1.6;
   background:
@@ -832,7 +832,7 @@ body:has(.medic-app) {
   white-space: nowrap;
 }
 .vital-value small {
-  font-family: Inter, sans-serif;
+  font-family: "Medic Sans", sans-serif;
   font-size: 10px;
   letter-spacing: 0;
   margin-left: 5px;
@@ -1754,7 +1754,7 @@ body:has(.medic-app) {
 }
 .demo-accounts small {
   display: block;
-  font-family: Inter, sans-serif;
+  font-family: "Medic Sans", sans-serif;
   font-size: 8px;
   margin-top: 1px;
 }
@@ -1880,7 +1880,7 @@ body:has(.medic-app) {
   overflow: auto;
   max-width: min(680px, calc(100% - 32px));
   padding: 30px;
-  font-family: Inter, "Segoe UI", sans-serif;
+  font-family: "Medic Sans", "Segoe UI", sans-serif;
   font-size: 13px;
   line-height: 1.7;
 }
@@ -2838,4 +2838,1233 @@ body:has(.medic-app) {
 }
 .med-panel:has(.full-briefing) .briefing-body {
   grid-template-columns: 1fr;
+}
+
+/* Home redesign — readable onboard care. DM Sans is bundled locally under the OFL. */
+@font-face {
+  font-family: "Medic Sans";
+  src: url("./components/medic/assets/dm-sans-latin-wght-normal.woff2")
+    format("woff2");
+  font-style: normal;
+  font-weight: 100 1000;
+  font-display: swap;
+}
+.medic-app {
+  font-family: "Medic Sans", sans-serif;
+}
+.medic-app.dark {
+  --primary: #71d6ca;
+  --primary-foreground: #09221f;
+  --ring: #71d6ca;
+  --border: #2a3b46;
+  --muted-foreground: #a6bac6;
+  --card: #111d26;
+}
+.medic-app ::selection {
+  background: #71d6ca44;
+  color: #f4ffff;
+}
+.medic-app {
+  caret-color: var(--primary);
+  scrollbar-color: #3b5563 #0b141d;
+}
+.medic-app::before {
+  animation: none;
+  opacity: 0.35;
+}
+.medic-app button {
+  touch-action: manipulation;
+}
+.medic-app button:active:not(:disabled) {
+  transform: scale(0.985);
+}
+.workspace .mission-content {
+  padding-top: 25px;
+}
+.workspace .page-title {
+  margin-bottom: 22px;
+}
+.workspace .page-title h1 {
+  font-family: "Medic Sans", sans-serif;
+  font-weight: 650;
+  font-size: 36px;
+  line-height: 1.18;
+  letter-spacing: -1.1px;
+}
+.workspace .page-title p {
+  font-size: 15px;
+  color: #a6bac6;
+  margin-top: 8px;
+}
+.top-mission strong {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  max-width: none;
+  font-family: "Medic Sans", sans-serif;
+  font-size: 13px;
+}
+.header-mission-day {
+  font-size: 19px;
+  font-weight: 600;
+  color: #e8f1f4;
+  font-variant-numeric: tabular-nums;
+}
+.header-mission-phase {
+  font-size: 13px;
+  color: #9eb7c4;
+  padding-left: 14px;
+  border-left: 1px solid var(--border);
+}
+.page-live {
+  font-size: 10px;
+}
+.page-live small {
+  font-size: 11px;
+  color: #a6bac6;
+}
+.earth-delay,
+.demo-toggle {
+  font-size: 12px;
+}
+.mission-sidebar nav button {
+  font-size: 14px;
+}
+.mission-sidebar .crew-identity strong {
+  font-size: 12px;
+}
+.mission-sidebar .crew-identity small {
+  font-size: 10px;
+}
+.mission-sidebar .sidebar-label {
+  font-size: 10px;
+}
+.demo-bar summary {
+  font-size: 12px;
+  min-height: 44px;
+}
+.demo-bar summary strong {
+  font-size: 12px;
+}
+.demo-tools [data-slot="button"],
+.demo-tools select {
+  font-size: 12px;
+}
+.medic-app [data-slot="button"] {
+  font-size: 13px;
+  min-height: 40px;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    color 160ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.home-mission-band {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 18px;
+  margin-bottom: 22px;
+  align-items: stretch;
+}
+.home-mission-band .trip-bar {
+  margin: 0;
+}
+.mission-journey {
+  padding: 20px 22px 16px !important;
+  background: #111d26 !important;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-height: 220px;
+  cursor: pointer;
+}
+.journey-heading {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 17px;
+}
+.journey-heading h2 {
+  font-size: 16px;
+  font-weight: 550;
+  color: #e4eff3;
+}
+.journey-heading > span {
+  font-size: 10px;
+  color: #a3b9c5;
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  margin-left: auto;
+  max-width: 270px;
+}
+.journey-heading > svg {
+  color: #a6bac6;
+  flex-shrink: 0;
+}
+.journey-details {
+  display: flex;
+  align-items: center;
+  gap: 27px;
+  margin-bottom: 32px;
+}
+.mission-day {
+  display: flex;
+  gap: 12px;
+  align-items: baseline;
+  white-space: nowrap;
+}
+.mission-day > strong {
+  font-family: "Medic Sans", sans-serif;
+  font-size: 52px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: -1.8px;
+  font-variant-numeric: tabular-nums;
+  color: #f0f5f7;
+}
+.mission-day > span {
+  font-size: 15px;
+  color: #a8bfca;
+}
+.journey-phase {
+  border-left: 1px solid #3a4c58;
+  padding-left: 25px;
+  min-width: 0;
+}
+.journey-phase strong {
+  display: block;
+  color: var(--primary);
+  font-size: 17px;
+  font-weight: 500;
+  line-height: 1.4;
+}
+.journey-phase > span {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
+  color: #bdcdd5;
+}
+.mission-journey .trip-route {
+  gap: 15px;
+}
+.journey-endpoint {
+  font-size: 27px !important;
+  letter-spacing: 0 !important;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.mission-journey .trip-track {
+  height: 5px;
+  background: #40505c;
+  border-radius: 5px;
+  display: block;
+  position: relative;
+}
+.mission-journey .trip-track > .journey-progress-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 5px;
+  background: var(--primary);
+  width: 100%;
+  height: 100%;
+  transform-origin: left;
+  transition: transform 180ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.mission-journey .trip-track > .phase-tick {
+  position: absolute;
+  top: -2px;
+  width: 1px;
+  height: 9px;
+  background: #8fa3b155;
+  min-width: 1px;
+}
+.mission-journey .trip-track > .journey-spacecraft {
+  position: absolute;
+  top: 50%;
+  width: 30px;
+  height: 30px;
+  transform: translate(-50%, -50%);
+  background: transparent;
+  display: grid;
+  place-items: center;
+  line-height: 1;
+  min-width: 0;
+  z-index: 1;
+}
+.journey-spacecraft > span {
+  font-size: 28px;
+  display: block;
+  transform: rotate(45deg);
+}
+.journey-spacecraft > small {
+  position: absolute;
+  bottom: 31px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-family: "Medic Sans", sans-serif;
+  font-size: 10px;
+  color: #c8eee9;
+  letter-spacing: 0;
+}
+.journey-phases {
+  display: flex;
+  margin: 13px 38px 0;
+  gap: 8px;
+}
+.journey-phases span {
+  font-size: 9px;
+  color: #9db3c0;
+  text-align: center;
+  line-height: 1.4;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+.journey-phases span.current {
+  color: #e0f0f3;
+  font-weight: 500;
+}
+.checkin-reminder {
+  padding: 20px 22px 14px;
+  background: #132b2c;
+  border: 1px solid #315854;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 10px;
+  min-width: 0;
+}
+.checkin-reminder.due,
+.checkin-reminder.overdue {
+  background: #2b2518;
+  border-color: #806333;
+}
+.reminder-label {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  color: #a6e1d9;
+}
+.due .reminder-label,
+.overdue .reminder-label {
+  color: #f1c774;
+}
+.reminder-label h2 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+.reminder-label > span {
+  font-size: 10px;
+  margin-left: auto;
+}
+.reminder-label svg {
+  flex-shrink: 0;
+}
+.reminder-time {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.reminder-time > svg {
+  color: #c2d1d9;
+  stroke-width: 1.5;
+}
+.reminder-time strong {
+  font-size: 42px;
+  line-height: 1;
+  font-weight: 550;
+  letter-spacing: -1px;
+  font-variant-numeric: tabular-nums;
+}
+.reminder-time > span {
+  font-size: 11px;
+  color: #dbd5c7;
+  margin-left: auto;
+  line-height: 1.5;
+}
+.reminder-time small {
+  display: block;
+  font-size: 10px;
+  color: #b0aca1;
+}
+.checkin-reminder > p {
+  font-size: 11px;
+  color: #c8c5b8;
+  line-height: 1.5;
+}
+.checkin-reminder [data-slot="button"] {
+  width: 100%;
+  justify-content: space-between;
+  min-height: 40px;
+}
+.schedule-note {
+  font-size: 9px !important;
+  color: #b4aea0 !important;
+}
+.upcoming .schedule-note,
+.upcoming .reminder-time small,
+.upcoming > p {
+  color: #b7d2ce !important;
+}
+.home-health-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(300px, 1fr);
+  gap: 18px;
+  margin-bottom: 20px;
+  align-items: stretch;
+}
+.home-health-main {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+}
+.home-health-layout .med-panel {
+  margin: 0;
+  background: #111d26;
+  border-radius: 8px;
+  padding: 19px 20px;
+}
+.home-health-layout .panel-heading {
+  margin-bottom: 16px;
+}
+.home-health-layout .panel-heading h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.home-health-layout .panel-heading .meta {
+  font-size: 11px;
+  color: #a6bac6;
+}
+.readings-panel .vital-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin: 0;
+}
+.readings-panel .vital-tile {
+  padding: 13px 12px 10px;
+  background: #14232c;
+  border-radius: 6px;
+  border-color: #334752;
+  transition:
+    background-color 160ms ease,
+    border-color 160ms ease,
+    transform 160ms cubic-bezier(0.23, 1, 0.32, 1);
+}
+.readings-panel .vital-label {
+  font-size: 10px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #d0e0e7;
+  gap: 6px;
+}
+.readings-panel .vital-label svg {
+  width: 15px;
+  height: 15px;
+}
+.readings-panel .vital-label svg:last-child {
+  display: none;
+}
+.readings-panel .vital-value {
+  font-family: "Medic Sans", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-size: 31px;
+  font-weight: 550;
+  letter-spacing: -1px;
+  margin: 10px 0;
+}
+.readings-panel .vital-value small {
+  font-family: "Medic Sans", sans-serif;
+  font-size: 11px;
+  color: #b4c8d2;
+  margin-left: 4px;
+}
+.readings-panel .vital-bottom {
+  justify-content: space-between;
+  gap: 4px;
+}
+.readings-panel .vital-bottom > span:last-child:not(.health-status) {
+  font-size: 9px;
+  color: #a6bac6;
+}
+.readings-panel .health-status {
+  font-size: 10px !important;
+  padding: 2px 4px !important;
+  background: transparent !important;
+  border: 0 !important;
+}
+.readings-panel .last-reading {
+  font-family: "Medic Sans", sans-serif;
+  font-size: 9px !important;
+  color: #9cb1bf !important;
+  margin-top: 6px;
+}
+.home-briefing {
+  flex: 1;
+}
+.home-briefing .med-panel {
+  height: 100%;
+}
+.home-briefing .briefing-heading {
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.home-briefing .briefing-heading h3 {
+  font-size: 15px;
+  line-height: 1.5;
+  font-weight: 500;
+}
+.home-briefing .briefing-body {
+  grid-template-columns: 1.25fr 1fr;
+  gap: 18px;
+  min-height: 0;
+}
+.home-briefing .briefing-body p {
+  font-size: 12px;
+  line-height: 1.75;
+  color: #bbcbd5;
+}
+.home-briefing .briefing-body > div:first-child > p:first-child {
+  display: -webkit-box;
+  -webkit-line-clamp: 4;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.home-briefing .briefing-escalation {
+  font-size: 10px !important;
+  color: #9cb9c7 !important;
+  margin-top: 10px;
+}
+.home-briefing [data-slot="button"] {
+  min-height: 32px;
+  padding-left: 0;
+  font-size: 12px;
+  color: var(--primary);
+}
+.home-briefing .vital-chart.compact {
+  height: 125px;
+}
+.home-briefing .briefing-chart > .meta {
+  font-size: 10px;
+  color: #a6bac6;
+}
+.human-scan-panel {
+  background: #101e28;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  overflow: hidden;
+  padding: 19px 20px 15px;
+  position: relative;
+}
+.scan-panel-heading {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+  position: relative;
+  z-index: 1;
+}
+.scan-panel-heading h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.scan-panel-heading > span {
+  font-size: 10px;
+  color: #9ab7c4;
+}
+.human-scan-stage {
+  position: relative;
+  min-height: 275px;
+  height: 315px;
+  flex: 1;
+  margin: 4px 0 8px;
+  overflow: hidden;
+  isolation: isolate;
+}
+.human-scan-stage img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: 275px;
+  max-height: 370px;
+  object-fit: contain;
+  opacity: 0.9;
+  position: relative;
+}
+.scan-stage-guides {
+  position: absolute;
+  inset: 5% 8%;
+  border-top: 1px solid #42647133;
+  border-bottom: 1px solid #42647133;
+  background: linear-gradient(
+    90deg,
+    transparent 49.85%,
+    #42647133 50%,
+    transparent 50.15%
+  );
+  pointer-events: none;
+}
+.scan-sweep {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  animation: human-model-scan 5s linear infinite;
+  will-change: transform, opacity;
+}
+.scan-sweep > span {
+  position: absolute;
+  left: 13%;
+  right: 13%;
+  bottom: 0;
+  height: 2px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    #8effe2 20%,
+    #d6fff5 50%,
+    #8effe2 80%,
+    transparent
+  );
+  box-shadow:
+    0 0 12px #71d6ca88,
+    0 3px 24px #71d6ca55;
+}
+.scan-sweep > span::after {
+  content: "";
+  position: absolute;
+  inset: 2px 0 auto;
+  height: 65px;
+  background: linear-gradient(#71d6ca22, transparent);
+}
+.scan-scale {
+  position: absolute;
+  inset: 10% 3%;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  color: #7ba7b966;
+  font-size: 14px;
+  pointer-events: none;
+}
+.scan-system-list {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px 10px;
+  padding-top: 12px;
+  border-top: 1px solid #304753;
+}
+.scan-system-list > div {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  font-size: 10px;
+  color: #bacdd7;
+  line-height: 1.4;
+}
+.scan-system-list > div > span:first-child {
+  height: 5px;
+  width: 5px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.scan-caption-text {
+  font-size: 10px;
+  color: #a2bdca;
+  margin-top: 12px !important;
+}
+.scan-controls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 12px;
+}
+.scan-controls [data-slot="button"] {
+  font-size: 11px;
+  min-height: 36px;
+  padding-inline: 9px;
+}
+.scan-controls [data-slot="button"]:last-child {
+  padding-right: 0;
+  color: var(--primary);
+}
+.reduced-motion-note {
+  display: none;
+  font-size: 10px;
+  color: #bad2da;
+}
+.exposure-grid {
+  background: #111d26;
+  border-radius: 8px;
+}
+.exposure-grid strong {
+  font-family: "Medic Sans", sans-serif;
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+.exposure-grid h3 {
+  font-size: 12px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: #c6d5dd;
+}
+.exposure-grid section > span {
+  font-size: 10px;
+}
+.exposure-grid > div > svg {
+  color: var(--primary);
+}
+@keyframes human-model-scan {
+  0% {
+    transform: translateY(0);
+    opacity: 0;
+  }
+  5% {
+    opacity: 1;
+  }
+  93% {
+    opacity: 0.9;
+  }
+  100% {
+    transform: translateY(-100%);
+    opacity: 0;
+  }
+}
+@media (hover: hover) and (pointer: fine) {
+  .mission-journey:hover {
+    border-color: #6c918c;
+  }
+  .readings-panel .vital-tile:hover {
+    border-color: var(--status);
+    transform: translateY(-2px);
+  }
+  .scan-controls [data-slot="button"]:hover {
+    background: #1b3740;
+  }
+}
+@media (max-width: 1250px) {
+  .home-mission-band,
+  .home-health-layout {
+    grid-template-columns: minmax(0, 1.65fr) minmax(270px, 1fr);
+  }
+  .mission-day > strong {
+    font-size: 43px;
+  }
+  .mission-day > span {
+    font-size: 12px;
+  }
+  .journey-details {
+    gap: 16px;
+  }
+  .journey-phase {
+    padding-left: 16px;
+  }
+  .journey-phase strong {
+    font-size: 15px;
+  }
+  .journey-phase > span {
+    font-size: 11px;
+  }
+  .journey-heading > span {
+    display: none;
+  }
+  .readings-panel .vital-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .home-briefing .briefing-body {
+    grid-template-columns: 1fr;
+  }
+  .home-briefing .briefing-chart {
+    display: none;
+  }
+  .reminder-label h2 {
+    font-size: 15px;
+  }
+  .reminder-time strong {
+    font-size: 38px;
+  }
+  .human-scan-stage {
+    height: 380px;
+    flex: 1;
+  }
+  .scan-system-list {
+    grid-template-columns: 1fr;
+  }
+  .scan-controls {
+    flex-wrap: wrap;
+  }
+  .human-scan-stage img {
+    max-height: 450px;
+  }
+  .home-health-layout .panel-heading > .meta {
+    max-width: 160px;
+    text-align: right;
+  }
+}
+@media (max-width: 1000px) {
+  .home-mission-band {
+    grid-template-columns: 1fr;
+  }
+  .home-health-layout {
+    grid-template-columns: minmax(0, 1.4fr) minmax(240px, 1fr);
+  }
+  .checkin-reminder {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    column-gap: 20px;
+    align-items: center;
+  }
+  .reminder-label {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .reminder-time {
+    grid-column: 1;
+    grid-row: 2;
+    justify-content: start;
+  }
+  .reminder-time > span {
+    margin-left: 8px;
+  }
+  .checkin-reminder > p {
+    grid-column: 1;
+    grid-row: 3;
+  }
+  .checkin-reminder [data-slot="button"] {
+    grid-column: 2;
+    grid-row: 2;
+    min-width: 180px;
+  }
+  .schedule-note {
+    grid-column: 1/-1;
+  }
+  .journey-heading > span {
+    display: block;
+  }
+  .journey-details {
+    justify-content: space-between;
+  }
+  .mission-day > strong {
+    font-size: 54px;
+  }
+  .journey-phase {
+    min-width: 45%;
+  }
+  .mission-journey {
+    min-height: 210px;
+  }
+  .home-health-layout .panel-heading {
+    gap: 8px;
+  }
+  .home-health-layout .panel-heading h2 {
+    font-size: 16px;
+  }
+  .home-health-layout .panel-heading > .meta {
+    font-size: 10px;
+  }
+  .home-health-layout .med-panel {
+    padding: 17px 15px;
+  }
+  .human-scan-panel {
+    padding: 17px 15px;
+  }
+  .readings-panel .vital-value {
+    font-size: 29px;
+  }
+  .readings-panel .vital-label {
+    font-size: 9px;
+  }
+  .readings-panel .vital-value small {
+    font-size: 10px;
+  }
+  .human-scan-stage {
+    height: 370px;
+  }
+}
+@media (max-width: 760px) {
+  .home-health-layout {
+    grid-template-columns: 1fr;
+  }
+  .readings-panel .vital-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .human-scan-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
+  .scan-panel-heading {
+    grid-column: 1/-1;
+  }
+  .human-scan-stage {
+    grid-column: 1;
+    grid-row: 2/5;
+    height: 340px;
+    min-height: 0;
+    margin: 15px 0;
+  }
+  .human-scan-stage img {
+    min-height: 0;
+  }
+  .scan-system-list {
+    grid-column: 2;
+    grid-row: 2;
+    grid-template-columns: 1fr;
+    align-self: center;
+    border: 0;
+    padding: 0;
+    gap: 15px;
+  }
+  .scan-caption-text {
+    grid-column: 2;
+    grid-row: 3;
+    align-self: start;
+  }
+  .scan-controls {
+    grid-column: 1/-1;
+    border-top: 1px solid var(--border);
+    padding-top: 12px;
+    margin-top: 0;
+  }
+  .scan-controls [data-slot="button"] {
+    font-size: 12px;
+    min-height: 40px;
+  }
+  .home-briefing .briefing-body {
+    grid-template-columns: 1.2fr 1fr;
+  }
+  .home-briefing .briefing-chart {
+    display: block;
+  }
+  .home-health-layout .panel-heading h2,
+  .scan-panel-heading h2 {
+    font-size: 18px;
+  }
+}
+@media (max-width: 650px) {
+  .workspace .page-title h1 {
+    font-size: 29px;
+  }
+  .workspace .page-title p {
+    font-size: 12px;
+  }
+  .workspace .mission-content {
+    padding-top: 22px;
+  }
+  .top-mission strong {
+    max-width: 160px;
+    gap: 8px;
+  }
+  .header-mission-day {
+    font-size: 16px;
+  }
+  .header-mission-phase {
+    display: none;
+  }
+  .demo-toggle {
+    font-size: 10px;
+  }
+  .home-mission-band {
+    gap: 12px;
+    margin-bottom: 16px;
+  }
+  .mission-journey {
+    padding: 17px 16px !important;
+    min-height: 215px;
+  }
+  .journey-heading {
+    margin-bottom: 18px;
+  }
+  .journey-heading h2 {
+    font-size: 16px;
+  }
+  .journey-heading > span {
+    display: none;
+  }
+  .journey-details {
+    gap: 15px;
+    align-items: start;
+    margin-bottom: 35px;
+  }
+  .mission-day {
+    flex-direction: column;
+    gap: 6px;
+  }
+  .mission-day > strong {
+    font-size: 43px;
+    letter-spacing: -1.4px;
+  }
+  .mission-day > span {
+    font-size: 12px;
+  }
+  .journey-phase {
+    min-width: 0;
+    padding-left: 15px;
+    margin-top: 2px;
+  }
+  .journey-phase strong {
+    font-size: 14px;
+    line-height: 1.5;
+  }
+  .journey-phase > span {
+    font-size: 12px;
+  }
+  .journey-endpoint {
+    font-size: 26px !important;
+  }
+  .mission-journey .trip-route {
+    gap: 13px;
+  }
+  .journey-phases {
+    margin-inline: 35px;
+    gap: 5px;
+  }
+  .journey-phases span {
+    font-size: 8px;
+  }
+  .checkin-reminder {
+    padding: 17px 16px;
+    display: flex;
+    gap: 12px;
+  }
+  .reminder-label h2 {
+    font-size: 16px;
+  }
+  .reminder-label {
+    width: 100%;
+  }
+  .reminder-time {
+    width: 100%;
+    justify-content: start;
+  }
+  .reminder-time strong {
+    font-size: 42px;
+  }
+  .reminder-time > span {
+    margin-left: auto;
+    font-size: 12px;
+  }
+  .checkin-reminder > p {
+    align-self: flex-start;
+    font-size: 12px;
+  }
+  .schedule-note {
+    align-self: flex-start;
+    font-size: 10px !important;
+  }
+  .checkin-reminder [data-slot="button"] {
+    min-height: 44px;
+    font-size: 14px;
+  }
+  .home-health-layout {
+    margin-bottom: 16px;
+    gap: 16px;
+  }
+  .home-health-main {
+    gap: 16px;
+  }
+  .home-health-layout .med-panel {
+    padding: 17px 15px;
+  }
+  .home-health-layout .panel-heading > .meta {
+    font-size: 10px;
+    max-width: 120px;
+  }
+  .readings-panel .vital-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .readings-panel .vital-label {
+    font-size: 11px;
+    white-space: normal;
+    line-height: 1.4;
+  }
+  .readings-panel .vital-value {
+    font-size: 30px;
+  }
+  .readings-panel .vital-value small {
+    font-size: 10px;
+  }
+  .readings-panel .vital-label svg {
+    width: 14px;
+    height: 14px;
+  }
+  .readings-panel .vital-tile {
+    padding: 13px 11px;
+  }
+  .readings-panel .last-reading {
+    font-size: 10px !important;
+  }
+  .readings-panel .vital-bottom > span:last-child:not(.health-status) {
+    font-size: 9px;
+  }
+  .home-briefing .briefing-body {
+    grid-template-columns: 1fr;
+  }
+  .home-briefing .briefing-body p {
+    font-size: 13px;
+  }
+  .home-briefing .briefing-heading h3 {
+    font-size: 15px;
+  }
+  .home-briefing .briefing-chart {
+    padding-top: 15px;
+  }
+  .human-scan-panel {
+    gap: 0 12px;
+  }
+  .human-scan-stage {
+    height: 310px;
+  }
+  .scan-system-list > div {
+    font-size: 11px;
+  }
+  .scan-system-list {
+    gap: 16px;
+  }
+  .scan-panel-heading > span {
+    font-size: 11px;
+  }
+  .scan-caption-text {
+    font-size: 11px;
+  }
+  .scan-controls [data-slot="button"] {
+    font-size: 12px;
+    min-height: 44px;
+  }
+  .exposure-grid h3 {
+    font-size: 13px;
+  }
+  .exposure-grid section > span {
+    font-size: 11px;
+  }
+  .exposure-grid section > small {
+    font-size: 11px;
+  }
+  .mission-sidebar nav button > span:not(.nav-active-dot) {
+    font-size: 10px;
+  }
+  .mission-sidebar nav button {
+    min-height: 54px;
+  }
+  .mission-content > .med-panel .task {
+    font-size: 12px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .human-scan-stage .scan-sweep {
+    animation: none;
+    transform: translateY(-50%);
+    opacity: 0.35;
+    will-change: auto;
+  }
+  .scan-controls .scan-motion-control {
+    display: none;
+  }
+  .scan-controls .reduced-motion-note {
+    display: inline;
+  }
+  .mission-journey .journey-progress-fill {
+    transition: none;
+  }
+  .medic-app::before {
+    animation: none;
+  }
+}
+/* Keep responsive charts measurable; never mount a chart into a hidden container. */
+.home-briefing .briefing-chart {
+  display: block;
+}
+.journey-phases span {
+  flex: 1 !important;
+  font-size: 10px;
+}
+.human-scan-stage img {
+  max-height: 500px;
+}
+.readings-panel .vital-tile {
+  padding-top: 11px;
+  padding-bottom: 9px;
+}
+.readings-panel .vital-value {
+  margin: 7px 0;
+  line-height: 1.15;
+}
+.readings-panel .last-reading {
+  margin-top: 4px;
+}
+.readings-panel .vital-label {
+  line-height: 1.4;
+}
+.home-health-layout .readings-panel .panel-heading {
+  margin-bottom: 13px;
+}
+@media (max-width: 650px) {
+  .journey-phases span {
+    font-size: 9px;
+  }
+  .readings-panel .vital-label {
+    font-size: 11px;
+  }
+  .readings-panel .vital-value {
+    margin: 9px 0;
+  }
+  .human-scan-stage img {
+    max-height: 340px;
+  }
+}
+.mission-journey {
+  min-width: 0;
+}
+.journey-heading > svg {
+  margin-left: auto;
+}
+.journey-phase {
+  flex: 1;
+}
+.home-mission-band {
+  min-width: 0;
+}
+@media (max-width: 1000px) {
+  .home-mission-band {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (max-width: 360px) {
+  .journey-details {
+    gap: 12px;
+  }
+  .mission-day > strong {
+    font-size: 37px;
+  }
+  .journey-phase {
+    padding-left: 12px;
+  }
+  .journey-phase strong {
+    font-size: 13px;
+  }
+  .journey-phase > span {
+    font-size: 11px;
+  }
+  .readings-panel .vital-value {
+    font-size: 26px;
+  }
+  .readings-panel .vital-value small {
+    font-size: 9px;
+  }
+  .human-scan-panel {
+    column-gap: 8px;
+  }
+  .scan-system-list > div {
+    font-size: 10px;
+  }
 }

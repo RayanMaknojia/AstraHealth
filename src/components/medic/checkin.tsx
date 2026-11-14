@@ -25,12 +25,14 @@ export function Checkin({
   busy,
   result,
   photo,
+  slotLabel = "Morning",
 }: {
   profile: AstronautProfile;
   submit: (input: IngestionInput) => Promise<void>;
   busy: boolean;
   result: IngestionResult | null;
   photo: () => void;
+  slotLabel?: string;
 }) {
   const [values, setValues] = useState<VitalsInput>(() =>
     indicatorsToVitals(profile.indicators),
@@ -45,7 +47,7 @@ export function Checkin({
     <div className="checkin-layout">
       <Panel
         title="Your daily check-in"
-        accessory={<span className="meta">Morning · ~2 minutes</span>}
+        accessory={<span className="meta">{slotLabel} · ~2 minutes</span>}
       >
         <p className="section-intro">
           Start with your latest readings. Only checked measurements are
