@@ -27,9 +27,9 @@ Build an interactive Astronaut Health Monitoring & Self-Assessment HUD addressin
 ## Task Board
 
 ### Claude Code Tasks (Data, NASA/CSA Thresholds & Logic)
-- [ ] Create `src/types/astronaut.ts` matching the exact schema above
-- [ ] Create `src/data/nasaSpaceflightData.ts` with realistic astronaut profiles, NASA HRP hazard mappings, CSA radiation thresholds, and multi-day baseline trend arrays
-- [ ] Create `src/services/healthEvaluator.ts` with real medical threshold rules (evaluating user-entered blood sugar mg/dL, BP, temp, sleep, radiation mSv, and mood into `nominal`/`caution`/`critical` + generating escalation actions)
+- [x] Create `src/types/astronaut.ts` matching the exact schema above
+- [x] Create `src/data/nasaSpaceflightData.ts` with realistic astronaut profiles, NASA HRP hazard mappings, CSA radiation thresholds, and multi-day baseline trend arrays
+- [x] Create `src/services/healthEvaluator.ts` with real medical threshold rules (evaluating user-entered blood sugar mg/dL, BP, temp, sleep, radiation mSv, and mood into `nominal`/`caution`/`critical` + generating escalation actions)
 
 ### Codex Tasks (HUD UI, Interactive Body Map & Gamification)
 - [ ] Replace template business dashboard with Dark-Mode Spacecraft Medical HUD layout, Environment Switcher (`ISS`, `Lunar Base`, `Mars Transit`, `Rover`), and Crew Profile selector
