@@ -1,10 +1,26 @@
-# Phase 2: Backend Services Live
+# Phase 2 (Claude Code): Backend Services Live
 
 **Owner:** Claude Code (backend, data and systems)
-**Branch:** `claude/clever-bardeen-mn9gw6`
-**Status:** Done. Every service in `src/services` is implemented. No "not implemented" stubs remain, so Codex doesn't need try/catch fallbacks.
+**Branch:** `claude/clever-bardeen-mn9gw6` (commit `d22dd4e`)
+**Status:** Done. Every service in `src/services` is implemented, and no "not implemented" stubs remain, so Codex doesn't need try/catch fallbacks.
 
-Scope stayed inside `src/services`, `src/data` (plus `PROJECT_PLAN.md` checkboxes and this file). No changes to `src/components`, `src/App.tsx`, `src/index.css` or `package.json`.
+Phase 1 locked the shared schema and left placeholder services. Phase 2 replaces every placeholder with working logic so the UI can be wired to real data. Everything runs fully offline; Gemini is optional.
+
+**Merge this branch into `main` before Codex starts the frontend**, so it builds against the real services.
+
+## Folder ownership
+
+| Agent | Can create/edit |
+|---|---|
+| Claude Code | `src/types`, `src/data`, `src/services` |
+| Codex | `src/components`, `src/App.tsx`, `src/index.css`, and `package.json` / `package-lock.json` (only Codex runs `npm install` / `npx shadcn`) |
+
+Phase 2 changed `src/services` and `src/data`, plus `PROJECT_PLAN.md` checkboxes and this file. It also made a few **additive** changes to `src/types/astronaut.ts`, with nothing renamed or removed:
+- a new `SpaceAdjustments` type
+- an optional `environment` field on `IngestionInput`
+- optional `missionMinutesPerTick` and `startingMissionDoseMSv` on `EnvironmentFeedConfig`
+
+Nothing in `src/components`, `src/App.tsx`, `src/index.css` or `package.json` was touched.
 
 ## Checks
 
@@ -66,10 +82,24 @@ Dependencies were installed in a throwaway copy outside the repo, so `package-lo
 - Deterministic code owns every status and alert. Gemini (if a key is set) only rewrites wording, and only when something meaningful changed, not on every 15-minute tick.
 
 ## Wiring for Codex
-See the **STEP 2 cheat-sheet** in `PROJECT_PLAN.md` (login → hydrate → live ticks → demo bar → dropzone → briefing).
+Full cheat-sheet: **STEP 2** section of `PROJECT_PLAN.md`. Short version:
+
+| UI piece | Call |
+|---|---|
+| Login | `accountService.authenticate(login, pin)` → `getProfileForSession(session)` |
+| Hydrate dashboard | `healthEvaluator.evaluateProfile(profile)` → `{ indicators, report, missionState }` |
+| Trip bar / demo slider | `missionTimeline.getMissionState(plan, day)` + `formatTripBarLabel(state)`; evaluate with `{ missionState, ignoreStaleness: true }` |
+| Live data | `createWearableStream({ profile })`, `createEnvironmentFeed({ missionState })` → `subscribe(tick)` |
+| Any new reading | `applyIndicatorUpdates(profile, updates)` → `updateBriefing(briefing, event, { profile, missionState, indicators })` |
+| Demo bar | `wearable.tickOnce()`, `feed.triggerSolarEvent()` + `wearable.injectAnomaly('solar_flare')`, `ingest(createDemoInput('valid_ultrasound' \| 'invalid_file'))` |
+| Dropzone / sliders | `ingestionEngine.ingest({ file, fileName, mimeType, astronautId, day })` or `ingest({ manualValues, ... })` |
+| Colours / labels | `displayStatus(ind)`, `STATUS_COLORS`, `STATUS_LABELS`, `ESCALATION_MODE_LABELS` |
 
 ## Things to know
 - **Mood stays on the 1–10 scale.**
 - **Gemini is optional.** Set `VITE_GEMINI_API_KEY` to enable it; a key in a Vite env var ships to the browser, which is fine for a demo but not for production.
 - **Staleness and the demo slider:** sliding the mission day far past the last reading makes indicators grey (correct behaviour). For the judges' slider, pass `ignoreStaleness: true` to `evaluateProfile`.
 - Some values are estimates by design (partial-gravity BP and bone loss, Earth delay curve, solar-event dose rates) and are labeled that way in the code and notes.
+
+## Next (Phase 2, Codex)
+Merge this branch, then Codex builds the HUD in `src/components`, `src/App.tsx` and `src/index.css`: login switcher, Mission Control demo bar, mission-day slider, body map, ingestion panel, briefing card, trend graphs with the guide drawer, and the countermeasure checklist.
