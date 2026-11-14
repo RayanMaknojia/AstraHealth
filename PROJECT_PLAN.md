@@ -15,7 +15,8 @@ Frontend: Vite + React + TypeScript + Tailwind CSS + shadcn/ui + Recharts (Respo
 
 AI / Multimodal Pipeline: Gemini Flash (Gatekeeper + One-Time Media Extractor + Incremental Briefing Updater) with deterministic fallback rules in healthEvaluator.ts
 
-Shared Data Schema v2.1 (src/types/astronaut.ts — SOURCE OF TRUTH)
+Shared Data Schema v2.2 (src/types/astronaut.ts — SOURCE OF TRUTH)
+Status thresholds: health_rules.md (reconciled; the code implements exactly that file). Pages/UX: astronaut_health_monitor_pages.md.
 v2.1 = the v2.0 schema + astronaut_health_monitor_plan.md (team reference doc). Read the file itself for every field; key points:
 
 TypeScript
@@ -27,6 +28,7 @@ export type DataModality = 'wearable_auto' | 'manual_slider' | 'lab_document' | 
 export type IndicatorId = 'blood_sugar' | 'radiation_dose' | 'heart_rate' | 'blood_pressure' | 'bone_density'
                         | 'sleep_hours' | 'mood' | 'body_temp' | 'spo2';   // spo2 NEW (cardiovascular zone)
 export type ActionLevel = 'self_care' | 'crew_alert' | 'flight_surgeon';
+// v2.2: mood is a 1–5 scale (unit '/5'). Sleep and mood Alerts need 3 in a row (health_rules.md).
 export type EscalationMode = 'contact_ground' | 'act_then_report';   // by Earth delay (ISS/Moon vs transit/Mars)
 
 // Environment = WHERE THE CREW IS ON A GIVEN MISSION DAY (replaces ISS_ORBIT/LUNAR_BASE/MARS_TRANSIT/SURFACE_ROVER)
@@ -122,6 +124,9 @@ Task Board
 - First briefing: briefingEngine.createInitialBriefing({ profile, missionState, indicators }).
 - Colors/labels: displayStatus(ind), STATUS_COLORS, STATUS_LABELS, ESCALATION_MODE_LABELS. Cabin panel: tick.cabinEvaluation; shelter banner: tick.activeEvent?.shelterAdvised.
 
+
+[x] STEP 2b — RULES RECONCILED (Claude Code): health_rules.md merges the plan doc, the pages doc and Phase 2. Mood is now 1–5. Sleep/mood Alerts need 3 in a row. Temperature, BP (low limits relax in flight, not after landing), glucose, bone, SpO2 and the heart-rate 15% baseline rule follow that file. New for the UI: CHECKIN_INPUTS (slider min/max/step/unit/normal text) and CHECKIN_SYMPTOMS in src/data.
+
 UI implications of v2.1 (for Codex — your call how to render):
 - EnvironmentType values changed (see schema). The "Environment Switcher" becomes a mission/crew selector + trip bar ("Day 45 · Flying to Mars · 138 days to arrival"); in demo mode the trip bar is a slider that calls missionTimeline.getMissionState(plan, day).
 - Use displayStatus(indicator) for colors: 'no_data' = grey. Never show missing data as green.
@@ -152,6 +157,16 @@ Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental A
 [x] Create src/services/environmentFeed.ts (cabin CO2/temp/humidity replay + NASA-STD-3001 cabin limits, RadLab-style dose feed, DONKI SEP shelter alerts with offline fallback)
 
 [x] Create src/services/accountService.ts (admin-created accounts, name + PIN login, launch-date edits, offline localStorage) + src/data reference tables (REFERENCE_RANGES, CABIN_LIMITS, HAZARD_RISK_MAP)
+
+[x] Reconcile thresholds with astronaut_health_monitor_pages.md → health_rules.md (mood 1–5, 3-in-a-row sleep/mood Alerts, CHECKIN_INPUTS)
+
+[ ] PHASE 3 backend: check-in schedule (morning / evening / weekly / monthly / eye exams) + streaks + badges + crew leaderboard (consistency only)
+
+[ ] PHASE 3 backend: body mass + exercise minutes indicators, workout log, bone-loss projection (no-exercise vs actual), reaction test
+
+[ ] PHASE 3 backend: confirmable override alerts (O1 Critical Health, O2 Cabin Emergency, O3 Radiation Storm, O4 SOS) + comms-blackout banner + "Is it me or the air?" helper
+
+[ ] PHASE 3 backend: Photo Check (skin first-look with "unsure" < 70% → flight-surgeon queue; guided ultrasound capture + quality check), sync outbox/inbox, triage trees, medication list, device-only journal
 
 Codex Tasks (Movie-Grade Spacecraft HUD, Interactive Body Map & Demo Controls)
 [ ] Build Dark-Mode Spacecraft Medical HUD with animated deep-space canvas/nebula backdrop, glowing glassmorphic telemetry panels, Environment Switcher (ISS, Lunar Base, Mars Transit, Rover), and Crew Profile selector
