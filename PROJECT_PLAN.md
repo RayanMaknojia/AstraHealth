@@ -15,96 +15,68 @@ Frontend: Vite + React + TypeScript + Tailwind CSS + shadcn/ui + Recharts (Respo
 
 AI / Multimodal Pipeline: Gemini Flash (Gatekeeper + One-Time Media Extractor + Incremental Briefing Updater) with deterministic fallback rules in healthEvaluator.ts
 
-Shared Data Schema (src/types/astronaut.ts)
+Shared Data Schema v2.1 (src/types/astronaut.ts — SOURCE OF TRUTH)
+v2.1 = the v2.0 schema + astronaut_health_monitor_plan.md (team reference doc). Read the file itself for every field; key points:
+
 TypeScript
-export type EnvironmentType = 'ISS_ORBIT' | 'LUNAR_BASE' | 'MARS_TRANSIT' | 'SURFACE_ROVER';
-
-export type StatusLevel = 'nominal' | 'caution' | 'critical';
-
+export type StatusLevel = 'nominal' | 'caution' | 'critical';        // UI labels: Normal / Watch / Alert
+export type DisplayStatus = StatusLevel | 'no_data';                  // grey — missing data is NEVER green
 export type TrendDirection = 'stable' | 'improving' | 'drifting_caution' | 'rapid_decline';
+export type BodySystem = 'cardiovascular' | 'musculoskeletal' | 'radiation_immune' | 'metabolic' | 'behavioral';
+export type DataModality = 'wearable_auto' | 'manual_slider' | 'lab_document' | 'ultrasound_image' | 'voice_log' | 'environment_feed';
+export type IndicatorId = 'blood_sugar' | 'radiation_dose' | 'heart_rate' | 'blood_pressure' | 'bone_density'
+                        | 'sleep_hours' | 'mood' | 'body_temp' | 'spo2';   // spo2 NEW (cardiovascular zone)
+export type ActionLevel = 'self_care' | 'crew_alert' | 'flight_surgeon';
+export type EscalationMode = 'contact_ground' | 'act_then_report';   // by Earth delay (ISS/Moon vs transit/Mars)
 
-export type BodySystem =
-  | 'cardiovascular'
-  | 'musculoskeletal'
-  | 'radiation_immune'
-  | 'metabolic'
-  | 'behavioral';
+// Environment = WHERE THE CREW IS ON A GIVEN MISSION DAY (replaces ISS_ORBIT/LUNAR_BASE/MARS_TRANSIT/SURFACE_ROVER)
+export type EnvironmentType = 'EARTH' | 'EARTH_ORBIT' | 'DEEP_SPACE' | 'MARS_ORBIT' | 'MARS_SURFACE' | 'MOON_SURFACE';
+export type HabitatType = 'ground' | 'spacecraft' | 'station' | 'rover' | 'moon_base' | 'mars_base';
+export type MissionDestination = 'EARTH_TRAINING' | 'ISS' | 'MOON' | 'MARS';
 
-export type DataModality =
-  | 'wearable_auto'
-  | 'manual_slider'
-  | 'lab_document'
-  | 'ultrasound_image'
-  | 'voice_log';
-
-export interface HistoryPoint {
-  timestamp: string; // e.g., "Sol 14 08:00" or "Day 12"
-  value: number;
-  baseline: number;
-  source: DataModality;
-}
+export interface HistoryPoint { timestamp: string; value: number; baseline: number; source: DataModality; day: number; }
 
 export interface HealthIndicator {
-  id:
-    | 'blood_sugar'
-    | 'radiation_dose'
-    | 'heart_rate'
-    | 'blood_pressure'
-    | 'bone_density'
-    | 'sleep_hours'
-    | 'mood'
-    | 'body_temp';
-  system: BodySystem;
-  name: string;
-  value: number | string;
-  unit: string; // 'mg/dL', 'mSv', 'bpm', 'mmHg', '%', 'hrs', '°C', '/10'
-  status: StatusLevel;
-  trend: TrendDirection;
-  projectedDaysToThreshold?: number; // Populated when drifting toward caution/critical
-  hazardLink: string; // Maps directly to one of NASA's 5 Spaceflight Hazards
-  howToMeasure: string; // Step-by-step tool guide for non-doctor scientists
-  whyNeeded: string; // Plain-English explanation of spaceflight physiological impact
-  actionPlan: {
-    level: 'self_care' | 'crew_alert' | 'flight_surgeon';
-    steps: string[];
-  };
+  id: IndicatorId; system: BodySystem; name: string;
+  value: number | string | null;               // null = missing
+  unit: string; status: StatusLevel;
+  dataState: 'fresh' | 'stale' | 'missing';     // NEW — paint grey unless 'fresh'
+  lastMeasuredDay?: number;
+  trend: TrendDirection; projectedDaysToThreshold?: number;
+  hazardLink: string; howToMeasure: string; whyNeeded: string; spaceShiftNote?: string;
+  actionPlan: { level: ActionLevel; steps: string[]; escalationMode?: EscalationMode };
   history: HistoryPoint[];
+  simulated: boolean;                           // NEW — show "Simulated" tag (real daily vitals not public)
 }
 
-export interface IngestedArtifact {
-  id: string;
-  timestamp: string;
-  fileName?: string;
-  modality: DataModality;
-  accepted: boolean;
-  rejectionReason?: string; // Shown if non-health file/input is blocked
-  extractedSummary: string; // Normalized once; raw binary/audio never re-sent to LLM
-  mappedIndicators: HealthIndicator['id'][];
-  severity: StatusLevel;
-}
+export interface IngestedArtifact { id; timestamp; fileName?; modality; accepted; rejectionReason?; extractedSummary; mappedIndicators: IndicatorId[]; severity: StatusLevel; }
 
 export interface MissionHealthBriefing {
-  lastUpdated: string;
-  overallStatus: StatusLevel;
-  headline: string;
-  plainEnglishSummary: string; // Jargon-free explanation for non-medical crew
-  emergingRisks: {
-    indicatorId: HealthIndicator['id'];
-    severity: StatusLevel;
-    explanation: string; // Why current trajectory indicates an upcoming issue
-    preventiveAction: string;
-  }[];
-  recommendedToolChecks: string[]; // Next diagnostic measurements to perform
+  lastUpdated; overallStatus; headline; plainEnglishSummary;
+  emergingRisks: { indicatorId; severity; explanation; preventiveAction }[];
+  recommendedToolChecks: string[];
+  escalationMode: EscalationMode;               // NEW
+  environmentAlerts: string[];                  // NEW — shelter / CO2 / phase-transition alerts
 }
 
-export interface RoutineTask {
-  id: string;
-  title: string;
-  xp: number;
-  completed: boolean;
-  frequency: 'daily' | 'weekly';
-  linkedSystem: BodySystem;
-}
+export interface RoutineTask { id; title; xp; completed; frequency: 'daily' | 'weekly'; linkedSystem: BodySystem; refreshesIndicator?: IndicatorId; }
+
+// NEW — mission timeline ("what day of the mission is it?")
+MissionPhase { order, name, startDay, endDay, environment, habitat }
+MissionPlan { id, name, destination, launchDate, totalDays, phases[] }
+CumulativeExposure { missionDay, days0g, daysPartialG, totalRadiationMSv, estBoneLossPct }   // the body's "bank account"
+TransitionAlert { kind, severity, title, guidance[], activeFromDay, activeToDay }
+MissionState { plan, missionDay, phase, environment, earthDelaySeconds, escalationMode, exposure,
+               daysToNextPhase, nextPhase, progress (0–1 for trip bar), activeAlerts[] }
+
+// NEW — accounts & baselines
+CrewAccount / AuthSession (admin | astronaut, login + PIN; demo-grade only)
+PersonalBaseline { astronautId, source: 'earth_mode' | 'first_7_days' | 'population_default', values: { mean, sd, n } per indicator }
+AstronautProfile gains: crewRole, login, mission: MissionPlan, habitat, notes[], baseline
+
+// NEW — reference tables & environment feed
+ReferenceRange, CabinLimit, HazardRiskEntry, CabinReading, CabinEvaluation, RadiationEvent (DONKI SEP → shelter), EnvironmentTick
+
 System Pipeline Architecture
 Automated 15-Minute Wearable Loop (wearableStream.ts):
 
@@ -124,19 +96,51 @@ Stateful Incremental AI Briefing (briefingEngine.ts):
 
 Takes (currentBriefing + newNormalizedEvent + updatedIndicators) and incrementally rewrites MissionHealthBriefing in plain English—highlighting color-coded abnormalities, early trajectory warnings, and actionable prevention steps.
 
+Mission Timeline (missionTimeline.ts):
+
+Maps mission day → phase → environment rules (gravity, dose rate, Earth delay, cabin atmosphere). Keeps the cumulative exposure "bank account" (days at 0 g / partial g, radiation, bone loss = (1.25/30)·(1 − g) %/day) and transition alerts (entering 0 g, day-60 temp shift, landing after transit, solar storm). Drives the trip bar + demo slider.
+
+Environment Feed (environmentFeed.ts):
+
+Replays cabin CO2/temp/humidity (OSDR shape) and radiation dose-rate (RadLab shape) by mission time; evaluates cabin vs NASA-STD-3001 limits; DONKI SEP events (live with key, simulated offline) raise a "Go to shelter" alert.
+
+Accounts (accountService.ts):
+
+Admin (mission control) creates astronauts (name, role, PIN, destination, launch date, notes) and edits dates for delays; astronauts log in with name + PIN. Demo logins: admin, mars_crew, iss_crew, moon_crew. localStorage, offline-first, demo-grade auth.
+
 Task Board
+[x] STEP 1 — CONTRACT LOCKED v2.1 (Claude Code): src/types/astronaut.ts now covers PROJECT_PLAN v2.0 + astronaut_health_monitor_plan.md. Stubs with final signatures (bodies throw "not implemented" until Step 2): src/services/wearableStream.ts, ingestionEngine.ts, briefingEngine.ts, missionTimeline.ts, environmentFeed.ts, accountService.ts. Ready now (real, not stubs): src/data (ENVIRONMENTS ×6, MISSION_TEMPLATES, CREW_PROFILES iss_crew / mars_crew / moon_crew, INDICATOR_GUIDES incl. SpO2) and healthEvaluator (evaluateProfile, evaluateVitals, displayStatus, STATUS_COLORS / STATUS_LABELS / ESCALATION_MODE_LABELS, escalationModeFor). Parallel execution may start.
+
+UI implications of v2.1 (for Codex — your call how to render):
+- EnvironmentType values changed (see schema). The "Environment Switcher" becomes a mission/crew selector + trip bar ("Day 45 · Flying to Mars · 138 days to arrival"); in demo mode the trip bar is a slider that calls missionTimeline.getMissionState(plan, day).
+- Use displayStatus(indicator) for colors: 'no_data' = grey. Never show missing data as green.
+- 9 indicators now (spo2 added, cardiovascular zone). Show a "Simulated" tag when indicator.simulated.
+- Show escalation as ESCALATION_MODE_LABELS[report.escalationMode] (contact ground vs act-then-report).
+- Login screen (name + PIN) and an admin setup screen; demo logins in accountService.DEMO_LOGINS.
+- Cabin panel (CO2, temp, humidity) + "Go to shelter" banner from environmentFeed.
+
+Folder ownership: Claude Code → src/types, src/data, src/services only. Codex → src/components, src/App.tsx, src/index.css, and package.json / package-lock.json (only Codex runs npm install / npx shadcn).
+
 Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental AI)
-[x] Create src/types/astronaut.ts matching the v2.0 schema above
+[x] Create src/types/astronaut.ts matching the v2.1 schema above
 
 [x] Create src/data/nasaSpaceflightData.ts with realistic astronaut profiles, NASA HRP hazard mappings, CSA radiation thresholds, and baseline history arrays
 
-[x] Create src/services/healthEvaluator.ts with real medical threshold rules + slope-based trajectory detection (trend & projectedDaysToThreshold)
+[x] Create src/services/healthEvaluator.ts with real medical threshold rules (incl. SpO2, missing-data, delay-based escalation)
+
+[ ] Add slope-based trajectory detection (trend & projectedDaysToThreshold), personal-baseline scoring, and phase-adjusted ranges (temp +1 °C after day 60 in 0 g, BP −8–10 mmHg in flight, sleep target 8.5 h / alert < 6 h, tighter SpO2 in 8.2 psia habitats) to healthEvaluator.ts
 
 [ ] Create src/services/ingestionEngine.ts implementing the AI Biomedical Relevance Gatekeeper (accept/reject with reason) + One-Time Multimodal Normalizer (with offline mock parsers for demo reliability)
 
 [ ] Create src/services/briefingEngine.ts implementing Stateful Incremental AI Summary updates (reads prior briefing + new normalized event only; outputs color-coded plain-English diagnosis, early drift warnings, and tool instructions)
 
-[ ] Create src/services/wearableStream.ts simulating automatic 15-minute wearable telemetry ticks + demo anomaly injection triggers
+[ ] Create src/services/wearableStream.ts simulating automatic 15-minute wearable telemetry ticks (HR, SpO2, skin/core temp, steps, HRV, sleep) + demo anomaly injection triggers
+
+[ ] Create src/services/missionTimeline.ts (phase lookup, Earth delay, escalation mode, cumulative exposure bank account, transition alerts, trip-bar label)
+
+[ ] Create src/services/environmentFeed.ts (cabin CO2/temp/humidity replay + NASA-STD-3001 cabin limits, RadLab-style dose feed, DONKI SEP shelter alerts with offline fallback)
+
+[ ] Create src/services/accountService.ts (admin-created accounts, name + PIN login, launch-date edits, offline localStorage) + src/data reference tables (REFERENCE_RANGES, CABIN_LIMITS, HAZARD_RISK_MAP)
 
 Codex Tasks (Movie-Grade Spacecraft HUD, Interactive Body Map & Demo Controls)
 [ ] Build Dark-Mode Spacecraft Medical HUD with animated deep-space canvas/nebula backdrop, glowing glassmorphic telemetry panels, Environment Switcher (ISS, Lunar Base, Mars Transit, Rover), and Crew Profile selector

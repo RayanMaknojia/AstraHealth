@@ -12,6 +12,7 @@
  */
 
 import {
+  ACT_THEN_REPORT_DELAY_S,
   ENVIRONMENTS,
   INDICATOR_GUIDES,
   THRESHOLDS as T,
@@ -21,7 +22,9 @@ import type {
   ActionPlan,
   AstronautProfile,
   BodySystem,
+  DisplayStatus,
   EnvironmentType,
+  EscalationMode,
   HealthIndicator,
   HealthReport,
   IndicatorEvaluation,
@@ -41,11 +44,35 @@ export const STATUS_TO_ACTION: Record<StatusLevel, ActionLevel> = {
   critical: 'flight_surgeon',
 }
 
-/** At-a-glance HUD colours (Emerald / Amber / Crimson). */
-export const STATUS_COLORS: Record<StatusLevel, string> = {
+/** At-a-glance HUD colours (Emerald / Amber / Crimson; grey = no data — never green). */
+export const STATUS_COLORS: Record<DisplayStatus, string> = {
   nominal: '#10b981',
   caution: '#f59e0b',
   critical: '#dc2626',
+  no_data: '#6b7280',
+}
+
+/** Crew-facing labels (reference doc wording). */
+export const STATUS_LABELS: Record<DisplayStatus, string> = {
+  nominal: 'Normal',
+  caution: 'Watch',
+  critical: 'Alert',
+  no_data: 'No data',
+}
+
+export const ESCALATION_MODE_LABELS: Record<EscalationMode, string> = {
+  contact_ground: 'Contact the flight surgeon',
+  act_then_report: 'Act now with onboard guidance, then report to Earth',
+}
+
+/** What the UI should paint for an indicator: grey unless the reading is fresh. */
+export function displayStatus(ind: Pick<HealthIndicator, 'status' | 'dataState' | 'value'>): DisplayStatus {
+  return ind.dataState === 'fresh' && ind.value !== null ? ind.status : 'no_data'
+}
+
+/** Short delay (ISS, Moon) → contact ground; long delay (transit, Mars) → act then report. */
+export function escalationModeFor(oneWayDelaySeconds: number): EscalationMode {
+  return oneWayDelaySeconds > ACT_THEN_REPORT_DELAY_S ? 'act_then_report' : 'contact_ground'
 }
 
 export const ACTION_LABELS: Record<ActionLevel, string> = {
@@ -65,20 +92,27 @@ interface Verdict {
   steps: string[]
 }
 
-function plan(status: StatusLevel, steps: string[]): ActionPlan {
+function plan(status: StatusLevel, steps: string[], mode: EscalationMode = 'contact_ground'): ActionPlan {
   const level = STATUS_TO_ACTION[status]
   const tail: Record<ActionLevel, string[]> = {
     self_care: [],
     crew_alert: ['Tell the crew medical officer and re-measure within 4 hours.'],
-    flight_surgeon: [
-      'Notify the crew medical officer immediately.',
-      'Contact the flight surgeon on the private medical channel; send this reading and the last 3 days of trends.',
-    ],
+    flight_surgeon:
+      mode === 'act_then_report'
+        ? [
+            'Notify the crew medical officer immediately.',
+            'Earth is too far for a live reply: start these steps now using onboard guidance.',
+            'Then send this reading and the last 3 days of trends to the flight surgeon.',
+          ]
+        : [
+            'Notify the crew medical officer immediately.',
+            'Contact the flight surgeon on the private medical channel; send this reading and the last 3 days of trends.',
+          ],
   }
-  return { level, steps: [...steps, ...tail[level]] }
+  return { level, steps: [...steps, ...tail[level]], ...(level !== 'self_care' ? { escalationMode: mode } : {}) }
 }
 
-function toEvaluation(id: IndicatorId, value: number | string, v: Verdict): IndicatorEvaluation {
+function toEvaluation(id: IndicatorId, value: number | string, v: Verdict, mode: EscalationMode = 'contact_ground'): IndicatorEvaluation {
   const g = INDICATOR_GUIDES[id]
   return {
     id,
@@ -88,7 +122,7 @@ function toEvaluation(id: IndicatorId, value: number | string, v: Verdict): Indi
     unit: g.unit,
     message: v.message,
     thresholdNote: v.thresholdNote,
-    actionPlan: plan(v.status, v.steps),
+    actionPlan: plan(v.status, v.steps, mode),
   }
 }
 
@@ -411,6 +445,38 @@ export function evaluateBoneDensity(changePct: number): Verdict {
   }
 }
 
+export function evaluateSpO2(pct: number, cabinPsia = 14.7): Verdict {
+  const o = T.spo2
+  const lowPressure = cabinPsia <= o.lowPressureHabitatPsia
+  const cautionLow = lowPressure ? o.habitatCautionLow : o.cautionLow
+  const criticalLow = lowPressure ? o.habitatCriticalLow : o.criticalLow
+  const where = lowPressure ? ` (tighter limits: ${cabinPsia} psia habitat)` : ''
+  if (pct < criticalLow)
+    return {
+      status: 'critical',
+      message: `Low blood oxygen: ${pct}%${where}.`,
+      thresholdNote: `< ${criticalLow}%`,
+      steps: [
+        'Stop all exertion and sit or strap in.',
+        'Put on the emergency oxygen mask.',
+        'Check the cabin O2 / pressure display for a life-support fault.',
+      ],
+    }
+  if (pct < cautionLow)
+    return {
+      status: 'caution',
+      message: `Blood oxygen is a little low: ${pct}%${where}.`,
+      thresholdNote: `${criticalLow}–${cautionLow - 1}%`,
+      steps: ['Rest 10 minutes, warm your hands and re-measure.', 'Check the cabin CO2 and O2 readings.'],
+    }
+  return {
+    status: 'nominal',
+    message: `Blood oxygen is normal (${pct}%).`,
+    thresholdNote: `≥ ${cautionLow}%`,
+    steps: ['Keep up your daily SpO2 check.'],
+  }
+}
+
 // ── Aggregation ────────────────────────────────────────────────────────────
 
 const ALL_SYSTEMS: BodySystem[] = ['cardiovascular', 'musculoskeletal', 'radiation_immune', 'metabolic', 'behavioral']
@@ -435,7 +501,7 @@ export function readinessScore(statuses: StatusLevel[]): number {
 function environmentAdvisories(env: EnvironmentType, overall: StatusLevel): string[] {
   const e = ENVIRONMENTS[env]
   const out: string[] = []
-  if (overall === 'critical' && e.commDelaySecondsMax > 60)
+  if (overall === 'critical' && e.commDelaySecondsMax > ACT_THEN_REPORT_DELAY_S)
     out.push(
       `Signal delay to Earth is ${e.commDelay}. Begin the action plan now with your crew medical officer — do not wait for a reply from the flight surgeon.`,
     )
@@ -447,51 +513,66 @@ function environmentAdvisories(env: EnvironmentType, overall: StatusLevel): stri
 }
 
 /** Evaluate raw values from the Log Vitals panel. Missing fields are skipped. */
+const ALL_INDICATORS: IndicatorId[] = [
+  'heart_rate',
+  'blood_pressure',
+  'blood_sugar',
+  'body_temp',
+  'spo2',
+  'sleep_hours',
+  'mood',
+  'radiation_dose',
+  'bone_density',
+]
+
+/** Evaluate raw values from the Log Vitals panel. Missing fields are skipped and listed in missingIndicators. */
 export function evaluateVitals(
   input: VitalsInput,
   environment: EnvironmentType,
   opts: { priorCareerDoseMSv?: number } = {},
 ): HealthReport {
   const evals: IndicatorEvaluation[] = []
+  const env = ENVIRONMENTS[environment]
+  const mode = escalationModeFor(env.commDelaySecondsMax)
+  const push = (id: IndicatorId, value: number | string, v: Verdict) => evals.push(toEvaluation(id, value, v, mode))
 
   if (input.bloodSugarMgDl !== undefined)
-    evals.push(toEvaluation('blood_sugar', input.bloodSugarMgDl, evaluateBloodSugar(input.bloodSugarMgDl, input.fasting)))
-  if (input.heartRateBpm !== undefined)
-    evals.push(toEvaluation('heart_rate', input.heartRateBpm, evaluateHeartRate(input.heartRateBpm)))
+    push('blood_sugar', input.bloodSugarMgDl, evaluateBloodSugar(input.bloodSugarMgDl, input.fasting))
+  if (input.heartRateBpm !== undefined) push('heart_rate', input.heartRateBpm, evaluateHeartRate(input.heartRateBpm))
   if (input.systolicMmHg !== undefined && input.diastolicMmHg !== undefined)
-    evals.push(
-      toEvaluation(
-        'blood_pressure',
-        `${input.systolicMmHg}/${input.diastolicMmHg}`,
-        evaluateBloodPressure(input.systolicMmHg, input.diastolicMmHg),
-      ),
+    push(
+      'blood_pressure',
+      `${input.systolicMmHg}/${input.diastolicMmHg}`,
+      evaluateBloodPressure(input.systolicMmHg, input.diastolicMmHg),
     )
-  if (input.bodyTempC !== undefined) evals.push(toEvaluation('body_temp', input.bodyTempC, evaluateBodyTemp(input.bodyTempC)))
-  if (input.sleepHours !== undefined) evals.push(toEvaluation('sleep_hours', input.sleepHours, evaluateSleep(input.sleepHours)))
-  if (input.mood !== undefined) evals.push(toEvaluation('mood', input.mood, evaluateMood(input.mood)))
+  if (input.bodyTempC !== undefined) push('body_temp', input.bodyTempC, evaluateBodyTemp(input.bodyTempC))
+  if (input.spo2Pct !== undefined) push('spo2', input.spo2Pct, evaluateSpO2(input.spo2Pct, env.cabinPsia))
+  if (input.sleepHours !== undefined) push('sleep_hours', input.sleepHours, evaluateSleep(input.sleepHours))
+  if (input.mood !== undefined) push('mood', input.mood, evaluateMood(input.mood))
   if (input.radiationDailyMSv !== undefined || input.radiationMissionMSv !== undefined)
-    evals.push(
-      toEvaluation(
-        'radiation_dose',
-        input.radiationMissionMSv ?? input.radiationDailyMSv ?? 0,
-        evaluateRadiation(input.radiationDailyMSv, input.radiationMissionMSv, {
-          environment,
-          priorCareerDoseMSv: opts.priorCareerDoseMSv,
-        }),
-      ),
+    push(
+      'radiation_dose',
+      input.radiationMissionMSv ?? input.radiationDailyMSv ?? 0,
+      evaluateRadiation(input.radiationDailyMSv, input.radiationMissionMSv, {
+        environment,
+        priorCareerDoseMSv: opts.priorCareerDoseMSv,
+      }),
     )
   if (input.boneDensityChangePct !== undefined)
-    evals.push(toEvaluation('bone_density', input.boneDensityChangePct, evaluateBoneDensity(input.boneDensityChangePct)))
+    push('bone_density', input.boneDensityChangePct, evaluateBoneDensity(input.boneDensityChangePct))
 
   const statuses = evals.map((e) => e.status)
   const overallStatus = worstStatus(statuses)
+  const seen = new Set(evals.map((e) => e.id))
   return {
     environment,
     overallStatus,
     escalation: STATUS_TO_ACTION[overallStatus],
+    escalationMode: mode,
     readinessScore: readinessScore(statuses),
     indicators: evals,
     systems: rollupSystems(evals),
+    missingIndicators: ALL_INDICATORS.filter((id) => !seen.has(id)),
     environmentAdvisories: environmentAdvisories(environment, overallStatus),
   }
 }
@@ -505,6 +586,8 @@ function parseBloodPressure(v: number | string): [number, number] | null {
 export function indicatorsToVitals(indicators: HealthIndicator[]): VitalsInput {
   const input: VitalsInput = {}
   for (const ind of indicators) {
+    // Missing / stale readings are not evaluated (they render grey, never green).
+    if (ind.value === null || ind.dataState === 'missing') continue
     const n = typeof ind.value === 'number' ? ind.value : Number(ind.value)
     switch (ind.id) {
       case 'blood_sugar': input.bloodSugarMgDl = n; break
@@ -512,6 +595,7 @@ export function indicatorsToVitals(indicators: HealthIndicator[]): VitalsInput {
       case 'body_temp': input.bodyTempC = n; break
       case 'sleep_hours': input.sleepHours = n; break
       case 'mood': input.mood = n; break
+      case 'spo2': input.spo2Pct = n; break
       case 'radiation_dose': {
         input.radiationMissionMSv = n
         const h = ind.history
