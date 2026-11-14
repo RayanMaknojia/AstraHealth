@@ -127,6 +127,17 @@ Task Board
 
 [x] STEP 2b — RULES RECONCILED (Claude Code): health_rules.md merges the plan doc, the pages doc and Phase 2. Mood is now 1–5. Sleep/mood Alerts need 3 in a row. Temperature, BP (low limits relax in flight, not after landing), glucose, bone, SpO2 and the heart-rate 15% baseline rule follow that file. New for the UI: CHECKIN_INPUTS (slider min/max/step/unit/normal text) and CHECKIN_SYMPTOMS in src/data.
 
+
+[x] PHASE 3 — BACKEND FOR ALL REMAINING PAGES (Claude Code). New services (all offline, localStorage-persisted, demo crew pre-seeded):
+- checkinService: getDueCheckins(profile) · submitCheckin({ profile, slot, day, values, extras, symptoms }) → { record, ingestion, reaction, message } (apply ingestion.updates with applyIndicatorUpdates) · getStreak(id, day) · getBadges(profile, team) · getTeamGoal(profiles) · getLeaderboard(profiles) (consistency only) · excuseCheckin(...) (admin) · getCrewOverview(profiles) (admin).
+- exerciseService: logWorkout · getExerciseSummary(id, day) · logBodyMass / getBodyMassSummary(id, day) · projectBoneLoss(plan, id, day) (no exercise vs actual).
+- alertService: syncOverrides({ profile, report, missionState, environmentTick, cabinHistory }) → active full-screen overrides (O1 critical_health, O2 cabin_emergency, O3 radiation_storm, O4 sos) · confirmOverride(id, by) · raiseSos(...) · getBanner(missionState, id) (comms blackout / waiting) · getOverrideLog.
+- syncService: listOutbox · listInbox · unreadCount · markRead · getLinkStatus(missionState, id) · runSync(missionState, id) · postInboxMessage.
+- photoCheckService: analyzeSkinPhoto(input) → record (+ skinResultCard(record)) · captureUltrasound(input) (quality check; pass computeImageStats(ctx.getImageData(...))) · ULTRASOUND_SCAN_GUIDES · listPhotos · comparePhotos.
+- wellbeingService: addJournalEntry / listJournal / deleteJournalEntry (device only, never synced) · scoreReactionTrials / recordReaction / evaluateReaction · getSleepMoodSummary(profile, missionState) · requestPrivateTalk.
+- guidanceService: listTriageSymptoms · startTriage / answerTriage / triageOutcomeForMission · listProcedures · getMedicationList.
+- environmentFeed (added): feed.cabinHistory() · summarizeCabin(history) · isItMeOrTheAir(symptoms, history); cabin readings now include noiseDb + lightPhase.
+
 UI implications of v2.1 (for Codex — your call how to render):
 - EnvironmentType values changed (see schema). The "Environment Switcher" becomes a mission/crew selector + trip bar ("Day 45 · Flying to Mars · 138 days to arrival"); in demo mode the trip bar is a slider that calls missionTimeline.getMissionState(plan, day).
 - Use displayStatus(indicator) for colors: 'no_data' = grey. Never show missing data as green.
@@ -160,13 +171,13 @@ Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental A
 
 [x] Reconcile thresholds with astronaut_health_monitor_pages.md → health_rules.md (mood 1–5, 3-in-a-row sleep/mood Alerts, CHECKIN_INPUTS)
 
-[ ] PHASE 3 backend: check-in schedule (morning / evening / weekly / monthly / eye exams) + streaks + badges + crew leaderboard (consistency only)
+[x] PHASE 3 backend: check-in schedule (morning / evening / weekly / monthly / eye exams) + streaks + badges + crew leaderboard (consistency only)
 
-[ ] PHASE 3 backend: body mass + exercise minutes indicators, workout log, bone-loss projection (no-exercise vs actual), reaction test
+[x] PHASE 3 backend: body mass + exercise minutes indicators, workout log, bone-loss projection (no-exercise vs actual), reaction test
 
-[ ] PHASE 3 backend: confirmable override alerts (O1 Critical Health, O2 Cabin Emergency, O3 Radiation Storm, O4 SOS) + comms-blackout banner + "Is it me or the air?" helper
+[x] PHASE 3 backend: confirmable override alerts (O1 Critical Health, O2 Cabin Emergency, O3 Radiation Storm, O4 SOS) + comms-blackout banner + "Is it me or the air?" helper
 
-[ ] PHASE 3 backend: Photo Check (skin first-look with "unsure" < 70% → flight-surgeon queue; guided ultrasound capture + quality check), sync outbox/inbox, triage trees, medication list, device-only journal
+[x] PHASE 3 backend: Photo Check (skin first-look with "unsure" < 70% → flight-surgeon queue; guided ultrasound capture + quality check), sync outbox/inbox, triage trees, medication list, device-only journal
 
 Codex Tasks (Movie-Grade Spacecraft HUD, Interactive Body Map & Demo Controls)
 [ ] Build Dark-Mode Spacecraft Medical HUD with animated deep-space canvas/nebula backdrop, glowing glassmorphic telemetry panels, Environment Switcher (ISS, Lunar Base, Mars Transit, Rover), and Crew Profile selector

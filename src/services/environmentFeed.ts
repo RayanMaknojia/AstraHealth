@@ -149,6 +149,8 @@ export function createEnvironmentFeed(config: EnvironmentFeedConfig): Environmen
   let activeEvent: RadiationEvent | undefined
   let eventTicksLeft = 0
   let timer: ReturnType<typeof setInterval> | null = null
+  const history: CabinReading[] = []
+  const HISTORY_TICKS = Math.ceil((24 * 60) / perTick)
 
   const env = state0.environment
   const base = cabinBaseline(env)
@@ -184,7 +186,11 @@ export function createEnvironmentFeed(config: EnvironmentFeedConfig): Environmen
       humidityPct: Math.round(base.humidityPct + 6 * activity + noise(3)),
       cabinPsia: round(base.cabinPsia + noise(0.03), 2),
       o2Pct: round(base.o2Pct + noise(0.2), 1),
+      noiseDb: Math.round(55 + 6 * activity + noise(2)),
+      lightPhase: minuteOfDay >= 7 * 60 && minuteOfDay < 19 * 60 ? 'day' : minuteOfDay >= 19 * 60 && minuteOfDay < 22 * 60 ? 'evening' : 'night',
     }
+    history.push(cabin)
+    if (history.length > HISTORY_TICKS) history.splice(0, history.length - HISTORY_TICKS)
 
     const backgroundPerDay = env.typicalDoseRateMSvPerDay * (1 + noise(0.1))
     const eventPerDay = activeEvent ? activeEvent.doseRateMSvPerHour * 24 : 0
@@ -251,6 +257,7 @@ export function createEnvironmentFeed(config: EnvironmentFeedConfig): Environmen
         listeners.delete(listener)
       }
     },
+    cabinHistory: () => [...history],
   }
   return controller
 }
@@ -300,3 +307,85 @@ export async function fetchDonkiSepEvents(
 export function environmentProfile(id: EnvironmentType): EnvironmentProfile {
   return ENVIRONMENTS[id]
 }
+
+// ── Habitat page helpers ───────────────────────────────────────────────────
+
+export interface CabinSummary {
+  /** Average CO2 over the last 1 h / 6 h / 24 h (null if no data). */
+  co2Avg1h: number | null
+  co2Avg6h: number | null
+  co2Avg24h: number | null
+  /** Hours (in the given history) with CO2 above the 3 mmHg limit. */
+  hoursOverLimit: number
+  latest: CabinReading | null
+  /** Hearing-protection reminder when noise is high. */
+  noiseAdvice: string | null
+}
+
+function avgSince(history: CabinReading[], hours: number, pick: (r: CabinReading) => number): number | null {
+  if (!history.length) return null
+  const lastDay = history[history.length - 1].day
+  const xs = history.filter((r) => r.day >= lastDay - hours / 24).map(pick)
+  return xs.length ? round(xs.reduce((a, v) => a + v, 0) / xs.length, 2) : null
+}
+
+/** Averages and flags for the Habitat page charts (history from feed.cabinHistory()). */
+export function summarizeCabin(history: CabinReading[]): CabinSummary {
+  const latest = history[history.length - 1] ?? null
+  const perTickHours = history.length > 1 ? (history[history.length - 1].day - history[0].day) * 24 / (history.length - 1) : 0.25
+  const noise = latest?.noiseDb
+  return {
+    co2Avg1h: avgSince(history, 1, (r) => r.co2MmHg),
+    co2Avg6h: avgSince(history, 6, (r) => r.co2MmHg),
+    co2Avg24h: avgSince(history, 24, (r) => r.co2MmHg),
+    hoursOverLimit: round(history.filter((r) => r.co2MmHg > L.co2AlertMmHg).length * perTickHours, 1),
+    latest,
+    noiseAdvice: noise !== undefined && noise >= 72 ? `Noise ${noise} dB — wear hearing protection in this module.` : null,
+  }
+}
+
+const AIR_SYMPTOMS: { re: RegExp; label: string; co2From: number }[] = [
+  { re: /headache/i, label: 'headache', co2From: 2.8 },
+  { re: /tired|fatigue|drowsy/i, label: 'tiredness', co2From: 4.5 },
+  { re: /nause/i, label: 'nausea', co2From: 4.5 },
+  { re: /sleep/i, label: 'poor sleep', co2From: 4.5 },
+  { re: /dizz/i, label: 'dizziness', co2From: 4.5 },
+]
+
+export interface AirCheckResult {
+  verdict: 'likely_air' | 'possibly_air' | 'unlikely_air' | 'no_data'
+  explanation: string
+  actions: string[]
+}
+
+/**
+ * "Is it me or the air?" (pages doc §8): compares logged symptoms with the last 6 h of cabin CO2.
+ * Decision support only — a symptom can have more than one cause.
+ */
+export function isItMeOrTheAir(symptoms: string[], history: CabinReading[]): AirCheckResult {
+  const matched = AIR_SYMPTOMS.filter((s) => symptoms.some((x) => s.re.test(x)))
+  const co2 = avgSince(history, 6, (r) => r.co2MmHg)
+  if (co2 === null) return { verdict: 'no_data', explanation: 'No cabin readings yet — start the environment feed to compare.', actions: [] }
+  if (!matched.length)
+    return { verdict: 'unlikely_air', explanation: `No air-related symptoms logged. Cabin CO2 averaged ${co2} mmHg over the last 6 hours.`, actions: [] }
+  const names = matched.map((m) => m.label).join(', ')
+  const triggered = matched.filter((m) => co2 >= m.co2From)
+  if (triggered.length)
+    return {
+      verdict: 'likely_air',
+      explanation: `You logged ${names}. Cabin CO2 averaged ${co2} mmHg over the last 6 hours; CO2 above ${Math.min(...triggered.map((t) => t.co2From))} mmHg is linked to ${triggered.map((t) => t.label).join(' and ')}.`,
+      actions: ['Move to a better-ventilated module.', 'Check the CO2 scrubber status and clear any blocked vents.', 'Check again in 1 hour; if it persists in good air, treat it as a health symptom.'],
+    }
+  if (co2 >= L.co2WatchMmHg)
+    return {
+      verdict: 'possibly_air',
+      explanation: `You logged ${names}. Cabin CO2 averaged ${co2} mmHg over the last 6 hours — a little above the 2.5 mmHg target, which can contribute.`,
+      actions: ['Spend an hour in a well-ventilated module.', 'Hydrate and re-check how you feel in 1 hour.'],
+    }
+  return {
+    verdict: 'unlikely_air',
+    explanation: `You logged ${names}, but cabin CO2 averaged a normal ${co2} mmHg over the last 6 hours, so the air is an unlikely cause.`,
+    actions: ['Treat it as a health symptom: follow the matching Guidance page.', 'Mention it at your next check-in.'],
+  }
+}
+
