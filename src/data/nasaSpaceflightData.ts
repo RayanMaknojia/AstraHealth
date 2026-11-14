@@ -18,6 +18,7 @@
 import type {
   AstronautProfile,
   BodySystem,
+  DataModality,
   EnvironmentProfile,
   EnvironmentType,
   HazardName,
@@ -427,16 +428,16 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
 // ── Routine tasks (gamification) ──────────────────────────────────────────
 
 export const DEFAULT_ROUTINE: RoutineTask[] = [
-  { id: 'log_vitals_am', title: 'Morning vitals: HR, BP, temperature', xp: 20, completed: false, frequency: 'daily' },
-  { id: 'dosimeter_read', title: 'Read and log personal dosimeter', xp: 10, completed: false, frequency: 'daily' },
-  { id: 'glucose_check', title: 'Fasting blood sugar check', xp: 15, completed: false, frequency: 'daily' },
-  { id: 'exercise_2h', title: 'Complete 2 h resistive + aerobic exercise', xp: 40, completed: false, frequency: 'daily' },
-  { id: 'sleep_log', title: 'Log sleep from actigraphy band', xp: 10, completed: false, frequency: 'daily' },
-  { id: 'mood_checkin', title: 'Mood check-in (1–10)', xp: 10, completed: false, frequency: 'daily' },
-  { id: 'hydration', title: 'Drink ≥ 2 L water', xp: 10, completed: false, frequency: 'daily' },
-  { id: 'bone_ultrasound', title: 'Guided bone ultrasound scan', xp: 50, completed: false, frequency: 'weekly' },
-  { id: 'eye_exam', title: 'Eye/vision check for SANS (OCT or Amsler grid)', xp: 40, completed: false, frequency: 'weekly' },
-  { id: 'family_conference', title: 'Private family video conference', xp: 25, completed: false, frequency: 'weekly' },
+  { id: 'log_vitals_am', title: 'Morning vitals: HR, BP, temperature', xp: 20, completed: false, frequency: 'daily', linkedSystem: 'cardiovascular' },
+  { id: 'dosimeter_read', title: 'Read and log personal dosimeter', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'radiation_immune' },
+  { id: 'glucose_check', title: 'Fasting blood sugar check', xp: 15, completed: false, frequency: 'daily', linkedSystem: 'metabolic' },
+  { id: 'exercise_2h', title: 'Complete 2 h resistive + aerobic exercise', xp: 40, completed: false, frequency: 'daily', linkedSystem: 'musculoskeletal' },
+  { id: 'sleep_log', title: 'Log sleep from actigraphy band', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral' },
+  { id: 'mood_checkin', title: 'Mood check-in (1–10)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral' },
+  { id: 'hydration', title: 'Drink ≥ 2 L water', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'metabolic' },
+  { id: 'bone_ultrasound', title: 'Guided bone ultrasound scan', xp: 50, completed: false, frequency: 'weekly', linkedSystem: 'musculoskeletal' },
+  { id: 'eye_exam', title: 'Eye/vision check for SANS (OCT or Amsler grid)', xp: 40, completed: false, frequency: 'weekly', linkedSystem: 'cardiovascular' },
+  { id: 'family_conference', title: 'Private family video conference', xp: 25, completed: false, frequency: 'weekly', linkedSystem: 'behavioral' },
 ]
 
 // ── History generation (deterministic) ────────────────────────────────────
@@ -467,7 +468,7 @@ export function generateHistory(spec: TrendSpec, days: number, seed: number, sta
   const out: HistoryPoint[] = []
   for (let i = 0; i < days; i++) {
     const value = spec.baseline + spec.drift * i + (rand() * 2 - 1) * spec.noise
-    out.push({ day: startDay + i, value: Math.round(value * f) / f, baseline: spec.baseline })
+    out.push({ day: startDay + i, timestamp: `Day ${startDay + i}`, value: Math.round(value * f) / f, baseline: spec.baseline, source: 'wearable_auto' })
   }
   return out
 }
@@ -480,7 +481,13 @@ function generateCumulative(dailyRate: number, noise: number, days: number, seed
   for (let i = 0; i < days; i++) {
     total += dailyRate + (rand() * 2 - 1) * noise
     const expected = start + dailyRate * (i + 1)
-    out.push({ day: startDay + i, value: Math.round(total * 100) / 100, baseline: Math.round(expected * 100) / 100 })
+    out.push({
+      day: startDay + i,
+      timestamp: `Day ${startDay + i}`,
+      value: Math.round(total * 100) / 100,
+      baseline: Math.round(expected * 100) / 100,
+      source: 'wearable_auto',
+    })
   }
   return out
 }
@@ -489,12 +496,25 @@ function generateCumulative(dailyRate: number, noise: number, days: number, seed
 
 const HISTORY_DAYS = 14
 
+/** Where each indicator's daily history realistically comes from. */
+const HISTORY_SOURCE: Record<IndicatorId, DataModality> = {
+  heart_rate: 'wearable_auto',
+  body_temp: 'wearable_auto',
+  sleep_hours: 'wearable_auto',
+  radiation_dose: 'wearable_auto', // personal active dosimeter
+  blood_pressure: 'manual_slider',
+  blood_sugar: 'manual_slider',
+  mood: 'manual_slider',
+  bone_density: 'ultrasound_image',
+}
+
 function indicator(
   id: IndicatorId,
   value: number | string,
   history: HistoryPoint[],
 ): HealthIndicator {
   const g = INDICATOR_GUIDES[id]
+  const source = HISTORY_SOURCE[id]
   return {
     id,
     system: g.system,
@@ -503,11 +523,12 @@ function indicator(
     unit: g.unit,
     // Placeholder; recomputed by healthEvaluator.evaluateIndicators() at runtime.
     status: 'nominal',
+    trend: 'stable',
     hazardLink: g.hazardLink,
     howToMeasure: g.howToMeasure,
     whyNeeded: g.whyNeeded,
     actionPlan: { level: 'self_care', steps: [] },
-    history,
+    history: history.map((pt) => ({ ...pt, source })),
   }
 }
 
