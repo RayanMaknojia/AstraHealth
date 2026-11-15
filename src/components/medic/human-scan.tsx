@@ -3,7 +3,6 @@ import { Pause, Play } from "lucide-react";
 import { STATUS_COLORS, worstStatus } from "@/services/healthEvaluator";
 import type { BodySystem, DisplayStatus, StatusLevel } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
-import { Status } from "./primitives";
 import type { MissionModel } from "./use-mission";
 import { statusOf } from "./status";
 import humanModel from "./assets/human-model.webp";
@@ -140,18 +139,6 @@ export function HumanScan({
         </Button>
         <span className="reduced-motion-note">Reduced motion enabled</span>
         <span className="meta">Simulated anatomical view</span>
-      </div>
-      <div className="anatomy-system-buttons">
-        {zones.map((z) => (
-          <button
-            key={z.id}
-            onClick={() => onSelect(z.id)}
-            aria-pressed={selected === z.id}
-          >
-            <span>{z.label}</span>
-            <Status status={state(z.id)} />
-          </button>
-        ))}
       </div>
     </section>
   );

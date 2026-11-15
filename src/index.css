@@ -5248,3 +5248,114 @@ body:has(.medic-app) {
     opacity: 0.35;
   }
 }
+
+/* Body Map organ selector: a horizontal turn around each organ's vertical axis. */
+.body-map-page {
+  display: grid;
+  gap: 24px;
+}
+.organ-systems-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+.organ-systems-heading h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.organ-systems-heading p {
+  color: var(--muted-foreground);
+  font-size: 14px;
+  margin-top: 4px;
+}
+.organ-cards {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 12px;
+}
+.organ-card {
+  display: flex;
+  align-items: center;
+  flex-direction: column;
+  gap: 12px;
+  padding: 18px 10px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  text-align: center;
+  cursor: pointer;
+}
+.organ-card:hover {
+  background: var(--accent);
+}
+.organ-card[aria-pressed="true"] {
+  border-color: var(--primary);
+  box-shadow: inset 0 0 0 1px var(--primary);
+}
+.organ-card:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 4px;
+}
+.organ-card-name {
+  font-size: 15px;
+  font-weight: 600;
+  min-height: 42px;
+  display: flex;
+  align-items: center;
+}
+.organ-viewport {
+  width: 104px;
+  height: 104px;
+  perspective: 600px;
+}
+.organ-spin {
+  display: block;
+  width: 100%;
+  height: 100%;
+  animation: organ-horizontal-turn 12s linear infinite;
+  transform-style: preserve-3d;
+}
+.organ-spin svg {
+  width: 100%;
+  height: 100%;
+  filter: drop-shadow(0 0 10px currentColor);
+}
+.organ-cards[data-paused="true"] .organ-spin {
+  animation-play-state: paused;
+}
+@keyframes organ-horizontal-turn {
+  from {
+    transform: rotateY(0deg);
+  }
+  to {
+    transform: rotateY(360deg);
+  }
+}
+@media (max-width: 1100px) {
+  .organ-card-name {
+    font-size: 14px;
+  }
+  .organ-viewport {
+    width: 80px;
+    height: 80px;
+  }
+}
+@media (max-width: 650px) {
+  .organ-systems-heading {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+  .organ-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .organ-card-name {
+    min-height: 36px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .organ-spin {
+    animation: none;
+  }
+}
