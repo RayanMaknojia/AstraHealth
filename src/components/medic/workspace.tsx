@@ -14,7 +14,6 @@ import {
 import type { AstronautProfile, BodySystem } from "@/types/astronaut";
 import {
   formatDelay,
-  STATUS_COLORS,
   ESCALATION_MODE_LABELS,
 } from "@/services/healthEvaluator";
 import { confirmOverride, raiseSos, getBanner } from "@/services/alertService";
@@ -33,10 +32,10 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Brand, PageTitle } from "./primitives";
-import { Home, Briefing } from "./home";
+import { MissionClock } from "./mission-clock";
+import { Home, Briefing, TripBar } from "./home";
 import { useMission, notify } from "./use-mission";
 import { DemoControls } from "./demo-controls";
-import { statusOf } from "./status";
 const Checkin = lazy(() =>
   import("./checkin").then((m) => ({ default: m.Checkin })),
 );
@@ -91,16 +90,13 @@ export function Workspace({
   } = controller;
   const [page, setPage] = useState("Home"),
     [indicator, setIndicator] = useState("heart_rate"),
+    [bodySystem, setBodySystem] = useState<BodySystem>("cardiovascular"),
+    [moreTab, setMoreTab] = useState("Cabin readings"),
     [system, setSystem] = useState<BodySystem | null>(null),
     [briefingOpen, setBriefingOpen] = useState(false),
     [crewNotified, setCrewNotified] = useState(false);
   const active = model.overrides[0];
   const banner = getBanner(model.missionState, model.profile.id);
-  const overall = model.profile.indicators.every(
-    (i) => statusOf(i) === "no_data",
-  )
-    ? "no_data"
-    : model.briefing.overallStatus;
   const go = (target: string) => {
     startTransition(() => setPage(target));
     window.scrollTo({ top: 0, behavior: "instant" });
@@ -179,20 +175,8 @@ export function Workspace({
       </aside>
       <div className="workspace-main">
         <header className="topbar">
-          <div className="top-mission">
-            <span
-              className="status-dot"
-              style={{ background: STATUS_COLORS[overall] }}
-            />
-            <strong>
-              <span className="header-mission-day">
-                Day {model.profile.missionDay}
-              </span>
-              <span className="header-mission-phase">
-                {model.missionState.phase.name}
-              </span>
-            </strong>
-          </div>
+          <TripBar model={model} />
+          <MissionClock model={model} />
           <span className="earth-delay">
             <Radio size={15} />
             Earth delay{" "}
@@ -228,7 +212,7 @@ export function Workspace({
             <div className="page-live">
               <span className={demo ? "paused-dot" : "live-dot"} />
               {demo ? "DEMO · MANUAL SYNC" : "LIVE · EVERY 15s"}
-              <small>{model.lastEvent}</small>
+              <small>{model.lastEvent.replace(/Day \d+\s*/g, "").trim()}</small>
             </div>
           </PageTitle>
           {demo && (
@@ -243,6 +227,10 @@ export function Workspace({
                 onTrend={trend}
                 onPage={go}
                 onBriefing={() => setBriefingOpen(true)}
+                onBodySystem={(s) => {
+                  setBodySystem(s);
+                  go("Body Map");
+                }}
               />
             )}{" "}
             {page === "Check-in" && (
@@ -251,12 +239,18 @@ export function Workspace({
                 model={model}
                 save={saveCheckin}
                 busy={busy}
+                onJournalHistory={() => {
+                  setMoreTab("Past journal entries");
+                  go("More");
+                }}
               />
             )}{" "}
             {page === "Body Map" && (
               <BodyMap
                 model={model}
                 toggle={toggleTask}
+                selected={bodySystem}
+                onSelect={setBodySystem}
                 onTrends={(s) => {
                   setSystem(s);
                   setIndicator(
@@ -277,11 +271,7 @@ export function Workspace({
               />
             )}{" "}
             {page === "More" && (
-              <More
-                model={model}
-                onLogout={onLogout}
-                onBodyMap={() => go("Body Map")}
-              />
+              <More model={model} onLogout={onLogout} initialTab={moreTab} />
             )}
           </Suspense>
           <footer className="mission-footer">

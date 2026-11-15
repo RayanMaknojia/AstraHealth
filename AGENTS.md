@@ -1,4 +1,4 @@
-﻿# Codex Instructions — Space Medic Engineer
+# Codex Instructions - Space Medic Engineer
 You are the Lead Frontend & Data Visualization Engineer for our NASA Space Apps 2026 astronaut health monitoring app.
 
 ## Project Context
@@ -12,5 +12,5 @@ You are the Lead Frontend & Data Visualization Engineer for our NASA Space Apps 
 3. Build interactive Recharts trend graphs, an interactive clickable astronaut body-system SVG diagram, a "Log Vitals" manual entry modal/panel, a plain-English medical guide drawer, and a gamified daily health checklist.
 
 ## Coordination Rules
-- Consume data from `src/types/astronaut.ts`, `src/data/`, and `src/services/` — never alter logic inside `src/services/`.
+- Consume data from `src/types/astronaut.ts`, `src/data/`, and `src/services/` - never alter logic inside `src/services/`.
 - Mark completed UI tasks in `PROJECT_PLAN.md` as `[x]`.

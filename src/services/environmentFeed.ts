@@ -1,5 +1,5 @@
 /**
- * Environment Feed — cabin air and radiation, replayed by mission time.
+ * Environment Feed - cabin air and radiation, replayed by mission time.
  *
  *  - Cabin CO2 / temperature / humidity / pressure (OSDR Environmental Data
  *    App shape), evaluated against NASA-STD-3001 cabin limits.
@@ -78,43 +78,43 @@ export function evaluateCabin(reading: CabinReading): CabinEvaluation {
   // CO2
   const co2 = reading.co2MmHg
   if (co2 > L.co2SymptomMmHg) {
-    add('co2_mmhg', co2, 'critical', `CO2 ${co2} mmHg — above ${L.co2SymptomMmHg}: expect fatigue, poor sleep, nausea.`)
-    advisories.push('Cabin: CO2 very high — check the CO2 scrubber, increase air flow, and stay out of dead-air corners.')
+    add('co2_mmhg', co2, 'critical', `CO2 ${co2} mmHg - above ${L.co2SymptomMmHg}: expect fatigue, poor sleep, nausea.`)
+    advisories.push('Cabin: CO2 very high - check the CO2 scrubber, increase air flow, and stay out of dead-air corners.')
   } else if (co2 > L.co2AlertMmHg) {
-    add('co2_mmhg', co2, 'critical', `CO2 ${co2} mmHg — over the ${L.co2AlertMmHg} mmHg 1-hour limit; headaches likely (2.8–4.5 mmHg).`)
-    advisories.push('Cabin: CO2 over limit — headaches likely. Report to the crew and check scrubber status.')
+    add('co2_mmhg', co2, 'critical', `CO2 ${co2} mmHg - over the ${L.co2AlertMmHg} mmHg 1-hour limit; headaches likely (2.8-4.5 mmHg).`)
+    advisories.push('Cabin: CO2 over limit - headaches likely. Report to the crew and check scrubber status.')
   } else if (co2 >= L.co2WatchMmHg) {
-    add('co2_mmhg', co2, 'caution', `CO2 ${co2} mmHg — above the ${L.co2WatchMmHg} mmHg long-term target (headache risk rises).`)
-    advisories.push('Cabin: CO2 slightly high — keep fans clear; note any headache.')
-  } else add('co2_mmhg', co2, 'nominal', `CO2 ${co2} mmHg — normal.`)
+    add('co2_mmhg', co2, 'caution', `CO2 ${co2} mmHg - above the ${L.co2WatchMmHg} mmHg long-term target (headache risk rises).`)
+    advisories.push('Cabin: CO2 slightly high - keep fans clear; note any headache.')
+  } else add('co2_mmhg', co2, 'nominal', `CO2 ${co2} mmHg - normal.`)
 
   // Temperature
   const t = reading.tempC
-  if (t < L.tempLowC - 2 || t > L.tempHighC + 2) add('temp_c', t, 'critical', `Cabin ${t} °C — far outside ${L.tempLowC}–${L.tempHighC} °C.`)
-  else if (t < L.tempLowC || t > L.tempHighC) add('temp_c', t, 'caution', `Cabin ${t} °C — outside the ${L.tempLowC}–${L.tempHighC} °C comfort band.`)
-  else add('temp_c', t, 'nominal', `Cabin ${t} °C — comfortable.`)
+  if (t < L.tempLowC - 2 || t > L.tempHighC + 2) add('temp_c', t, 'critical', `Cabin ${t} °C - far outside ${L.tempLowC}-${L.tempHighC} °C.`)
+  else if (t < L.tempLowC || t > L.tempHighC) add('temp_c', t, 'caution', `Cabin ${t} °C - outside the ${L.tempLowC}-${L.tempHighC} °C comfort band.`)
+  else add('temp_c', t, 'nominal', `Cabin ${t} °C - comfortable.`)
 
   // Humidity
   const h = reading.humidityPct
-  if (h < L.humidityLowPct - 10 || h > L.humidityHighPct + 10) add('humidity_pct', h, 'critical', `Humidity ${h}% — far outside ${L.humidityLowPct}–${L.humidityHighPct}%.`)
-  else if (h < L.humidityLowPct || h > L.humidityHighPct) add('humidity_pct', h, 'caution', `Humidity ${h}% — outside ${L.humidityLowPct}–${L.humidityHighPct}%.`)
-  else add('humidity_pct', h, 'nominal', `Humidity ${h}% — normal.`)
+  if (h < L.humidityLowPct - 10 || h > L.humidityHighPct + 10) add('humidity_pct', h, 'critical', `Humidity ${h}% - far outside ${L.humidityLowPct}-${L.humidityHighPct}%.`)
+  else if (h < L.humidityLowPct || h > L.humidityHighPct) add('humidity_pct', h, 'caution', `Humidity ${h}% - outside ${L.humidityLowPct}-${L.humidityHighPct}%.`)
+  else add('humidity_pct', h, 'nominal', `Humidity ${h}% - normal.`)
 
   // Pressure
   const p = reading.cabinPsia
   if (p < L.pressureLowPsia || p > L.pressureHighPsia) {
-    add('cabin_psia', p, 'critical', `Cabin pressure ${p} psia — outside the allowed ${L.pressureLowPsia}–${L.pressureHighPsia} psia.`)
-    advisories.push('Cabin: pressure out of limits — follow the leak / depress emergency procedure.')
-  } else add('cabin_psia', p, 'nominal', `Cabin pressure ${p} psia — within limits.`)
+    add('cabin_psia', p, 'critical', `Cabin pressure ${p} psia - outside the allowed ${L.pressureLowPsia}-${L.pressureHighPsia} psia.`)
+    advisories.push('Cabin: pressure out of limits - follow the leak / depress emergency procedure.')
+  } else add('cabin_psia', p, 'nominal', `Cabin pressure ${p} psia - within limits.`)
 
   // Inspired oxygen
   const o2 = inspiredO2MmHg(reading.cabinPsia, reading.o2Pct)
   if (o2 < L.minInspiredO2MmHg) {
-    add('ppo2_mmhg', o2, 'critical', `Inspired O2 ${o2} mmHg — below the ${L.minInspiredO2MmHg} mmHg minimum.`)
-    advisories.push('Cabin: oxygen below minimum — put on emergency O2 masks and check life support.')
+    add('ppo2_mmhg', o2, 'critical', `Inspired O2 ${o2} mmHg - below the ${L.minInspiredO2MmHg} mmHg minimum.`)
+    advisories.push('Cabin: oxygen below minimum - put on emergency O2 masks and check life support.')
   } else if (o2 < L.o2WatchMmHg)
-    add('ppo2_mmhg', o2, 'caution', `Inspired O2 ${o2} mmHg — close to the ${L.minInspiredO2MmHg} mmHg floor (normal for an 8.2 psia habitat; watch SpO2).`)
-  else add('ppo2_mmhg', o2, 'nominal', `Inspired O2 ${o2} mmHg — normal.`)
+    add('ppo2_mmhg', o2, 'caution', `Inspired O2 ${o2} mmHg - close to the ${L.minInspiredO2MmHg} mmHg floor (normal for an 8.2 psia habitat; watch SpO2).`)
+  else add('ppo2_mmhg', o2, 'nominal', `Inspired O2 ${o2} mmHg - normal.`)
 
   const status = params.reduce<StatusLevel>((w, x) => (rank[x.status] > rank[w] ? x.status : w), 'nominal')
   return { status, params, advisories }
@@ -340,7 +340,7 @@ export function summarizeCabin(history: CabinReading[]): CabinSummary {
     co2Avg24h: avgSince(history, 24, (r) => r.co2MmHg),
     hoursOverLimit: round(history.filter((r) => r.co2MmHg > L.co2AlertMmHg).length * perTickHours, 1),
     latest,
-    noiseAdvice: noise !== undefined && noise >= 72 ? `Noise ${noise} dB — wear hearing protection in this module.` : null,
+    noiseAdvice: noise !== undefined && noise >= 72 ? `Noise ${noise} dB - wear hearing protection in this module.` : null,
   }
 }
 
@@ -360,12 +360,12 @@ export interface AirCheckResult {
 
 /**
  * "Is it me or the air?" (pages doc §8): compares logged symptoms with the last 6 h of cabin CO2.
- * Decision support only — a symptom can have more than one cause.
+ * Decision support only - a symptom can have more than one cause.
  */
 export function isItMeOrTheAir(symptoms: string[], history: CabinReading[]): AirCheckResult {
   const matched = AIR_SYMPTOMS.filter((s) => symptoms.some((x) => s.re.test(x)))
   const co2 = avgSince(history, 6, (r) => r.co2MmHg)
-  if (co2 === null) return { verdict: 'no_data', explanation: 'No cabin readings yet — start the environment feed to compare.', actions: [] }
+  if (co2 === null) return { verdict: 'no_data', explanation: 'No cabin readings yet - start the environment feed to compare.', actions: [] }
   if (!matched.length)
     return { verdict: 'unlikely_air', explanation: `No air-related symptoms logged. Cabin CO2 averaged ${co2} mmHg over the last 6 hours.`, actions: [] }
   const names = matched.map((m) => m.label).join(', ')
@@ -379,7 +379,7 @@ export function isItMeOrTheAir(symptoms: string[], history: CabinReading[]): Air
   if (co2 >= L.co2WatchMmHg)
     return {
       verdict: 'possibly_air',
-      explanation: `You logged ${names}. Cabin CO2 averaged ${co2} mmHg over the last 6 hours — a little above the 2.5 mmHg target, which can contribute.`,
+      explanation: `You logged ${names}. Cabin CO2 averaged ${co2} mmHg over the last 6 hours - a little above the 2.5 mmHg target, which can contribute.`,
       actions: ['Spend an hour in a well-ventilated module.', 'Hydrate and re-check how you feel in 1 hour.'],
     }
   return {

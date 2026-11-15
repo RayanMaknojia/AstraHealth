@@ -5,9 +5,9 @@
  *    eye exam (day 30, day 90, then every 90 days).
  *  - submitCheckin(): saves the check-in, grades vitals through ingestionEngine,
  *    logs exercise / body mass / reaction extras, and queues a sync item.
- *    A check-in with only a reported symptom STILL COUNTS — it never breaks a streak.
+ *    A check-in with only a reported symptom STILL COUNTS - it never breaks a streak.
  *  - Streaks count the required morning check-in. Admin can excuse a missed day.
- *  - Leaderboard ranks CONSISTENCY ONLY — never BP, weight, mood or photos.
+ *  - Leaderboard ranks CONSISTENCY ONLY - never BP, weight, mood or photos.
  *
  * Demo crew get a simulated history (streaks 32 / 21 / 9 days) the first time.
  */
@@ -94,12 +94,12 @@ export function getDueCheckins(profile: AstronautProfile, today: number = profil
 
   const weekStart = day - (((day % WEEK_DAYS) + WEEK_DAYS) % WEEK_DAYS)
   const weekly = inRange('weekly', weekStart, weekStart + WEEK_DAYS - 1)
-  out.push({ ...CHECKIN_SCHEDULE.weekly, due: true, done: weekly.some((r) => !r.excused), excused: weekly.some((r) => r.excused), dueReason: `This week — due by day ${weekStart + WEEK_DAYS - 1}` })
+  out.push({ ...CHECKIN_SCHEDULE.weekly, due: true, done: weekly.some((r) => !r.excused), excused: weekly.some((r) => r.excused), dueReason: `This week - due by day ${weekStart + WEEK_DAYS - 1}` })
 
   if (day >= MONTHLY_EVERY_DAYS) {
     const monthStart = day - (day % MONTHLY_EVERY_DAYS)
     const monthly = inRange('monthly', monthStart, monthStart + MONTHLY_EVERY_DAYS - 1)
-    out.push({ ...CHECKIN_SCHEDULE.monthly, due: true, done: monthly.some((r) => !r.excused), excused: monthly.some((r) => r.excused), dueReason: `This month — due by day ${monthStart + MONTHLY_EVERY_DAYS - 1}` })
+    out.push({ ...CHECKIN_SCHEDULE.monthly, due: true, done: monthly.some((r) => !r.excused), excused: monthly.some((r) => r.excused), dueReason: `This month - due by day ${monthStart + MONTHLY_EVERY_DAYS - 1}` })
   } else out.push({ ...CHECKIN_SCHEDULE.monthly, due: false, done: false, excused: false, dueReason: `First exam on day ${MONTHLY_EVERY_DAYS}` })
 
   const examDays = eyeExamDays(Math.max(day, profile.mission.totalDays))
@@ -108,7 +108,7 @@ export function getDueCheckins(profile: AstronautProfile, today: number = profil
   if (lastDue !== undefined) {
     const eye = inRange('eye_exam', lastDue, day)
     const done = eye.some((r) => !r.excused)
-    out.push({ ...CHECKIN_SCHEDULE.eye_exam, due: !done, done, excused: eye.some((r) => r.excused), dueReason: done ? (next ? `Done — next on day ${next}` : 'Done') : `Day ${lastDue} eye exam` })
+    out.push({ ...CHECKIN_SCHEDULE.eye_exam, due: !done, done, excused: eye.some((r) => r.excused), dueReason: done ? (next ? `Done - next on day ${next}` : 'Done') : `Day ${lastDue} eye exam` })
   } else out.push({ ...CHECKIN_SCHEDULE.eye_exam, due: false, done: false, excused: false, dueReason: `First exam on day ${next ?? 30}` })
   return out
 }
@@ -134,7 +134,7 @@ export interface CheckinSubmitResult {
 }
 
 /**
- * Save a check-in. Throws if it's completely empty. Symptoms alone are enough —
+ * Save a check-in. Throws if it's completely empty. Symptoms alone are enough -
  * reporting a symptom counts as a completed check-in.
  */
 export async function submitCheckin(input: CheckinSubmitInput): Promise<CheckinSubmitResult> {
@@ -144,7 +144,7 @@ export async function submitCheckin(input: CheckinSubmitInput): Promise<CheckinS
   const values = input.values ?? {}
   const hasValues = Object.entries(values).some(([k, v]) => v !== undefined && k !== 'fasting')
   const hasExtras = Object.values(extras).some((v) => v !== undefined && v !== false && v !== '')
-  if (!hasValues && !hasExtras && !symptoms.length) throw new Error('Nothing entered yet — fill at least one field or tick a symptom.')
+  if (!hasValues && !hasExtras && !symptoms.length) throw new Error('Nothing entered yet - fill at least one field or tick a symptom.')
 
   const ingestion = hasValues || symptoms.length ? await ingest({ manualValues: { ...values, symptoms }, astronautId: profile.id, day, environment: profile.environment }) : null
   if (extras.exerciseMinutes) logWorkout({ astronautId: profile.id, day, type: extras.exerciseType ?? 'other', minutes: extras.exerciseMinutes, effort: 3 })

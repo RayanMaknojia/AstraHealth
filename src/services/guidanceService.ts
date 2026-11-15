@@ -1,6 +1,6 @@
 /**
  * Guidance and Triage (pages doc §11): offline help when Earth is too far away.
- *  A. Symptom checker — yes/no decision trees → plain-English steps + a colour
+ *  A. Symptom checker - yes/no decision trees → plain-English steps + a colour
  *     (self care / tell a crewmate / contact the ground).
  *  B. Guided procedures (BP, eye ultrasound, wound care, standing BP test).
  *  C. Medication list with expiry / low-stock colours.
@@ -82,7 +82,7 @@ export function getMedicationList(now: Date = new Date()): MedicationStatus[] {
     let statusText = `Expires in ${days} days`
     if (days < 0) {
       status = 'critical'
-      statusText = `Expired ${-days} day${days === -1 ? '' : 's'} ago — do not use`
+      statusText = `Expired ${-days} day${days === -1 ? '' : 's'} ago - do not use`
     } else if (days <= MR.expiringWithinDays) {
       status = 'caution'
       statusText = days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`

@@ -1,11 +1,11 @@
 /**
- * Accounts — one admin (mission control) creates every astronaut account;
+ * Accounts - one admin (mission control) creates every astronaut account;
  * astronauts only log in with name + PIN and land on a running dashboard.
  * Persists to localStorage so it works offline (falls back to memory when
  * storage is unavailable); admin edits (e.g. launch delays) apply immediately
  * and would sync when a link returns.
  *
- * DEMO-GRADE AUTH ONLY — PINs are hashed with a non-cryptographic hash and
+ * DEMO-GRADE AUTH ONLY - PINs are hashed with a non-cryptographic hash and
  * stored in the browser. Not real security.
  */
 
@@ -224,8 +224,8 @@ const ROLE_LABELS: Record<CrewRole, string> = {
 export function createAstronaut(input: NewAstronautInput): AstronautProfile {
   const store = load()
   const login = input.login.trim().toLowerCase()
-  if (!/^[a-z0-9_]{3,24}$/.test(login)) throw new AccountError('Login must be 3–24 letters, numbers or underscores.')
-  if (!/^\d{4,8}$/.test(input.pin)) throw new AccountError('PIN must be 4–8 digits.')
+  if (!/^[a-z0-9_]{3,24}$/.test(login)) throw new AccountError('Login must be 3-24 letters, numbers or underscores.')
+  if (!/^\d{4,8}$/.test(input.pin)) throw new AccountError('PIN must be 4-8 digits.')
   if (!input.name.trim()) throw new AccountError('Name is required.')
   if (Number.isNaN(Date.parse(input.launchDate))) throw new AccountError('Launch date must be a valid date (YYYY-MM-DD).')
   if (store.accounts.some((a) => a.login.toLowerCase() === login)) throw new AccountError(`Login "${login}" already exists.`)

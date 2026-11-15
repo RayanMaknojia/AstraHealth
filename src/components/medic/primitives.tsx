@@ -1,19 +1,28 @@
 import type { ReactNode } from "react";
 import { Orbit, Plus } from "lucide-react";
-import { STATUS_LABELS } from "@/services/healthEvaluator";
 import type { DisplayStatus } from "@/types/astronaut";
 import { statusStyle } from "./status";
-import { Badge } from "@/components/ui/badge";
 export function Status({ status }: { status: DisplayStatus }) {
   return (
-    <Badge
-      variant="outline"
-      className={`health-status ${status === "critical" ? "critical-pulse" : ""}`}
-      style={statusStyle(status)}
-    >
-      <span className="status-dot" />
-      {status === "no_data" ? "Unknown" : STATUS_LABELS[status]}
-    </Badge>
+    <span className="health-status-text" style={statusStyle(status)}>
+      <span aria-hidden="true">
+        {status === "nominal"
+          ? "✓"
+          : status === "caution"
+            ? "!"
+            : status === "critical"
+              ? "✕"
+              : "?"}
+      </span>{" "}
+      {
+        {
+          nominal: "Optimal",
+          caution: "Borderline",
+          critical: "Alert",
+          no_data: "No data",
+        }[status]
+      }
+    </span>
   );
 }
 export function Brand() {
@@ -81,5 +90,19 @@ export function Meter({ value, label }: { value: number; label: string }) {
     >
       <div style={{ width: `${Math.max(0, Math.min(100, value))}%` }} />
     </div>
+  );
+}
+
+export function NumberedInstructions({ text }: { text: string }) {
+  const steps = text
+    .split(/(?:^|\s)\d+[).]\s+/)
+    .map((s) => s.trim())
+    .filter(Boolean);
+  return (
+    <ol>
+      {steps.map((step, n) => (
+        <li key={n}>{step}</li>
+      ))}
+    </ol>
   );
 }

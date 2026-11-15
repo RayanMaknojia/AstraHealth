@@ -39,7 +39,7 @@ Dependencies were installed in a throwaway copy outside the repo, so `package-lo
 ### `healthEvaluator.ts`
 - **Space adjustments** (`getSpaceAdjustments`):
   - Body temperature ranges shift **+1 °C after 60 continuous days in 0 g**. The fever (Alert) bound moves only half as far, so real fevers are still caught.
-  - **In-flight blood pressure** high limits drop by 9 / 5 mmHg (24 h BP runs 8–10 mmHg lower), scaled by (1 − g) in partial gravity.
+  - **In-flight blood pressure** high limits drop by 9 / 5 mmHg (24 h BP runs 8-10 mmHg lower), scaled by (1 − g) in partial gravity.
   - **Sleep target 8.5 h, Alert below 6 h**, Watch below 7 h.
   - Tighter SpO2 limits in 8.2 psia Moon/Mars habitats.
   - A plain-English `spaceShiftNote` per indicator.
@@ -96,7 +96,7 @@ Full cheat-sheet: **STEP 2** section of `PROJECT_PLAN.md`. Short version:
 | Colours / labels | `displayStatus(ind)`, `STATUS_COLORS`, `STATUS_LABELS`, `ESCALATION_MODE_LABELS` |
 
 ## Things to know
-- **Mood stays on the 1–10 scale.**
+- **Mood stays on the 1-10 scale.**
 - **Gemini is optional.** Set `VITE_GEMINI_API_KEY` to enable it; a key in a Vite env var ships to the browser, which is fine for a demo but not for production.
 - **Staleness and the demo slider:** sliding the mission day far past the last reading makes indicators grey (correct behaviour). For the judges' slider, pass `ignoreStaleness: true` to `evaluateProfile`.
 - Some values are estimates by design (partial-gravity BP and bone loss, Earth delay curve, solar-event dose rates) and are labeled that way in the code and notes.

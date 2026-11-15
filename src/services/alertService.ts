@@ -3,11 +3,11 @@
  * any page until someone taps Confirm. Every raise is logged and puts a
  * high-priority item in the sync outbox; every confirm logs who and when.
  *
- *  O1 critical_health  — any fresh Alert-level vital
- *  O2 cabin_emergency  — CO2 > 3 mmHg for ≥ 1 h, pressure out of limits, inspired O2 < 127 mmHg
- *  O3 radiation_storm  — active solar particle event with shelter advised
- *  O4 sos              — SOS button, or an O1 left unconfirmed for 10 minutes
- *  Banner              — comms blackout / waiting for link (not full screen)
+ *  O1 critical_health  - any fresh Alert-level vital
+ *  O2 cabin_emergency  - CO2 > 3 mmHg for ≥ 1 h, pressure out of limits, inspired O2 < 127 mmHg
+ *  O3 radiation_storm  - active solar particle event with shelter advised
+ *  O4 sos              - SOS button, or an O1 left unconfirmed for 10 minutes
+ *  Banner              - comms blackout / waiting for link (not full screen)
  *
  * Call syncOverrides() after every evaluation or tick; it raises new problems,
  * never re-raises one that's still open, and waits a cool-down before raising
@@ -88,7 +88,7 @@ function cabinCandidates(input: OverrideInputs): Candidate[] {
       key: 'cabin_emergency:pressure',
       title: OVERRIDE_TITLES.cabin_emergency,
       headline: `Cabin pressure ${latest.cabinPsia} psia`,
-      details: [`Allowed ${L.pressureLowPsia}–${L.pressureHighPsia} psia.`],
+      details: [`Allowed ${L.pressureLowPsia}-${L.pressureHighPsia} psia.`],
       steps: ['Follow the leak / rapid-depress procedure.', 'Move to the safe module and close the hatch.', 'Masks on if pressure keeps falling.', 'Report to Mission Control.'],
     })
   if (latest) {
@@ -166,7 +166,7 @@ export function getActiveOverrides(astronautId: string): OverrideAlert[] {
     .sort((a, b) => KIND_RANK[a.kind] - KIND_RANK[b.kind] || a.raisedAt.localeCompare(b.raisedAt))
 }
 
-/** Full log (raised + confirmed), newest first — for Admin and the Sync page. */
+/** Full log (raised + confirmed), newest first - for Admin and the Sync page. */
 export function getOverrideLog(astronautId?: string): OverrideAlert[] {
   return store
     .get()
@@ -195,9 +195,9 @@ export function raiseSos(input: { astronautId: string; name: string; location?: 
       kind: 'sos',
       key: `sos:${Date.now()}`,
       title: OVERRIDE_TITLES.sos,
-      headline: `${input.name} needs help${input.location ? ` — ${input.location}` : ''}`,
+      headline: `${input.name} needs help${input.location ? ` - ${input.location}` : ''}`,
       details: [input.reason ?? 'SOS button pressed.', 'High-priority message queued for the ground.'],
-      steps: ['Check: are they responding? Are they breathing?', 'Get the medical kit and the AED.', 'Record vitals now (HR, BP, SpO2) — one tap below.', 'Follow the matching Guidance page; tell Mission Control.'],
+      steps: ['Check: are they responding? Are they breathing?', 'Get the medical kit and the AED.', 'Record vitals now (HR, BP, SpO2) - one tap below.', 'Follow the matching Guidance page; tell Mission Control.'],
     },
     input.missionDay,
   )
@@ -221,7 +221,7 @@ export function getBanner(missionState: MissionState, astronautId: string, now: 
       message: `Earth link down (solar conjunction). Expected back in ${link.blackoutEndsInDays} day${link.blackoutEndsInDays === 1 ? '' : 's'}. Data saved and queued.`,
       expectedBackInDays: link.blackoutEndsInDays,
     }
-  if (link.state === 'waiting') return { kind: 'link_waiting', message: `Waiting for link — next window in ~${link.nextWindowInHours} h. Data saved and queued.` }
+  if (link.state === 'waiting') return { kind: 'link_waiting', message: `Waiting for link - next window in ~${link.nextWindowInHours} h. Data saved and queued.` }
   return null
 }
 

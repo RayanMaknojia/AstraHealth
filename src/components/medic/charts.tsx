@@ -1,4 +1,5 @@
-import { statusOf } from "./status";
+import { historyForRange } from "./chart-history";
+import { statusOf, statusStyle } from "./status";
 import { useMemo, useState } from "react";
 import {
   CartesianGrid,
@@ -35,7 +36,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Button } from "@/components/ui/button";
-import { Panel, Status } from "./primitives";
+import { Panel, Status, NumberedInstructions } from "./primitives";
 const chartTooltip = {
   background: "#101b29",
   border: "1px solid #293e51",
@@ -56,14 +57,10 @@ export function VitalChart({
   compact?: boolean;
   range?: number;
 }) {
-  const points = useMemo(() => {
-    const latest = indicator.history.at(-1)?.day ?? state.missionDay;
-    return indicator.history.filter((p) =>
-      range === 1
-        ? p.day >= Math.floor(latest) && p.day < Math.floor(latest) + 1
-        : p.day >= latest - range,
-    );
-  }, [indicator.history, range, state.missionDay]);
+  const points = useMemo(
+    () => historyForRange(indicator.history, state.missionDay, range),
+    [indicator.history, range, state.missionDay],
+  );
   const bounds = boundsFor(indicator.id, getSpaceAdjustments(state), priorDose);
   if (!points.length)
     return (
@@ -78,8 +75,7 @@ export function VitalChart({
     status: indicator.status,
   });
   const last = points.at(-1)!;
-  const projectionDays =
-    range === 1 ? 0 : Math.min(14, indicator.projectedDaysToThreshold ?? 0);
+  const projectionDays = 0; // History range ends at the current mission day.
   const chartPoints: {
     day: number;
     value?: number;
@@ -88,6 +84,10 @@ export function VitalChart({
     wearable?: number;
     manual?: number;
     synthetic?: number;
+    mixed?: number;
+    today?: boolean;
+    source?: string;
+    sources?: string;
   }[] = points.map((p, n) => ({
     ...p,
     wearable: p.source === "wearable_auto" ? p.value : undefined,
@@ -100,6 +100,7 @@ export function VitalChart({
       ? p.value
       : undefined,
     synthetic: p.source === "environment_feed" ? p.value : undefined,
+    mixed: p.source === "mixed" ? p.value : undefined,
     ...(!compact && projectionDays > 0 && n === points.length - 1
       ? { projected: p.value }
       : {}),
@@ -162,8 +163,14 @@ export function VitalChart({
             type="number"
             domain={
               range === 1
-                ? [Math.floor(last.day), Math.floor(last.day) + 1]
-                : ["dataMin", "dataMax"]
+                ? [
+                    Math.floor(state.missionDay),
+                    Math.floor(state.missionDay) + 1,
+                  ]
+                : [
+                    Math.max(0, Math.floor(state.missionDay) - range),
+                    Math.max(1, Math.floor(state.missionDay)),
+                  ]
             }
             tick={{ fill: "#8a9fb4", fontSize: 12 }}
             tickFormatter={(v) =>
@@ -206,10 +213,13 @@ export function VitalChart({
               active && payload?.length ? (
                 <div style={chartTooltip}>
                   <strong>Mission day {Number(label).toFixed(3)}</strong>
+                  {payload[0]?.payload?.today && range !== 1 && (
+                    <p>Today so far (average)</p>
+                  )}
                   <p>
                     Source:{" "}
                     {String(
-                      payload[0]?.payload?.source ?? "Projected / baseline",
+                      payload[0]?.payload?.sources ?? "Projected / baseline",
                     )}
                   </p>
                   {payload
@@ -279,7 +289,17 @@ export function VitalChart({
             dataKey="wearable"
             name="Wearable"
             stroke="#5fe2e7"
-            dot={{ r: 3 }}
+            dot={({ cx, cy, payload }) => (
+              <circle
+                key={`${cx}-${cy}`}
+                cx={cx}
+                cy={cy}
+                r={payload.today && range !== 1 ? 5 : 3}
+                fill={payload.today && range !== 1 ? "#0b141d" : "#9abbd9"}
+                stroke="#9abbd9"
+                strokeWidth={2}
+              />
+            )}
             connectNulls
             strokeWidth={2}
             isAnimationActive={false}
@@ -289,7 +309,17 @@ export function VitalChart({
             dataKey="manual"
             name="Manual / clinical entry"
             stroke="#7eb2ed"
-            dot={{ r: 3 }}
+            dot={({ cx, cy, payload }) => (
+              <circle
+                key={`${cx}-${cy}`}
+                cx={cx}
+                cy={cy}
+                r={payload.today && range !== 1 ? 5 : 3}
+                fill={payload.today && range !== 1 ? "#0b141d" : "#9abbd9"}
+                stroke="#9abbd9"
+                strokeWidth={2}
+              />
+            )}
             connectNulls
             strokeWidth={2}
             isAnimationActive={false}
@@ -299,10 +329,40 @@ export function VitalChart({
             dataKey="synthetic"
             name="Environment / synthetic"
             stroke="#d6e2e8"
-            dot={{ r: 3 }}
+            dot={({ cx, cy, payload }) => (
+              <circle
+                key={`${cx}-${cy}`}
+                cx={cx}
+                cy={cy}
+                r={payload.today && range !== 1 ? 5 : 3}
+                fill={payload.today && range !== 1 ? "#0b141d" : "#9abbd9"}
+                stroke="#9abbd9"
+                strokeWidth={2}
+              />
+            )}
             connectNulls
             strokeWidth={2}
             isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="mixed"
+            name="Combined daily average"
+            stroke="#b8a0e7"
+            strokeWidth={2}
+            connectNulls
+            isAnimationActive={false}
+            dot={({ cx, cy, payload }) => (
+              <circle
+                key={`${cx}-${cy}`}
+                cx={cx}
+                cy={cy}
+                r={payload.today ? 5 : 3}
+                fill={payload.today ? "#0b141d" : "#b8a0e7"}
+                stroke="#b8a0e7"
+                strokeWidth={2}
+              />
+            )}
           />
         </LineChart>
       </ResponsiveContainer>
@@ -332,7 +392,7 @@ export function Guide({
           <>
             <Status status={statusOf(indicator)} />
             <h3>How to measure</h3>
-            <p>{indicator.howToMeasure}</p>
+            <NumberedInstructions text={indicator.howToMeasure} />
             <h3>Why it matters</h3>
             <p>{indicator.whyNeeded}</p>
             {indicator.spaceShiftNote && (
@@ -435,13 +495,14 @@ export function Trends({
           Measurement guide
         </Button>
       </div>
-      <Panel
-        title={indicator.name}
-        accessory={<Status status={statusOf(indicator)} />}
-      >
-        <div className="chart-value">
-          {indicator.value ?? "—"} <small>{indicator.unit}</small>
+      <Panel title={indicator.name}>
+        <div
+          className="chart-value health-value"
+          style={statusStyle(statusOf(indicator))}
+        >
+          {indicator.value ?? "-"} <small>{indicator.unit}</small>
         </div>
+        <Status status={statusOf(indicator)} />
         <VitalChart
           indicator={indicator}
           state={state}
@@ -452,16 +513,18 @@ export function Trends({
           <span>Wearable (teal)</span>
           <span>Manual / clinical (blue)</span>
           <span>Environment / synthetic (white)</span>
+          <span>Combined daily average (purple)</span>
           <span>Personal baseline</span>
           <span>Projected drift (when available)</span>
           <small>Phase markers · Reference bands from health rules</small>
         </div>
         <p className="fine-print">
-          {indicator.simulated ? "Simulated crew data. " : ""}1D shows the
-          latest recorded mission day; source colors identify how data entered
-          the app. Bands show range boundaries. Pattern and personal-baseline
-          alerts are evaluated by the health service. Blood pressure plots the
-          systolic value.
+          {indicator.simulated ? "Simulated crew data. " : ""}1D shows today's
+          intraday readings. Multi-day views average each day's readings;
+          today's hollow point is the average so far. Source colors identify how
+          data entered the app. Bands show range boundaries. Pattern and
+          personal-baseline alerts are evaluated by the health service. Blood
+          pressure plots the systolic value.
         </p>
         {indicator.projectedDaysToThreshold !== undefined && (
           <p className="trajectory">

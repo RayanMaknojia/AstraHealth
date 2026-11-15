@@ -4,8 +4,8 @@
  * your actual compliance).
  *
  * Rules (health_rules.md, Phase 3 table):
- *  - Exercise: Normal ≥ 120 min/day, Watch 60–119, Alert < 60 for 3 days in a row
- *  - Body mass: Normal within 3% of preflight, Watch 3–5% loss, Alert > 5% loss
+ *  - Exercise: Normal ≥ 120 min/day, Watch 60-119, Alert < 60 for 3 days in a row
+ *  - Body mass: Normal within 3% of preflight, Watch 3-5% loss, Alert > 5% loss
  * Demo crew get a simulated history the first time they are looked up.
  */
 
@@ -111,7 +111,7 @@ export function getExerciseSummary(astronautId: string, today: number): Exercise
     message = `No workouts logged yet. Goal: ${EX.goalMinutes} min a day.`
   } else if (completed.every((m) => m < EX.alertBelowMinutes)) {
     status = 'critical'
-    message = `Under ${EX.alertBelowMinutes} min for ${EX.alertConsecutiveDays} days in a row — bones and muscles need daily loading. ${message}`
+    message = `Under ${EX.alertBelowMinutes} min for ${EX.alertConsecutiveDays} days in a row - bones and muscles need daily loading. ${message}`
   } else if (completed[0] < EX.watchBelowMinutes) {
     status = 'caution'
     message = `Yesterday: ${completed[0]} of ${EX.goalMinutes} min. ${message}`
@@ -135,7 +135,7 @@ export function getExerciseSummary(astronautId: string, today: number): Exercise
   }
 }
 
-/** Share of the last 30 completed days that met the goal (0–1). */
+/** Share of the last 30 completed days that met the goal (0-1). */
 export function exerciseCompliance(astronautId: string, today: number): number {
   ensureSeeded(astronautId, today)
   const day = Math.floor(today)
@@ -162,14 +162,14 @@ export function logBodyMass(astronautId: string, day: number, kg: number): BodyM
   return r
 }
 
-/** % change from preflight with status (Normal within 3%, Watch 3–5% loss, Alert > 5% loss). */
+/** % change from preflight with status (Normal within 3%, Watch 3-5% loss, Alert > 5% loss). */
 export function evaluateBodyMass(preflightKg: number | null, kg: number | null): { changePct: number | null; status: BodyMassSummary['status']; message: string } {
   if (preflightKg === null || kg === null) return { changePct: null, status: 'no_data', message: preflightKg === null ? 'No preflight weight on file.' : 'No body-mass reading yet.' }
   const change = round(((kg - preflightKg) / preflightKg) * 100, 1)
-  if (change < -BM.alertLossPct) return { changePct: change, status: 'critical', message: `Lost ${Math.abs(change)}% since preflight — more than ${BM.alertLossPct}%. Increase calories and protein; tell the crew medical officer.` }
+  if (change < -BM.alertLossPct) return { changePct: change, status: 'critical', message: `Lost ${Math.abs(change)}% since preflight - more than ${BM.alertLossPct}%. Increase calories and protein; tell the crew medical officer.` }
   if (change <= -BM.watchLossPct) return { changePct: change, status: 'caution', message: `Lost ${Math.abs(change)}% since preflight. Eat your full ration and add a snack.` }
-  if (change >= BM.watchGainPct) return { changePct: change, status: 'caution', message: `Up ${change}% since preflight — check for fluid retention and diet.` }
-  return { changePct: change, status: 'nominal', message: `${change > 0 ? '+' : ''}${change}% from preflight — within ${BM.watchLossPct}%.` }
+  if (change >= BM.watchGainPct) return { changePct: change, status: 'caution', message: `Up ${change}% since preflight - check for fluid retention and diet.` }
+  return { changePct: change, status: 'nominal', message: `${change > 0 ? '+' : ''}${change}% from preflight - within ${BM.watchLossPct}%.` }
 }
 
 export function getBodyMassSummary(astronautId: string, today: number): BodyMassSummary {
@@ -185,7 +185,7 @@ export function getBodyMassSummary(astronautId: string, today: number): BodyMass
 /**
  * Estimated bone change over the whole mission: no exercise (BONE_NO_EXERCISE_MULTIPLIER × the countermeasure rate)
  * vs your actual exercise compliance (1× at full compliance). Uses the reference-doc
- * formula (1.25/30)·(1 − g) %/day per phase. Estimate — label it so in the UI.
+ * formula (1.25/30)·(1 − g) %/day per phase. Estimate - label it so in the UI.
  */
 export function projectBoneLoss(plan: MissionPlan, astronautId: string, today: number, stepDays = 7): BoneProjection {
   const compliance = exerciseCompliance(astronautId, today)

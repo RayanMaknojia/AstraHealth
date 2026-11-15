@@ -7,10 +7,7 @@ export function formatOnboardTime(minute: number) {
 /** Cadence presentation over the backend's persisted schedule. Weekly/extended checks include daily basics. */
 export function visibleSchedule(profile: AstronautProfile): CheckinTaskDue[] {
   const tasks = getDueCheckins(profile);
-  const day = Math.floor(profile.missionDay);
-  const extended = day > 0 && day % MONTHLY_EVERY_DAYS === 0;
-  const weekly = day > 0 && day % WEEK_DAYS === 0;
-  return tasks.filter((t) => t.slot !== "morning" || (!weekly && !extended));
+  return tasks.filter((t) => t.slot !== "eye_exam" && t.slot !== "evening");
 }
 export function nextScheduledCheckin(profile: AstronautProfile) {
   const pending = visibleSchedule(profile).filter(

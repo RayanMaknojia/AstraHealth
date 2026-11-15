@@ -12,7 +12,7 @@
  * both steps); otherwise deterministic offline parsers (keyword gatekeeper +
  * regex extraction from file names, text, CSV, transcripts and simple PDFs)
  * so the hackathon demo always works. Severity is always re-graded locally
- * with healthEvaluator — the AI can add findings but cannot downgrade them.
+ * with healthEvaluator - the AI can add findings but cannot downgrade them.
  */
 
 import { CREW_PROFILES } from '@/data/nasaSpaceflightData'
@@ -134,7 +134,7 @@ interface Extraction {
 
 const num = (s: string) => Number(s.replace('−', '-').replace(',', '.'))
 
-/** Physiologically possible ranges — values outside are rejected as bad input, not graded. */
+/** Physiologically possible ranges - values outside are rejected as bad input, not graded. */
 const PLAUSIBLE: Record<keyof Omit<VitalsInput, 'fasting' | 'symptoms' | 'sleepRecentNights' | 'moodRecentDays'>, [number, number]> = {
   bloodSugarMgDl: [20, 600],
   heartRateBpm: [20, 250],
@@ -153,7 +153,7 @@ function implausible(values: VitalsInput): string[] {
   const bad: string[] = []
   for (const [k, [lo, hi]] of Object.entries(PLAUSIBLE) as [keyof typeof PLAUSIBLE, [number, number]][]) {
     const v = values[k]
-    if (v !== undefined && (!Number.isFinite(v) || v < lo || v > hi)) bad.push(`${k} = ${v} (expected ${lo}–${hi})`)
+    if (v !== undefined && (!Number.isFinite(v) || v < lo || v > hi)) bad.push(`${k} = ${v} (expected ${lo}-${hi})`)
   }
   return bad
 }
@@ -174,7 +174,7 @@ function extractVitals(text: string): VitalsInput {
   if ((r = m(/\b(?:temp|temperature)\b[^\d\n]{0,15}(\d{2}(?:[.,]\d)?)/i)) || (r = m(/\b(\d{2}[.,]\d)\s*°\s*c\b/i))) v.bodyTempC = num(r[1])
   if ((r = m(/\b(?:spo2|sp02|oxygen saturation|o2 sat)\b[^\d\n]{0,15}(\d{2,3})/i))) v.spo2Pct = num(r[1])
   if ((r = m(/\b(?:slept|sleep)\b[^\d\n]{0,25}(\d{1,2}(?:[.,]\d)?)\s*(?:h|hr|hrs|hours)\b/i))) v.sleepHours = num(r[1])
-  // Mood is 1–5 (health_rules.md); answers given out of 10 are converted.
+  // Mood is 1-5 (health_rules.md); answers given out of 10 are converted.
   if ((r = m(/\b(?:mood|feeling)\b[^\d\n]{0,30}(\d{1,2})\s*(?:\/\s*|out of\s*)(5|10)\b/i)))
     v.mood = r[2] === '10' ? Math.max(1, Math.round(num(r[1]) / 2)) : num(r[1])
   if ((r = m(/\b(?:24\s*h|daily|today)\b[^\d\n]{0,15}(\d+(?:[.,]\d+)?)\s*msv/i))) v.radiationDailyMSv = num(r[1])
@@ -189,10 +189,10 @@ function extractVitals(text: string): VitalsInput {
 }
 
 const LAB_RULES: { analyte: string; re: RegExp; unit: string; low: number; high: number; lowNote: string; highNote: string }[] = [
-  { analyte: 'White blood cells (WBC)', re: /\b(?:wbc|white blood cells?)\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: '×10⁹/L', low: 4, high: 11, lowNote: 'low — immune system may be weakened (radiation / stress)', highNote: 'high — possible infection or inflammation' },
-  { analyte: 'Hemoglobin', re: /\b(?:hgb|hb|ha?emoglobin)\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: 'g/dL', low: 12, high: 17.5, lowNote: 'low — "space anemia" is common in flight', highNote: 'high — check hydration' },
-  { analyte: 'Platelets', re: /\bplatelets?\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: '×10⁹/L', low: 150, high: 450, lowNote: 'low — bleeding risk', highNote: 'high' },
-  { analyte: 'Lymphocytes', re: /\blymphocytes?\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: '×10⁹/L', low: 1, high: 4.8, lowNote: 'low — radiation-sensitive immune cells', highNote: 'high' },
+  { analyte: 'White blood cells (WBC)', re: /\b(?:wbc|white blood cells?)\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: '×10⁹/L', low: 4, high: 11, lowNote: 'low - immune system may be weakened (radiation / stress)', highNote: 'high - possible infection or inflammation' },
+  { analyte: 'Hemoglobin', re: /\b(?:hgb|hb|ha?emoglobin)\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: 'g/dL', low: 12, high: 17.5, lowNote: 'low - "space anemia" is common in flight', highNote: 'high - check hydration' },
+  { analyte: 'Platelets', re: /\bplatelets?\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: '×10⁹/L', low: 150, high: 450, lowNote: 'low - bleeding risk', highNote: 'high' },
+  { analyte: 'Lymphocytes', re: /\blymphocytes?\b[^\d\n]{0,20}(\d+(?:\.\d+)?)/i, unit: '×10⁹/L', low: 1, high: 4.8, lowNote: 'low - radiation-sensitive immune cells', highNote: 'high' },
 ]
 
 function extractLabs(text: string): LabFinding[] {
@@ -249,15 +249,15 @@ function offlineExtraction(input: IngestionInput, text: string): Extraction {
   if (input.manualValues) {
     const values = { ...input.manualValues }
     const bad = implausible(values)
-    if (bad.length) return reject(`Some values are not physically possible — please re-check: ${bad.join('; ')}.`, 1)
-    if (!hasValues(values) && !values.symptoms?.length) return reject('No values entered yet — move at least one slider or type a symptom.', 1)
+    if (bad.length) return reject(`Some values are not physically possible - please re-check: ${bad.join('; ')}.`, 1)
+    if (!hasValues(values) && !values.symptoms?.length) return reject('No values entered yet - move at least one slider or type a symptom.', 1)
     const symptoms = extractSymptoms((values.symptoms ?? []).join('. '))
     return { verdict: { accepted: true, detectedModality: 'manual_slider', confidence: 1 }, values, labs: [], symptoms, engine: 'offline_mock' }
   }
 
   const name = input.fileName ?? ''
   const haystack = `${name.replace(/[_\-.]+/g, ' ')} ${text}`
-  if (!haystack.trim()) return reject('Nothing to analyse — the file is empty or unreadable.', 1)
+  if (!haystack.trim()) return reject('Nothing to analyse - the file is empty or unreadable.', 1)
 
   const values = extractVitals(text || name.replace(/_/g, ' '))
   const labs = extractLabs(text)
@@ -297,20 +297,20 @@ function offlineExtraction(input: IngestionInput, text: string): Extraction {
       values: {},
       labs: [],
       symptoms: [],
-      note: 'Voice log saved. Offline mode cannot transcribe audio — add a one-line typed summary so it can be graded.',
+      note: 'Voice log saved. Offline mode cannot transcribe audio - add a one-line typed summary so it can be graded.',
       engine: 'offline_mock',
     }
   }
 
   const needed = modality === 'ultrasound_image' ? 1 : 2
-  if (evidence < needed) return reject(`Rejected: non-biomedical data. No health terms or measurements were found — this looks like ${what}. ${help}`, 0.7)
+  if (evidence < needed) return reject(`Rejected: non-biomedical data. No health terms or measurements were found - this looks like ${what}. ${help}`, 0.7)
 
   const confidence = Math.min(0.98, 0.55 + evidence * 0.08)
   let note: string | undefined
   if (modality === 'ultrasound_image' && values.boneDensityChangePct === undefined)
     note = /dosimeter|msv/i.test(haystack)
-      ? 'Dosimeter photo received — no dose number found; type the 24 h and mission values.'
-      : 'Medical image received. No measurement found offline — read the % change from the scan software and enter it.'
+      ? 'Dosimeter photo received - no dose number found; type the 24 h and mission values.'
+      : 'Medical image received. No measurement found offline - read the % change from the scan software and enter it.'
   return { verdict: { accepted: true, detectedModality: modality, confidence: Math.round(confidence * 100) / 100 }, values, labs, symptoms, ...(note ? { note } : {}), engine: 'offline_mock' }
 }
 
@@ -334,7 +334,7 @@ const AI_PROMPT = `You are the biomedical gatekeeper for an astronaut self-care 
 2) If accepted, extract ONCE everything useful so the raw file never needs to be read again.
 Reply with JSON only:
 {"accepted":bool,"detectedModality":"lab_document|ultrasound_image|voice_log|manual_slider","confidence":0..1,"rejectionReason":string?,
- "summary":"1–3 plain-English sentences for a non-doctor","severity":"nominal|caution|critical",
+ "summary":"1-3 plain-English sentences for a non-doctor","severity":"nominal|caution|critical",
  "values":{"bloodSugarMgDl"?:n,"fasting"?:bool,"heartRateBpm"?:n,"systolicMmHg"?:n,"diastolicMmHg"?:n,"bodyTempC"?:n,"spo2Pct"?:n,"sleepHours"?:n,"mood"?:n(1-5, convert /10 answers),"radiationDailyMSv"?:n,"radiationMissionMSv"?:n,"boneDensityChangePct"?:n},
  "labs":[{"analyte":s,"value":n,"unit":s,"status":"nominal|caution|critical","note":s}],
  "symptoms":[s]}
@@ -386,7 +386,7 @@ async function aiExtraction(input: IngestionInput, text: string, ai?: AIConfig):
 
 const clamp01 = (v: number) => Math.max(0, Math.min(1, v))
 
-/** One extraction per input object — validate() and normalize() share it, so media is read/sent once. */
+/** One extraction per input object - validate() and normalize() share it, so media is read/sent once. */
 const cache = new WeakMap<IngestionInput, Promise<Extraction>>()
 
 function extract(input: IngestionInput, ai?: AIConfig): Promise<Extraction> {
@@ -405,7 +405,7 @@ function extract(input: IngestionInput, ai?: AIConfig): Promise<Extraction> {
   return p
 }
 
-/** Gatekeeper: is this input biomedical? Never throws for bad input — returns accepted:false. */
+/** Gatekeeper: is this input biomedical? Never throws for bad input - returns accepted:false. */
 export async function validateBiomedicalRelevance(input: IngestionInput, ai?: AIConfig): Promise<GatekeeperVerdict> {
   return (await extract(input, ai)).verdict
 }
