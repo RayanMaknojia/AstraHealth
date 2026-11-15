@@ -3,7 +3,11 @@
  * Runs at a phone, a tablet and a laptop size (see FLOW_PROJECTS).
  */
 import { expect, test, type Page } from "@playwright/test";
-import { dismissAlerts, goTo, login, watchHealth } from "./helpers";
+import { dismissAlerts, goTo, login, offlineAi, watchHealth } from "./helpers";
+
+test.beforeEach(async ({ page }) => {
+  await offlineAi(page);
+});
 
 const FLOW_PROJECTS = ["phone-390", "tablet-768", "laptop-1440"];
 // eslint-disable-next-line no-empty-pattern -- Playwright needs a destructured first argument

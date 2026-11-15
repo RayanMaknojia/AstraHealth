@@ -7168,3 +7168,150 @@ body:has(.medic-app) {
   top: 8px;
   bottom: auto;
 }
+
+/* ---- Login: one screen, centred, no scrolling ---- */
+.medic-app:has(.login-screen) {
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+.login-screen {
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  /* Bottom padding leaves room for the footer line. */
+  padding: clamp(16px, 4vh, 48px) 50px max(48px, 6vh);
+  align-content: safe center;
+  /* Only scrolls if a very small screen cannot fit the card. */
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+/* Orbit rings centre on the headline and are sized to stay inside the window. */
+.login-copy {
+  isolation: isolate;
+  /* Paint below the card (it can overlap the orbit on narrow screens). */
+  z-index: 0;
+}
+.login-copy .login-orbit {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: min(720px, 86vh, calc(100% + 100px + max(0px, 100vw - 1160px)));
+  height: auto;
+  aspect-ratio: 1;
+  transform: translate(-50%, -50%);
+  z-index: -1;
+  opacity: 1;
+}
+/* Card spacing shrinks with the window height. */
+.login-card {
+  padding: clamp(20px, 3.4vh, 34px);
+}
+.login-lock {
+  margin-bottom: clamp(10px, 2.2vh, 24px);
+}
+.login-card > p {
+  margin-bottom: clamp(12px, 2.6vh, 28px);
+}
+.login-submit {
+  margin-top: clamp(14px, 2.4vh, 25px);
+}
+.demo-accounts {
+  margin-top: clamp(12px, 2.6vh, 30px);
+  padding-top: clamp(10px, 2vh, 22px);
+}
+.demo-accounts button {
+  padding: clamp(4px, 0.9vh, 9px) 0;
+}
+.login-copy .brand {
+  margin-bottom: clamp(28px, 9vh, 100px);
+}
+.offline-note {
+  margin-top: clamp(20px, 6vh, 65px);
+}
+@media (max-height: 800px) {
+  .demo-accounts small {
+    display: none;
+  }
+}
+/* Very large monitors: the app is zoomed 1.25x, so one screen is 80% of the zoomed height. */
+@media (min-width: 2200px) {
+  .medic-app:has(.login-screen),
+  .login-screen {
+    height: 80dvh;
+  }
+  .login-copy .login-orbit {
+    width: min(720px, 69vh);
+  }
+}
+/* Phones: brand, headline and card stacked and centred. */
+@media (max-width: 650px) {
+  .login-screen {
+    height: 100dvh;
+    justify-content: safe center;
+    gap: clamp(14px, 3vh, 35px);
+    padding: clamp(14px, 3vh, 35px) 20px 44px;
+  }
+  .login-copy .brand {
+    margin-bottom: clamp(12px, 3vh, 35px);
+  }
+  .login-copy h1 {
+    font-size: clamp(30px, 5vh, 42px);
+  }
+  .login-copy p,
+  .offline-note {
+    display: none;
+  }
+  /* Phones: the headline sits at the top, so centre the orbit on the screen instead. */
+  .login-copy .login-orbit {
+    position: fixed;
+    width: min(calc(100vw - 24px), 60vh);
+  }
+  /* Phones: the card is the priority; drop the decorative extras so it fits. */
+  .demo-accounts small,
+  .login-footer {
+    display: none;
+  }
+  .login-screen {
+    padding-bottom: clamp(14px, 3vh, 35px);
+  }
+}
+@media (max-width: 650px) {
+  .login-copy h1 {
+    font-size: clamp(24px, 3.4vh, 30px);
+    letter-spacing: -0.8px;
+  }
+  .login-copy h1 br {
+    display: none;
+  }
+}
+/* Short phones: brand + card only, tighter card. */
+@media (max-width: 650px) and (max-height: 700px) {
+  .login-copy h1,
+  .login-lock {
+    display: none;
+  }
+  .login-copy .brand {
+    margin-bottom: 0;
+  }
+  .login-card h2 {
+    font-size: 21px;
+  }
+  .login-card [data-slot="input"] {
+    min-height: 38px;
+  }
+}
+@media (max-width: 650px) and (max-height: 600px) {
+  .demo-accounts h3 {
+    display: none;
+  }
+  .demo-accounts button {
+    padding: 3px 0;
+  }
+  .login-card > p {
+    margin-bottom: 8px;
+  }
+  .login-screen {
+    padding-block: 10px;
+  }
+}
