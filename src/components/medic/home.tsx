@@ -13,13 +13,14 @@ import {
   Orbit,
   Globe,
   Satellite,
-  Circle,
   Navigation2,
 } from "lucide-react";
 import type { BodySystem, HealthIndicator } from "@/types/astronaut";
 import { THRESHOLDS } from "@/data/nasaSpaceflightData";
-import { ESCALATION_MODE_LABELS } from "@/services/healthEvaluator";
-import { formatTripBarLabel } from "@/services/missionTimeline";
+import {
+  ESCALATION_MODE_LABELS,
+  STATUS_COLORS,
+} from "@/services/healthEvaluator";
 import { Button } from "@/components/ui/button";
 import { Panel, Status, Meter } from "./primitives";
 import { statusOf, statusStyle } from "./status";
@@ -53,7 +54,7 @@ export function TripBar({ model }: { model: MissionModel }) {
       : state.plan.destination === "EARTH_TRAINING"
         ? { Icon: Globe, label: "Earth" }
         : {
-            Icon: Circle,
+            Icon: state.plan.destination === "MOON" ? Moon : Orbit,
             label: state.plan.destination === "MOON" ? "Moon" : "Mars",
           };
   const progress = Math.max(0, Math.min(1, state.progress));
@@ -62,12 +63,6 @@ export function TripBar({ model }: { model: MissionModel }) {
       className="trip-bar mission-journey compact-journey"
       aria-label="Mission journey"
     >
-      <div className="compact-journey-label">
-        <strong>Day {state.missionDay}</strong>
-        <span>
-          {formatTripBarLabel(state).split(" · ").slice(1).join(" · ")}
-        </span>
-      </div>
       <div className="trip-route">
         <span className="journey-endpoint" role="img" aria-label="Earth">
           <Globe size={16} />
@@ -233,6 +228,33 @@ function shortSummary(text: string) {
   }
   return out || text;
 }
+function BriefingText({ text }: { text: string }) {
+  const words: Record<
+    string,
+    { label: string; status: "nominal" | "caution" | "critical" }
+  > = {
+    Optimal: { label: "Optimal", status: "nominal" },
+    Normal: { label: "Optimal", status: "nominal" },
+    Borderline: { label: "Borderline", status: "caution" },
+    Watch: { label: "Borderline", status: "caution" },
+    Alert: { label: "Alert", status: "critical" },
+  };
+  return text
+    .split(/\b(Optimal|Borderline|Alert|Normal|Watch)\b/g)
+    .map((part, n) =>
+      words[part] ? (
+        <span
+          className="inline-health-status"
+          key={n}
+          style={{ color: STATUS_COLORS[words[part].status] }}
+        >
+          {words[part].label}
+        </span>
+      ) : (
+        part
+      ),
+    );
+}
 export function Briefing({
   model,
   onOpen,
@@ -263,7 +285,11 @@ export function Briefing({
         <h3>{b.headline}</h3>
       </div>
       <p className="briefing-summary">
-        {full ? b.plainEnglishSummary : shortSummary(b.plainEnglishSummary)}
+        <BriefingText
+          text={
+            full ? b.plainEnglishSummary : shortSummary(b.plainEnglishSummary)
+          }
+        />
       </p>
       {alerts.length > 0 && (
         <div className="briefing-alerts">

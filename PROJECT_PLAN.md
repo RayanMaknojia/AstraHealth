@@ -221,3 +221,15 @@ Phase 4 ChatGPT UI implementation (see phases/phase4.chatgpt.md):
 [x] Average multi-day chart readings per day and fix day-zero/rolling chart windows.
 [x] Normalize long dashes repo-wide; verify protected backend edits are punctuation-only.
 [x] Verify build, lint, real check-in/photo/journal flows, reaction boundaries, scan timing, responsive pages and zero final browser console errors/warnings. Document Mars-clock, model and demo limits.
+
+
+Phase 5 ChatGPT UI polish (see phases/phase5.chatgpt.md):
+[x] Lock the desktop mission header to three stable zones; remove floating title-row sync text and retain the prototype footer / Log out.
+[x] Clip scan status fills to the same SVG silhouette as the body and synchronize continuous reveal with the beam.
+[x] Match desktop vitals-grid and scan heights; place briefing below both and align inline status typography.
+[x] Remove wearable confirmation buttons/gate; add the seventh Monthly Eye Exam field through existing notes storage.
+[x] Enlarge 3D selectors and add an original licensed skeletal/musculature asset; adapt phone selection to a swipeable strip.
+[x] Preselect explicit primary indicators from Body Map while keeping all nine Trends choices available.
+[x] Suppress empty-series SVG dots, increase Y padding, default to 7D and clarify the purple average legend/tooltip.
+[x] Brighten and coordinate the login orbital paths/glow points with the screen palette, including reduced-motion behavior.
+[x] Verify build/lint/TypeScript, functional navigation/saves, three demo-profile header layouts, 20 page/viewport combinations, and zero comprehensive-run console errors/warnings. Backend files remain unchanged.

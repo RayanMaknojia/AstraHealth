@@ -1,7 +1,7 @@
 SPDX-License-Identifier: CC0-1.0
 
 The original Blender generator generate.py and the generated brain.glb,
-heart.glb, liver.glb, dna.glb and bone.glb in this directory are dedicated
+heart.glb, liver.glb, dna.glb, bone.glb and musculoskeletal.glb in this directory are dedicated
 to the public domain under CC0 1.0 Universal.
 
 To the extent possible under law, the authors waive all copyright and

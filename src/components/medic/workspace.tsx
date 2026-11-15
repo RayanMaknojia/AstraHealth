@@ -32,6 +32,7 @@ import {
   SheetDescription,
 } from "@/components/ui/sheet";
 import { Brand, PageTitle } from "./primitives";
+import { formatTripBarLabel } from "@/services/missionTimeline";
 import { MissionClock } from "./mission-clock";
 import { Home, Briefing, TripBar } from "./home";
 import { useMission, notify } from "./use-mission";
@@ -53,6 +54,13 @@ const nav = [
   { name: "Trends", icon: ChartNoAxesCombined },
   { name: "More", icon: Ellipsis },
 ];
+const primaryIndicators: Record<BodySystem, string> = {
+  behavioral: "sleep_hours",
+  cardiovascular: "heart_rate",
+  metabolic: "blood_sugar",
+  radiation_immune: "radiation_dose",
+  musculoskeletal: "bone_density",
+};
 const titles: Record<string, string> = {
   Home: "Mission overview",
   "Check-in": "Check-in & journal",
@@ -92,7 +100,6 @@ export function Workspace({
     [indicator, setIndicator] = useState("heart_rate"),
     [bodySystem, setBodySystem] = useState<BodySystem>("cardiovascular"),
     [moreTab, setMoreTab] = useState("Cabin readings"),
-    [system, setSystem] = useState<BodySystem | null>(null),
     [briefingOpen, setBriefingOpen] = useState(false),
     [crewNotified, setCrewNotified] = useState(false);
   const active = model.overrides[0];
@@ -102,7 +109,6 @@ export function Workspace({
     window.scrollTo({ top: 0, behavior: "instant" });
   };
   const trend = (id: string) => {
-    setSystem(null);
     setIndicator(id);
     go("Trends");
   };
@@ -135,7 +141,6 @@ export function Workspace({
               className={page === n.name ? "active" : ""}
               aria-current={page === n.name ? "page" : undefined}
               onClick={() => {
-                if (n.name === "Trends") setSystem(null);
                 go(n.name);
               }}
             >
@@ -154,7 +159,7 @@ export function Workspace({
           </span>
           <div className="connection">
             <span />
-            Device-local records
+            Educational Prototype · Offline Local Mode
           </div>
         </div>
         <div className="crew-identity">
@@ -175,25 +180,36 @@ export function Workspace({
       </aside>
       <div className="workspace-main">
         <header className="topbar">
-          <TripBar model={model} />
-          <MissionClock model={model} />
-          <span className="earth-delay">
-            <Radio size={15} />
-            Earth delay{" "}
-            <b>{formatDelay(model.missionState.earthDelaySeconds)}</b>
-          </span>
-          <label className="demo-toggle">
-            Demo mode
-            <Switch
-              checked={demo}
-              onCheckedChange={setDemo}
-              aria-label="Demo mode"
-            />
-          </label>
-          <Button variant="destructive" onClick={sos}>
-            <ShieldAlert data-icon="inline-start" />
-            SOS
-          </Button>
+          <div className="mission-header-left">
+            <strong>Day {model.profile.missionDay}</strong>
+            <span title={model.missionState.phase.name}>
+              {formatTripBarLabel(model.missionState).split(" · ")[1] ??
+                model.missionState.phase.name}
+            </span>
+          </div>
+          <div className="mission-header-center">
+            <MissionClock model={model} />
+            <TripBar model={model} />
+          </div>
+          <div className="mission-header-actions">
+            <span className="earth-delay">
+              <Radio size={15} />
+              Earth delay{" "}
+              <b>{formatDelay(model.missionState.earthDelaySeconds)}</b>
+            </span>
+            <label className="demo-toggle">
+              Demo mode
+              <Switch
+                checked={demo}
+                onCheckedChange={setDemo}
+                aria-label="Demo mode"
+              />
+            </label>
+            <Button variant="destructive" onClick={sos}>
+              <ShieldAlert data-icon="inline-start" />
+              SOS
+            </Button>
+          </div>
         </header>
         {banner && (
           <div className="comms-banner" role="status">
@@ -208,13 +224,7 @@ export function Workspace({
                 ? `${model.profile.name} · ${model.profile.agency}`
                 : descriptions[page]
             }
-          >
-            <div className="page-live">
-              <span className={demo ? "paused-dot" : "live-dot"} />
-              {demo ? "DEMO · MANUAL SYNC" : "LIVE · EVERY 15s"}
-              <small>{model.lastEvent.replace(/Day \d+\s*/g, "").trim()}</small>
-            </div>
-          </PageTitle>
+          />
           {demo && (
             <DemoControls controller={controller} onSwitchCrew={onSwitchCrew} />
           )}
@@ -252,10 +262,7 @@ export function Workspace({
                 selected={bodySystem}
                 onSelect={setBodySystem}
                 onTrends={(s) => {
-                  setSystem(s);
-                  setIndicator(
-                    model.profile.indicators.find((i) => i.system === s)!.id,
-                  );
+                  setIndicator(primaryIndicators[s]);
                   go("Trends");
                 }}
               />
@@ -266,8 +273,6 @@ export function Workspace({
                 state={model.missionState}
                 selectedId={indicator}
                 onSelect={setIndicator}
-                system={system}
-                clearSystem={() => setSystem(null)}
               />
             )}{" "}
             {page === "More" && (

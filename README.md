@@ -11,7 +11,7 @@ npm run dev
 
 Open the localhost address printed by Vite. Demo logins: `iss_crew` / `2222`, `moon_crew` / `3333`, `mars_crew` / `1111`, and admin `admin` / `0000`.
 
-The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase4.chatgpt.md`.
+The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase5.chatgpt.md`.
 
 ## Anatomical 3D assets
 
@@ -23,7 +23,8 @@ These original meshes were created for this project using Blender. They are loca
 | Heart: ventricles, atria, major vessels and coronary branches | Same original Blender generator | CC0-1.0 |
 | Liver and gallbladder | Same original Blender generator | CC0-1.0 |
 | DNA double helix | Same original Blender generator | CC0-1.0 |
-| Femur | Same original Blender generator | CC0-1.0 |
+| Femur (earlier build) | Same original Blender generator | CC0-1.0 |
+| Skeletal and musculature torso, pelvis and proximal limbs (Build 5 selector) | Same original Blender generator | CC0-1.0 |
 
 The original generated meshes and their generator are dedicated to the public domain under [CC0 1.0](https://creativecommons.org/publicdomain/zero/1.0/). No third-party anatomical mesh was copied. External model catalogues were inaccessible in the build environment. To regenerate, install Blender and run from the repository root:
 
