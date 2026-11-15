@@ -11,9 +11,6 @@ import {
   Radiation,
   Bone,
   Orbit,
-  Globe,
-  Satellite,
-  Navigation2,
   RefreshCw,
   Sparkles,
   ShieldAlert,
@@ -34,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Panel, Status, Meter } from "./primitives";
 import { statusOf, statusStyle } from "./status";
 import { getDueCheckins, listCheckins } from "@/services/checkinService";
+import { JourneyArt } from "./journey-art";
 import { HomeScan } from "./home-scan";
 import type { MissionModel } from "./use-mission";
 const icons = {
@@ -57,15 +55,17 @@ const vitalIds = [
 ];
 export function TripBar({ model }: { model: MissionModel }) {
   const state = model.missionState;
-  const destination =
+  const destination: {
+    kind: "earth" | "moon" | "mars" | "iss";
+    label: string;
+  } =
     state.plan.destination === "ISS"
-      ? { Icon: Satellite, label: "ISS" }
+      ? { kind: "iss", label: "International Space Station" }
       : state.plan.destination === "EARTH_TRAINING"
-        ? { Icon: Globe, label: "Earth" }
-        : {
-            Icon: state.plan.destination === "MOON" ? Moon : Orbit,
-            label: state.plan.destination === "MOON" ? "Moon" : "Mars",
-          };
+        ? { kind: "earth", label: "Earth" }
+        : state.plan.destination === "MOON"
+          ? { kind: "moon", label: "Moon" }
+          : { kind: "mars", label: "Mars" };
   const progress = Math.max(0, Math.min(1, state.progress));
   return (
     <section
@@ -74,7 +74,7 @@ export function TripBar({ model }: { model: MissionModel }) {
     >
       <div className="trip-route">
         <span className="journey-endpoint" role="img" aria-label="Earth">
-          <Globe size={16} />
+          <JourneyArt kind="earth" />
         </span>
         <div
           className="trip-track"
@@ -104,7 +104,7 @@ export function TripBar({ model }: { model: MissionModel }) {
             role="img"
             aria-label="Spacecraft"
           >
-            <Navigation2 size={14} />
+            <JourneyArt kind="shuttle" />
           </span>
         </div>
         <span
@@ -112,7 +112,7 @@ export function TripBar({ model }: { model: MissionModel }) {
           role="img"
           aria-label={destination.label}
         >
-          <destination.Icon size={16} />
+          <JourneyArt kind={destination.kind} />
         </span>
       </div>
     </section>
