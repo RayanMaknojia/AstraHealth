@@ -15,7 +15,7 @@ Phase 1 locked the shared schema and left placeholder services. Phase 2 replaces
 | Claude Code | `src/types`, `src/data`, `src/services` |
 | Codex | `src/components`, `src/App.tsx`, `src/index.css`, and `package.json` / `package-lock.json` (only Codex runs `npm install` / `npx shadcn`) |
 
-Phase 2 changed `src/services` and `src/data`, plus `PROJECT_PLAN.md` checkboxes and this file. It also made a few **additive** changes to `src/types/astronaut.ts`, with nothing renamed or removed:
+Phase 2 changed `src/services` and `src/data`, plus `docs/PROJECT_PLAN.md` checkboxes and this file. It also made a few **additive** changes to `src/types/astronaut.ts`, with nothing renamed or removed:
 - a new `SpaceAdjustments` type
 - an optional `environment` field on `IngestionInput`
 - optional `missionMinutesPerTick` and `startingMissionDoseMSv` on `EnvironmentFeedConfig`
@@ -82,7 +82,7 @@ Dependencies were installed in a throwaway copy outside the repo, so `package-lo
 - Deterministic code owns every status and alert. Gemini (if a key is set) only rewrites wording, and only when something meaningful changed, not on every 15-minute tick.
 
 ## Wiring for Codex
-Full cheat-sheet: **STEP 2** section of `PROJECT_PLAN.md`. Short version:
+Full cheat-sheet: **STEP 2** section of `docs/PROJECT_PLAN.md`. Short version:
 
 | UI piece | Call |
 |---|---|

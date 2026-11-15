@@ -31,14 +31,14 @@ Branch `planb` · run 2026-11-15 · Chrome (installed on this PC) via Playwright
 | F08 | More: every tab shows its panel; all reference links are valid https links |
 | F09 | Critical alert: shows "Do this now"; Notify crew keeps it open; Confirm returns to the dashboard |
 | F10 | Solar storm (ISS crew): Radiation Storm shelter alert appears and names the real NASA DONKI event |
-| F11 | SOS button: sends immediately and lists who receives it (by design, per health_rules.md) |
+| F11 | SOS button: sends immediately and lists who receives it (by design, per docs/health_rules.md) |
 | F11b | Automatic SOS: a 40.2 °C check-in opens the 30 s countdown; "I'm OK, cancel" closes it |
 | F12 | Ticking "Skin problem" → Add photo → choosing an image shows the preview |
 | F13 | Journal entry saves and appears in More → Past journal entries |
 | F14 | Admin creates an astronaut, then logs out |
 | F15 | Log out from the app returns to the login screen |
 | F16 | Keyboard: navigation button shows a focus ring and Enter opens the page |
-| F17 | Reduced motion: Body Map organs stop animating |
+| F17 | Reduced motion: Body Map 3D organs stop spinning (canvas frames compared) |
 
 ## Issues found (all fixed — see Fixes)
 

@@ -175,7 +175,7 @@ function extractVitals(text: string): VitalsInput {
   if ((r = m(/\b(?:temp|temperature)\b[^\d\n]{0,15}(\d{2}(?:[.,]\d)?)/i)) || (r = m(/\b(\d{2}[.,]\d)\s*°\s*c\b/i))) v.bodyTempC = num(r[1])
   if ((r = m(/\b(?:spo2|sp02|oxygen saturation|o2 sat)\b[^\d\n]{0,15}(\d{2,3})/i))) v.spo2Pct = num(r[1])
   if ((r = m(/\b(?:slept|sleep)\b[^\d\n]{0,25}(\d{1,2}(?:[.,]\d)?)\s*(?:h|hr|hrs|hours)\b/i))) v.sleepHours = num(r[1])
-  // Mood is 1-5 (health_rules.md); answers given out of 10 are converted.
+  // Mood is 1-5 (docs/health_rules.md); answers given out of 10 are converted.
   if ((r = m(/\b(?:mood|feeling)\b[^\d\n]{0,30}(\d{1,2})\s*(?:\/\s*|out of\s*)(5|10)\b/i)))
     v.mood = r[2] === '10' ? Math.max(1, Math.round(num(r[1]) / 2)) : num(r[1])
   if ((r = m(/\b(?:24\s*h|daily|today)\b[^\d\n]{0,15}(\d+(?:[.,]\d+)?)\s*msv/i))) v.radiationDailyMSv = num(r[1])

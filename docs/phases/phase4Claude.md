@@ -2,7 +2,7 @@
 
 **Owner:** Claude Code (backend, data and systems)
 **Branch:** `claude/clever-bardeen-mn9gw6`
-**Status:** Done. Every page in `astronaut_health_monitor_pages.md` now has working backend logic, including the ones the frontend showed as "Coming soon".
+**Status:** Done. Every page in `docs/astronaut_health_monitor_pages.md` now has working backend logic, including the ones the frontend showed as "Coming soon".
 
 This phase does **not** depend on any frontend. It only adds plain TypeScript in `src/types`, `src/data` and `src/services`; any UI can call it.
 
@@ -13,7 +13,7 @@ This phase does **not** depend on any frontend. It only adds plain TypeScript in
 | Claude Code | `src/types`, `src/data`, `src/services` |
 | Frontend (Codex or whoever builds the UI) | `src/components`, `src/App.tsx`, `src/index.css`, and `package.json` / `package-lock.json` |
 
-Changed: new services and `src/data/phase3Data.ts`; **additive** types in `src/types/astronaut.ts` (§7, nothing renamed or removed; `EnvironmentFeedController` gained `cabinHistory()`, `CabinReading` gained optional `noiseDb` / `lightPhase`); `health_rules.md`; `PROJECT_PLAN.md`; this file. No UI files or `package.json`.
+Changed: new services and `src/data/phase3Data.ts`; **additive** types in `src/types/astronaut.ts` (§7, nothing renamed or removed; `EnvironmentFeedController` gained `cabinHistory()`, `CabinReading` gained optional `noiseDb` / `lightPhase`); `docs/health_rules.md`; `docs/PROJECT_PLAN.md`; this file. No UI files or `package.json`.
 
 ## Suggested workflow for the frontend
 
@@ -34,13 +34,13 @@ Changed: new services and `src/data/phase3Data.ts`; **additive** types in `src/t
 | **12. Mission Control Sync** | `syncService.ts` | Outbox (high priority first), inbox, link status: always on near Earth, 2 h windows every 8 h on Mars legs, **blackout at solar conjunction**. `runSync` sends and generates ground replies (photo reviews, alert acknowledgements). |
 | **O1-O4 overrides + banner** | `alertService.ts` | Full-screen alerts that stay until **Confirm** (logged who/when), each queued as a high-priority outbox item. O1 any fresh Alert vital · O2 CO2 > 3 mmHg for ≥ 1 h, pressure out of limits, inspired O2 < 127 · O3 solar storm with shelter · O4 SOS button, or O1 unconfirmed for 10 min. Deduplicated, 60-min cool-down after confirm. Thin banner for comms blackout / waiting for link. |
 
-Rules for all of these are in `health_rules.md` ("Phase 3 rules" table).
+Rules for all of these are in `docs/health_rules.md` ("Phase 3 rules" table).
 
 ## Checks
 
 | Check | Result |
 |---|---|
-| 39 rule-by-rule tests (`health_rules.md`) | all pass |
+| 39 rule-by-rule tests (`docs/health_rules.md`) | all pass |
 | Phase 2 end-to-end (login → live ticks → fever → solar storm → uploads → briefing) | pass |
 | **Phase 3 end-to-end** (every service above, incl. dedupe, cool-down, SOS escalation, two-step Mars sync, reviews flowing back to photos, journal never in outbox) | pass |
 | `npx tsc --noEmit` | pass |
@@ -60,7 +60,7 @@ Dependencies were installed in a throwaway copy outside the repo; `package-lock.
 ## Prompt for the frontend (when you add these pages)
 
 ```text
-Pull the latest main (or `git merge main` into your frontend branch). Read PROJECT_PLAN.md (the "PHASE 3 - BACKEND FOR ALL REMAINING PAGES" list), phases/phase4Claude.md, astronaut_health_monitor_pages.md and health_rules.md. Only edit src/components/, src/App.tsx and src/index.css - never src/types/, src/data/ or src/services/. Colours only via displayStatus / STATUS_COLORS / STATUS_LABELS (grey for no_data).
+Pull the latest main (or `git merge main` into your frontend branch). Read docs/PROJECT_PLAN.md (the "PHASE 3 - BACKEND FOR ALL REMAINING PAGES" list), docs/phases/phase4Claude.md, docs/astronaut_health_monitor_pages.md and docs/health_rules.md. Only edit src/components/, src/App.tsx and src/index.css - never src/types/, src/data/ or src/services/. Colours only via displayStatus / STATUS_COLORS / STATUS_LABELS (grey for no_data).
 
 Replace every "Coming soon" card with the real page:
 1. Daily Check-in schedule: getDueCheckins(profile) for Today's tasks (Home) and the Check-in tabs (morning / evening / weekly / monthly / eye exam, fields from each task's `fields`). Submit with submitCheckin({ profile, slot, day, values, extras, symptoms }); apply result.ingestion?.updates with applyIndicatorUpdates, then updateBriefing; toast result.message. "Skin problem" symptom → button to Photo Check with the location prefilled.
@@ -74,5 +74,5 @@ Replace every "Coming soon" card with the real page:
 9. Overrides: after every evaluation / tick call syncOverrides({ profile, report, missionState, environmentTick, cabinHistory: feed.cabinHistory() }); render the first active override full-screen (OVERRIDE_TITLES, headline, details, steps) with Confirm → confirmOverride(id, name). SOS button → raiseSos({ astronautId, name, location, missionDay }). Thin top banner from getBanner(missionState, id).
 10. Admin: getCrewOverview(profiles) table, excuseCheckin form, getOverrideLog().
 
-FINISH: npx tsc -p tsconfig.app.json --noEmit and npm run build pass with zero console errors; mark UI tasks [x] in PROJECT_PLAN.md.
+FINISH: npx tsc -p tsconfig.app.json --noEmit and npm run build pass with zero console errors; mark UI tasks [x] in docs/PROJECT_PLAN.md.
 ```

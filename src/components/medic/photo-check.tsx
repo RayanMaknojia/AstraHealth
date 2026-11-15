@@ -206,7 +206,7 @@ export function PhotoCheck({
             <p>
               {result.engine === "offline_mock"
                 ? "Offline first look (AI unavailable): uses your notes, pixel colours, quality checks and your vitals, not image recognition."
-                : "AI first look, checked against your vitals and history."}
+                : "AI first look (SI-generated text), checked against your vitals and history."}
             </p>
             {result.aiSummary && <p>{result.aiSummary}</p>}
             {(result.findings ?? []).length > 0 && (

@@ -4,7 +4,7 @@
  * assessEmergency() runs after EVERY new input (body scan, wearable tick, check-in,
  * file / text upload, skin photo). It looks at the new data together with the
  * astronaut's current readings, then decides:
- *   - level: Normal / Watch / Alert (health_rules.md colours)
+ *   - level: Normal / Watch / Alert (docs/health_rules.md colours)
  *   - sos:   true only for possibly life-threatening situations (rules below)
  *   - interimSteps: what to do right now, before help arrives
  * A single ordinary Alert (e.g. 3 short nights) is NOT an SOS: the existing full-screen

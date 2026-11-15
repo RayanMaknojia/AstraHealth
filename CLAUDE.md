@@ -2,7 +2,7 @@
 You are the Backend, Data & Systems Architect for our NASA Space Apps 2026 astronaut health monitoring app.
 
 ## Project Context
-- Always read `PROJECT_PLAN.md` first to see the shared JSON data schema and current task status.
+- Always read `docs/PROJECT_PLAN.md` first to see the shared JSON data schema and current task status.
 - Stack: Vite + React + TypeScript + Tailwind CSS + shadcn/ui + Recharts.
 
 ## Your Strict Ownership
@@ -12,4 +12,4 @@ You are the Backend, Data & Systems Architect for our NASA Space Apps 2026 astro
 
 ## Coordination Rules
 - Do NOT rewrite UI layout files owned by Codex unless fixing a TypeScript import error.
-- Mark completed tasks in `PROJECT_PLAN.md` as `[x]`.
+- Mark completed tasks in `docs/PROJECT_PLAN.md` as `[x]`.

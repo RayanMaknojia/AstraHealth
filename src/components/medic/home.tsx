@@ -28,7 +28,7 @@ import {
   STATUS_COLORS,
 } from "@/services/healthEvaluator";
 import { Button } from "@/components/ui/button";
-import { Panel, Status, Meter } from "./primitives";
+import { Panel, Status, Meter, SiBadge } from "./primitives";
 import { statusOf, statusStyle } from "./status";
 import { getDueCheckins, listCheckins } from "@/services/checkinService";
 import { JourneyArt } from "./journey-art";
@@ -125,6 +125,7 @@ export function TripBar({ model }: { model: MissionModel }) {
           <JourneyArt kind={destination.kind} />
         </span>
       </div>
+      <SiBadge label="SI-generated art" />
     </section>
   );
 }
@@ -292,7 +293,7 @@ function BriefingText({
 function engineLabel(ai: AiBriefing) {
   const t = new Date(ai.createdAt).toISOString().slice(11, 16);
   return ai.engine === "gemini"
-    ? `AI briefing · ${t} UTC`
+    ? `AI briefing (SI-generated) · ${t} UTC`
     : `Offline rules · ${t} UTC${ai.fallbackReason ? ` (${crewReason(ai.fallbackReason)})` : ""}`;
 }
 function Lines({ lines }: { lines: BriefingLine[] }) {

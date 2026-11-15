@@ -277,6 +277,40 @@ test("F17 reduced motion: Body Map organs stop animating", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
   await login(page);
   await goTo(page, "Body Map");
-  const anim = await page.locator(".organ-float").first().evaluate((el) => getComputedStyle(el).animationName);
-  expect(anim).toBe("none");
+  // The organs are 3D canvases that spin; with reduced motion two frames 1.5 s apart must match.
+  const canvas = page.locator(".organ-card canvas").first();
+  await canvas.scrollIntoViewIfNeeded(); // off-screen canvases do not render
+  await expect(canvas).toBeVisible();
+  await page.waitForTimeout(4000); // let the 3D model load and frame itself
+  // Freeze CSS animations (card glow shows through the transparent canvas) so only the 3D spin counts.
+  const first = await canvas.screenshot({ animations: "disabled" });
+  await page.waitForTimeout(1500);
+  const second = await canvas.screenshot({ animations: "disabled" });
+  // Stars twinkle behind the transparent canvas, so allow a few changed pixels; a spinning organ changes thousands.
+  const changed = await page.evaluate(
+    async ([a, b]) => {
+      const load = (src: string) =>
+        new Promise<HTMLImageElement>((ok) => {
+          const img = new Image();
+          img.onload = () => ok(img);
+          img.src = `data:image/png;base64,${src}`;
+        });
+      const [ia, ib] = await Promise.all([load(a), load(b)]);
+      const px = (img: HTMLImageElement) => {
+        const c = document.createElement("canvas");
+        c.width = img.width;
+        c.height = img.height;
+        const g = c.getContext("2d")!;
+        g.drawImage(img, 0, 0);
+        return g.getImageData(0, 0, c.width, c.height).data;
+      };
+      const da = px(ia), db = px(ib);
+      let n = 0;
+      for (let i = 0; i < da.length; i += 4)
+        if (Math.abs(da[i] - db[i]) + Math.abs(da[i + 1] - db[i + 1]) + Math.abs(da[i + 2] - db[i + 2]) > 30) n++;
+      return n / (da.length / 4);
+    },
+    [first.toString("base64"), second.toString("base64")],
+  );
+  expect(changed).toBeLessThan(0.005);
 });
