@@ -6761,3 +6761,114 @@ body:has(.medic-app) {
     height: 420px;
   }
 }
+
+/* ── Phase 5 (Claude): AI briefing, body scan result, report a problem, SOS ── */
+.briefing-lines {
+  list-style: none;
+  margin: 6px 0 14px;
+  padding: 0;
+  display: grid;
+  gap: 6px;
+}
+.briefing-lines li {
+  display: grid;
+  grid-template-columns: 10px minmax(110px, 160px) 52px minmax(0, 1fr);
+  gap: 8px;
+  align-items: baseline;
+  font-size: 13px;
+  line-height: 1.45;
+  padding: 6px 0;
+  border-bottom: 1px solid var(--border);
+}
+.briefing-lines li::marker {
+  content: none;
+}
+.briefing-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  align-self: center;
+}
+.briefing-line-status {
+  font-size: 11px;
+  font-weight: 650;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.briefing-line-text {
+  color: var(--muted-foreground);
+}
+@media (max-width: 640px) {
+  .briefing-lines li {
+    grid-template-columns: 10px minmax(0, 1fr) auto;
+  }
+  .briefing-line-text {
+    grid-column: 2 / -1;
+  }
+}
+.briefing-compact .meta svg {
+  display: inline;
+  vertical-align: -2px;
+}
+.home-scan-result {
+  display: block;
+  font-size: 11.5px;
+  line-height: 1.4;
+  color: #cfe3ea;
+}
+.report-problem textarea {
+  width: 100%;
+  margin-top: 6px;
+}
+.report-problem-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+  margin-top: 10px;
+}
+.report-file {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 40px;
+  padding: 0 12px;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  font-size: 13px;
+  cursor: pointer;
+  max-width: 100%;
+}
+.report-file span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.report-file input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+}
+.report-file:focus-within {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.photo-check-dialog h4 {
+  font-size: 13px;
+  font-weight: 650;
+  margin: 10px 0 4px;
+}
+.photo-sos {
+  color: #fca5a5;
+  font-weight: 600;
+}
+.sos-countdown {
+  max-height: 90vh;
+  overflow-y: auto;
+}
+.sos-countdown ul,
+.sos-countdown ol {
+  padding-left: 20px;
+  margin: 4px 0 10px;
+}

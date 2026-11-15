@@ -1,63 +1,95 @@
 /**
- * Minimal Gemini Flash client shared by ingestionEngine and briefingEngine.
+ * Gemini client shared by every AI feature (briefing, image diagnosis, file extraction,
+ * emergency second opinion).
  *
- * - Runs only when an API key is available (AIConfig.apiKey or VITE_GEMINI_API_KEY)
- *   and forceOffline is not set. Every caller has a deterministic offline fallback,
- *   so the app keeps working with no Earth link.
- * - Never throws: resolves null on any error, timeout or malformed reply.
- *
- * Note: a key in a Vite env var ships to the browser. Fine for a hackathon demo;
- * use a server-side proxy for anything real.
+ * - The browser never holds the key: calls go to the local Python server
+ *   (server/app.py → POST /api/ai/json), which adds GEMINI_API_KEY and talks to Google.
+ * - Never throws: resolves null when offline, the server is not running, the key is
+ *   missing, Gemini is busy, or the reply is malformed. Every caller has a
+ *   deterministic offline fallback, so the app keeps working with no Earth link.
  */
 
 import type { AIConfig } from '@/types/astronaut'
 
 export const DEFAULT_GEMINI_MODEL = 'gemini-flash-latest'
-const ENDPOINT = 'https://generativelanguage.googleapis.com/v1beta/models'
 
-function envKey(): string | undefined {
+function env(name: string): string | undefined {
   try {
-    return (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.VITE_GEMINI_API_KEY
+    return (import.meta as unknown as { env?: Record<string, string | undefined> }).env?.[name]
   } catch {
     return undefined
   }
 }
 
+/** Base URL of the Python server ('' = same origin, proxied by Vite). */
+export function apiBase(): string {
+  return (env('VITE_API_BASE') ?? '').replace(/\/$/, '')
+}
+
+/** AI is attempted unless forceOffline is set. (Kept under its old name for callers.) */
 export function resolveApiKey(ai?: AIConfig): string | undefined {
-  if (ai?.forceOffline) return undefined
-  const key = ai?.apiKey ?? envKey()
-  return key && key.trim() ? key.trim() : undefined
+  return ai?.forceOffline ? undefined : 'server'
 }
 
 export type GeminiPart = { text: string } | { inline_data: { mime_type: string; data: string } }
 
-/** Call Gemini and parse a JSON reply. Returns null when offline / on any failure. */
-export async function callGeminiJson<T = unknown>(parts: GeminiPart[], ai?: AIConfig): Promise<T | null> {
-  const key = resolveApiKey(ai)
-  if (!key || typeof fetch === 'undefined') return null
+export interface AiCallInfo {
+  ok: boolean
+  model?: string
+  error?: string
+}
+
+let lastCall: AiCallInfo = { ok: false, error: 'not_called' }
+/** Result of the most recent AI call (for "Written by Gemini / offline rules" labels). */
+export function lastAiCall(): AiCallInfo {
+  return lastCall
+}
+
+/** POST JSON to the Python server. Resolves null on any failure. */
+export async function postServer<T>(path: string, body: unknown, timeoutMs = 30_000): Promise<T | null> {
+  if (typeof fetch === 'undefined') return null
   const ctrl = new AbortController()
-  const timer = setTimeout(() => ctrl.abort(), ai?.timeoutMs ?? 12_000)
+  const timer = setTimeout(() => ctrl.abort(), timeoutMs)
   try {
-    const res = await fetch(`${ENDPOINT}/${ai?.model ?? DEFAULT_GEMINI_MODEL}:generateContent`, {
+    const res = await fetch(`${apiBase()}${path}`, {
       method: 'POST',
-      headers: { 'content-type': 'application/json', 'x-goog-api-key': key },
-      body: JSON.stringify({
-        contents: [{ role: 'user', parts }],
-        generationConfig: { responseMimeType: 'application/json', temperature: 0.2 },
-      }),
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify(body),
       signal: ctrl.signal,
     })
     if (!res.ok) return null
-    const data = (await res.json()) as { candidates?: { content?: { parts?: { text?: string }[] } }[] }
-    const text = data.candidates?.[0]?.content?.parts?.map((p) => p.text ?? '').join('') ?? ''
-    if (!text) return null
-    const cleaned = text.replace(/^```(?:json)?\s*/i, '').replace(/```\s*$/, '')
-    return JSON.parse(cleaned) as T
+    return (await res.json()) as T
   } catch {
     return null
   } finally {
     clearTimeout(timer)
   }
+}
+
+/** Like callGeminiJson, but also says which model answered or why it failed (safe with parallel calls). */
+export async function callGeminiJsonInfo<T = unknown>(parts: GeminiPart[], ai?: AIConfig, system?: string): Promise<{ json: T | null; info: AiCallInfo }> {
+  let info: AiCallInfo
+  let json: T | null = null
+  if (!resolveApiKey(ai)) info = { ok: false, error: 'offline_mode' }
+  else {
+    const reply = await postServer<{ ok: boolean; model?: string; json?: T; error?: string }>(
+      '/api/ai/json',
+      { parts, system, temperature: 0.2 },
+      ai?.timeoutMs ?? 45_000,
+    )
+    if (!reply) info = { ok: false, error: 'server_unreachable' }
+    else {
+      info = { ok: reply.ok, model: reply.model, error: reply.error }
+      json = reply.ok && reply.json !== undefined && reply.json !== null ? reply.json : null
+    }
+  }
+  lastCall = info
+  return { json, info }
+}
+
+/** Call Gemini (via the server) and get parsed JSON back. Null when offline / on any failure. */
+export async function callGeminiJson<T = unknown>(parts: GeminiPart[], ai?: AIConfig, system?: string): Promise<T | null> {
+  return (await callGeminiJsonInfo<T>(parts, ai, system)).json
 }
 
 /** Base64-encode a Blob for inline_data (≤ maxBytes; larger files are not sent). */

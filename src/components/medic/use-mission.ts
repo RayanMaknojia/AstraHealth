@@ -11,8 +11,12 @@ import type {
   CheckinSlot,
   CheckinExtras,
   VitalsInput,
-  IndicatorId,
   CabinReading,
+  AiBriefing,
+  EmergencyAssessment,
+  PhotoRecord,
+  ScanResult,
+  SosEvent,
 } from "@/types/astronaut";
 import {
   applyIndicatorUpdates,
@@ -22,7 +26,6 @@ import {
   createInitialBriefing,
   updateBriefing,
 } from "@/services/briefingEngine";
-import { CHECKIN_INPUTS } from "@/data/nasaSpaceflightData";
 import {
   listCheckins,
   submitCheckin as saveScheduledCheckin,
@@ -38,63 +41,38 @@ import { createEnvironmentFeed } from "@/services/environmentFeed";
 import { getMissionState } from "@/services/missionTimeline";
 import { ingest } from "@/services/ingestionEngine";
 import { toast } from "@/components/ui/toast";
+import {
+  latestBriefing,
+  recordUpdates,
+  saveScan,
+  savePhoto,
+  saveUpload,
+} from "@/services/healthDb";
+import { runScan } from "@/services/scanService";
+import { generateBriefing } from "@/services/aiBriefing";
+import {
+  assessEmergency,
+  sendSos,
+  SOS_COUNTDOWN_SECONDS,
+  SOS_SNOOZE_MINUTES,
+} from "@/services/emergencyService";
+import { getActiveOverrides } from "@/services/alertService";
+
+/** The rules-based briefing engine stays offline; Gemini writes the full briefing (aiBriefing.ts). */
+const RULES_ONLY = { forceOffline: true } as const;
+/** Pending automatic SOS (countdown dialog). */
+export interface PendingSos {
+  assessment: EmergencyAssessment;
+  endsAt: number;
+  trigger: string;
+}
 
 export function notify(title: string, description?: string) {
   toast.add({ title, description, timeout: 4500 });
 }
-function restoredProfile(profile: AstronautProfile) {
-  const updates: IndicatorUpdate[] = [];
-  for (const record of listCheckins(
-    profile.id,
-    profile.missionDay,
-    Math.max(30, profile.missionDay + 1),
-  )
-    .filter((r) => r.missionDay <= profile.missionDay && !r.excused)
-    .reverse()) {
-    if (!record.values) continue;
-    let minute = 0;
-    try {
-      minute = JSON.parse(record.extras?.notes ?? "{}").onboardMinute ?? 0;
-    } catch {
-      /* Legacy plain-text notes have no onboard timestamp. */
-    }
-    const day = record.missionDay + minute / 1440;
-    const add = (id: IndicatorId, value: number | string, unit: string) =>
-      updates.push({
-        id,
-        value,
-        unit,
-        source: "manual_slider",
-        timestamp: `Day ${record.missionDay} ${formatOnboardTime(minute)}`,
-        day,
-      });
-    for (const spec of CHECKIN_INPUTS) {
-      const v = record.values[spec.key];
-      if (
-        typeof v === "number" &&
-        spec.indicator !== "blood_pressure" &&
-        spec.key !== "radiationDailyMSv"
-      )
-        add(spec.indicator, v, spec.unit);
-    }
-    if (
-      record.values.systolicMmHg !== undefined &&
-      record.values.diastolicMmHg !== undefined
-    )
-      add(
-        "blood_pressure",
-        `${record.values.systolicMmHg}/${record.values.diastolicMmHg}`,
-        "mmHg",
-      );
-  }
-  return updates.length
-    ? applyIndicatorUpdates(profile, updates, {
-        missionState: getMissionState(profile.mission, profile.missionDay),
-      }).profile
-    : profile;
-}
-function hydrate(inputProfile: AstronautProfile) {
-  const profile = restoredProfile(inputProfile);
+function hydrate(profile: AstronautProfile) {
+  // The profile was loaded from the health database (App.tsx), so stored wearable,
+  // scan and check-in readings are already in its history.
   const evaluated = evaluateProfile(profile);
   const next = { ...profile, indicators: evaluated.indicators };
   return {
@@ -115,6 +93,12 @@ function hydrate(inputProfile: AstronautProfile) {
       report: evaluated.report,
       missionState: evaluated.missionState,
     }),
+    /** Full briefing written by Gemini (or offline rules), newest. */
+    aiBriefing: null as AiBriefing | null,
+    briefingWorking: false,
+    lastScan: null as ScanResult | null,
+    pendingSos: null as PendingSos | null,
+    lastSos: null as SosEvent | null,
   };
 }
 export type MissionModel = ReturnType<typeof hydrate>;
@@ -143,6 +127,83 @@ export function useMission(initialProfile: AstronautProfile) {
     current.current = evaluated;
     setModel(evaluated);
   }, []);
+  const snoozed = useRef(new Map<string, number>());
+  /** After any new input: is this too severe for onboard care? Opens the SOS countdown if so. */
+  const checkEmergency = useCallback(
+    (
+      trigger: string,
+      extra: Pick<
+        Parameters<typeof assessEmergency>[0],
+        "text" | "symptoms" | "photo" | "aiSos"
+      > = {},
+    ) => {
+      const m = current.current;
+      const a = assessEmergency({
+        profile: m.profile,
+        report: m.report,
+        ...extra,
+      });
+      if (!a.sos || m.pendingSos) return a;
+      // Only a reason that was not cancelled in the last hour opens a new countdown.
+      const now = Date.now();
+      if (a.key.split("|").every((k) => now < (snoozed.current.get(k) ?? 0)))
+        return a;
+      if (getActiveOverrides(m.profile.id).some((o) => o.kind === "sos"))
+        return a;
+      commit({
+        ...current.current,
+        pendingSos: {
+          assessment: a,
+          endsAt: Date.now() + SOS_COUNTDOWN_SECONDS * 1000,
+          trigger,
+        },
+      });
+      return a;
+    },
+    [commit],
+  );
+  const briefingSeq = useRef(0);
+  const lastBriefingAt = useRef(0);
+  /** Write a new full briefing (Gemini via the Python server, or offline rules). */
+  const refreshBriefing = useCallback(
+    async (trigger: string) => {
+      const seq = ++briefingSeq.current;
+      lastBriefingAt.current = Date.now();
+      commit({ ...current.current, briefingWorking: true });
+      const m = current.current;
+      const lastCheckin =
+        listCheckins(m.profile.id, m.profile.missionDay, 30).find(
+          (r) => !r.excused && r.missionDay <= m.profile.missionDay,
+        ) ?? null;
+      const emergency =
+        m.pendingSos?.assessment ??
+        assessEmergency({ profile: m.profile, report: m.report });
+      try {
+        const b = await generateBriefing({
+          profile: m.profile,
+          missionState: m.missionState,
+          report: m.report,
+          rulesBriefing: m.briefing,
+          lastCheckin,
+          emergency,
+          trigger,
+          onboardMinute: m.onboardMinute,
+        });
+        if (seq !== briefingSeq.current) return b;
+        commit({ ...current.current, aiBriefing: b, briefingWorking: false });
+        if (b.sosRecommended && !emergency.sos)
+          checkEmergency(trigger, {
+            aiSos: { recommended: true, reason: b.sosReason },
+          });
+        return b;
+      } catch {
+        if (seq === briefingSeq.current)
+          commit({ ...current.current, briefingWorking: false });
+        return null;
+      }
+    },
+    [commit, checkEmergency],
+  );
   const event = useCallback(
     (
       updates: IndicatorUpdate[],
@@ -157,14 +218,21 @@ export function useMission(initialProfile: AstronautProfile) {
           const next = applyIndicatorUpdates(old.profile, updates, {
             ignoreStaleness: demo,
           });
-          const revised = await updateBriefing(old.briefing, change, {
-            profile: next.profile,
-            missionState: next.missionState,
-            indicators: next.profile.indicators,
-          });
+          // Every new reading is appended to the health database.
+          void recordUpdates(next.profile, updates).catch(() => undefined);
+          const revised = await updateBriefing(
+            old.briefing,
+            change,
+            {
+              profile: next.profile,
+              missionState: next.missionState,
+              indicators: next.profile.indicators,
+            },
+            RULES_ONLY,
+          );
           if (ticket !== generation.current) return;
           commit({
-            ...old,
+            ...current.current,
             ...next,
             profile: {
               ...next.profile,
@@ -192,6 +260,8 @@ export function useMission(initialProfile: AstronautProfile) {
                 : revised.briefing.lastUpdated,
           });
           revised.changes.forEach((message) => notify(message));
+          if (change.kind === "wearable_tick")
+            checkEmergency("Wearable reading");
           return true;
         })
         .catch((error: unknown) => {
@@ -207,7 +277,7 @@ export function useMission(initialProfile: AstronautProfile) {
       queue.current = work;
       return work;
     },
-    [commit, demo],
+    [commit, demo, checkEmergency],
   );
   const phaseOrder = model.missionState.phase.order;
   useEffect(() => {
@@ -268,10 +338,11 @@ export function useMission(initialProfile: AstronautProfile) {
         briefing,
         { kind: "mission_day_change", missionDay: day },
         { profile, missionState: state, indicators: profile.indicators },
+        RULES_ONLY,
       );
       if (ticket !== generation.current) return;
       commit({
-        ...old,
+        ...current.current,
         ...evaluated,
         profile: { ...profile, routine: current.current.profile.routine },
         briefing: revised.briefing,
@@ -302,6 +373,12 @@ export function useMission(initialProfile: AstronautProfile) {
       });
       if (ticket !== generation.current) return;
       setResult(response);
+      void saveUpload(
+        snapshot.profile.id,
+        snapshot.profile.missionDay,
+        response.artifact,
+        input.text,
+      ).catch(() => undefined);
       if (response.verdict.accepted) {
         const applied = await event(response.updates, {
           kind: "artifact",
@@ -309,6 +386,10 @@ export function useMission(initialProfile: AstronautProfile) {
         });
         if (applied !== true || ticket !== generation.current) return;
         notify("Accepted & Normalized", response.artifact.extractedSummary);
+        checkEmergency("File / text upload", {
+          text: `${input.text ?? ""} ${response.artifact.extractedSummary}`,
+        });
+        void refreshBriefing("File / text upload");
       } else
         notify(
           "Rejected: Non-Biomedical Data",
@@ -324,6 +405,111 @@ export function useMission(initialProfile: AstronautProfile) {
     }
   };
   const refresh = useCallback(() => commit({ ...current.current }), [commit]);
+  // Load the newest stored briefing; write a fresh one when there is none for today.
+  useEffect(() => {
+    let live = true;
+    const id = current.current.profile.id;
+    void latestBriefing(id).then((b) => {
+      if (!live || current.current.profile.id !== id) return;
+      if (b && b.missionDay === Math.floor(current.current.profile.missionDay))
+        commit({ ...current.current, aiBriefing: b });
+      else void refreshBriefing("Start of shift");
+    });
+    return () => {
+      live = false;
+    };
+  }, [commit, refreshBriefing]);
+  // Re-write the briefing when the rules-based status changes (at most once a minute).
+  const overall = model.report.overallStatus;
+  const aiStatus = model.aiBriefing?.rulesStatusAtCreation;
+  useEffect(() => {
+    if (!aiStatus || aiStatus === overall) return;
+    if (Date.now() - lastBriefingAt.current < 60_000) return;
+    void refreshBriefing("Status changed");
+  }, [overall, aiStatus, refreshBriefing]);
+  /** Home "Start scan": new readings → database → emergency check → new briefing. */
+  const scan = async (): Promise<ScanResult | null> => {
+    const m = current.current;
+    const s = await runScan(m.profile, m.onboardMinute);
+    void saveScan(s).catch(() => undefined);
+    const applied = await event(s.updates, {
+      kind: "manual_vitals",
+      updates: s.updates,
+    });
+    if (applied !== true) return null;
+    commit({ ...current.current, lastScan: s });
+    checkEmergency("Body scan");
+    void refreshBriefing("Body scan");
+    return s;
+  };
+  /** A skin photo was assessed (Photo Check). */
+  const photoAssessed = (record: PhotoRecord) => {
+    void savePhoto(record).catch(() => undefined);
+    checkEmergency("Photo check", {
+      photo: record,
+      text: record.notes,
+    });
+    void refreshBriefing("Photo check");
+  };
+  /** "Report a problem": free text and/or a file (lab report, CSV, image...). */
+  const report = async (text: string, file?: File | null) => {
+    checkEmergency("Reported problem", { text });
+    await submit({
+      text: text || undefined,
+      ...(file
+        ? { file, fileName: file.name, mimeType: file.type || undefined }
+        : {}),
+    });
+  };
+  const sosSending = useRef(false);
+  /** Send the SOS now (manual button, "Send now", or the countdown ran out). */
+  const sendSosNow = useCallback(
+    async (trigger: "manual" | "auto") => {
+      if (sosSending.current) return;
+      sosSending.current = true;
+      try {
+        const m = current.current;
+        const a = m.pendingSos?.assessment;
+        const ev = await sendSos({
+          profile: m.profile,
+          missionState: m.missionState,
+          trigger,
+          reasons: a?.reasons ?? [],
+          interimSteps: a?.interimSteps ?? [],
+        });
+        commit({ ...current.current, pendingSos: null, lastSos: ev });
+        notify(
+          "SOS sent",
+          ev.recipients.map((r) => r.name.replace(/ \(.*\)/, "")).join(" · "),
+        );
+      } finally {
+        sosSending.current = false;
+      }
+    },
+    [commit],
+  );
+  /** "I'm OK": cancel the automatic SOS (not raised again for the same reasons for an hour). */
+  const cancelSos = () => {
+    const p = current.current.pendingSos;
+    if (!p) return;
+    for (const k of p.assessment.key.split("|"))
+      snoozed.current.set(k, Date.now() + SOS_SNOOZE_MINUTES * 60_000);
+    commit({ ...current.current, pendingSos: null });
+    notify(
+      "Automatic SOS cancelled",
+      "Keep following the interim steps. Press SOS any time if it gets worse.",
+    );
+  };
+  // The countdown keeps running even if the dialog is hidden; when it ends, the SOS is sent.
+  const sosDeadline = model.pendingSos?.endsAt;
+  useEffect(() => {
+    if (!sosDeadline) return;
+    const t = window.setTimeout(
+      () => void sendSosNow("auto"),
+      Math.max(0, sosDeadline - Date.now()),
+    );
+    return () => window.clearTimeout(t);
+  }, [sosDeadline, sendSosNow]);
   const saveCheckin = async (input: {
     slot: CheckinSlot;
     values?: VitalsInput;
@@ -402,6 +588,11 @@ export function useMission(initialProfile: AstronautProfile) {
       }
       refresh();
       notify(response.message);
+      checkEmergency("Check-in saved", {
+        symptoms: input.symptoms,
+        text: typeof input.extras?.notes === "string" ? input.extras.notes : "",
+      });
+      void refreshBriefing("Check-in saved");
       return true;
     } catch (error) {
       notify(
@@ -438,5 +629,11 @@ export function useMission(initialProfile: AstronautProfile) {
     toggleTask,
     saveCheckin,
     refresh,
+    scan,
+    refreshBriefing,
+    photoAssessed,
+    report,
+    sendSosNow,
+    cancelSos,
   };
 }

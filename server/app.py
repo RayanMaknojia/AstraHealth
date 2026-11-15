@@ -1,0 +1,207 @@
+"""
+Space Medic local server (Python standard library only, no pip installs).
+
+    python server/app.py            # listens on http://127.0.0.1:8787
+
+Endpoints (all JSON):
+    GET  /api/health    -> {"ok": true, "ai": bool, "models": [...]}
+    POST /api/scan      -> new simulated KPI readings for the Home "Start scan" button
+    POST /api/ai/json   -> forwards a prompt (+ optional images) to Gemini and returns parsed JSON
+
+The Gemini key is read from GEMINI_API_KEY (environment or server/.env) and never
+leaves this process. If the key is missing or Gemini fails, /api/ai/json answers
+{"ok": false} and the app uses its offline rules instead.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from scan import generate_scan  # noqa: E402
+
+HERE = Path(__file__).resolve().parent
+GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
+MAX_BODY = 12 * 1024 * 1024  # images are base64 inside the JSON body
+
+
+def load_env_file(path: Path) -> None:
+    """Minimal .env reader: KEY=value lines, # comments. Real env vars win."""
+    if not path.exists():
+        return
+    for line in path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        os.environ.setdefault(key.strip(), value.strip().strip('"').strip("'"))
+
+
+load_env_file(HERE / ".env")
+PORT = int(os.environ.get("PORT", "8787"))
+MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", "gemini-flash-latest,gemini-flash-lite-latest").split(",") if m.strip()]
+TIMEOUT = float(os.environ.get("GEMINI_TIMEOUT_SECONDS", "15"))  # per attempt
+DEADLINE = float(os.environ.get("GEMINI_DEADLINE_SECONDS", "35"))  # whole request (browser waits 45 s)
+SKIP_FAILED_SECONDS = 300  # a model that timed out / errored is skipped for 5 minutes
+_bad_until: dict[str, float] = {}
+
+
+def api_key() -> str | None:
+    key = os.environ.get("GEMINI_API_KEY", "").strip()
+    return key or None
+
+
+def to_openai_content(parts: list[dict]) -> list[dict]:
+    """Gemini-style parts ({text} / {inline_data}) -> OpenAI-style content blocks."""
+    content: list[dict] = []
+    for p in parts:
+        if isinstance(p.get("text"), str):
+            content.append({"type": "text", "text": p["text"]})
+        elif isinstance(p.get("inline_data"), dict):
+            d = p["inline_data"]
+            mime, data = d.get("mime_type", "image/jpeg"), d.get("data", "")
+            if mime.startswith("image/") and data:
+                content.append({"type": "image_url", "image_url": {"url": f"data:{mime};base64,{data}"}})
+            elif data:
+                content.append({"type": "text", "text": f"[Attached {mime} file omitted: only images are sent to the model]"})
+    return content
+
+
+def parse_json_text(text: str):
+    text = text.strip()
+    if text.startswith("```"):
+        text = text.split("\n", 1)[1] if "\n" in text else text[3:]
+        if text.rstrip().endswith("```"):
+            text = text.rstrip()[:-3]
+    return json.loads(text)
+
+
+def call_gemini(parts: list[dict], system: str | None, temperature: float) -> dict:
+    key = api_key()
+    if not key:
+        return {"ok": False, "error": "no_api_key"}
+    messages = []
+    if system:
+        messages.append({"role": "system", "content": system})
+    messages.append({"role": "user", "content": to_openai_content(parts)})
+    last_error = "unknown"
+    start = time.monotonic()
+    now = time.time()
+    healthy = [m for m in MODELS if _bad_until.get(m, 0) <= now]
+    order = healthy + [m for m in MODELS if m not in healthy]  # busy models last, not never
+    for model in order:
+        for attempt in range(2):
+            remaining = DEADLINE - (time.monotonic() - start)
+            if remaining < 3:
+                return {"ok": False, "error": f"deadline ({last_error})"}
+            body = json.dumps({
+                "model": model,
+                "messages": messages,
+                "temperature": temperature,
+                "response_format": {"type": "json_object"},
+            }).encode()
+            req = urllib.request.Request(GEMINI_URL, data=body, method="POST", headers={
+                "content-type": "application/json",
+                "authorization": f"Bearer {key}",
+            })
+            try:
+                with urllib.request.urlopen(req, timeout=min(TIMEOUT, remaining)) as res:
+                    data = json.loads(res.read().decode())
+                text = data["choices"][0]["message"]["content"] or ""
+                _bad_until.pop(model, None)
+                return {"ok": True, "model": model, "json": parse_json_text(text)}
+            except urllib.error.HTTPError as e:
+                last_error = f"{model}: HTTP {e.code}"
+                if e.code in (429, 503) and attempt == 0 and time.monotonic() - start < 5:
+                    time.sleep(1.2)  # quick "busy" answer: one short retry
+                    continue
+                if e.code >= 500 or e.code == 429:
+                    _bad_until[model] = time.time() + SKIP_FAILED_SECONDS
+                break  # 4xx (bad model / key) or still busy: try the next model
+            except (urllib.error.URLError, TimeoutError, OSError) as e:
+                last_error = f"{model}: {e.__class__.__name__}"
+                _bad_until[model] = time.time() + SKIP_FAILED_SECONDS
+                break
+            except (KeyError, IndexError, ValueError) as e:
+                last_error = f"{model}: unreadable reply ({e.__class__.__name__})"
+                break
+    return {"ok": False, "error": last_error}
+
+
+class Handler(BaseHTTPRequestHandler):
+    server_version = "SpaceMedic/1.0"
+
+    def log_message(self, fmt, *args):  # quieter console: one line per request
+        sys.stderr.write("[server] " + (fmt % args) + "\n")
+
+    def _send(self, status: int, payload: dict) -> None:
+        body = json.dumps(payload).encode()
+        self.send_response(status)
+        self.send_header("content-type", "application/json")
+        self.send_header("content-length", str(len(body)))
+        self.send_header("access-control-allow-origin", "*")
+        self.send_header("access-control-allow-headers", "content-type")
+        self.send_header("access-control-allow-methods", "GET, POST, OPTIONS")
+        self.end_headers()
+        self.wfile.write(body)
+
+    def _body(self) -> dict | None:
+        length = int(self.headers.get("content-length") or 0)
+        if length <= 0 or length > MAX_BODY:
+            return None
+        try:
+            data = json.loads(self.rfile.read(length).decode())
+            return data if isinstance(data, dict) else None
+        except (ValueError, UnicodeDecodeError):
+            return None
+
+    def do_OPTIONS(self):  # CORS preflight
+        self._send(204, {})
+
+    def do_GET(self):
+        if self.path.rstrip("/") == "/api/health":
+            self._send(200, {"ok": True, "ai": api_key() is not None, "models": MODELS})
+        else:
+            self._send(404, {"ok": False, "error": "not_found"})
+
+    def do_POST(self):
+        path = self.path.rstrip("/")
+        body = self._body()
+        if body is None:
+            self._send(400, {"ok": False, "error": "invalid_json_or_too_large"})
+            return
+        if path == "/api/scan":
+            try:
+                self._send(200, {"ok": True, **generate_scan(body)})
+            except (TypeError, ValueError, KeyError) as e:
+                self._send(400, {"ok": False, "error": f"bad_scan_input: {e}"})
+        elif path == "/api/ai/json":
+            parts = body.get("parts")
+            if not isinstance(parts, list) or not parts:
+                self._send(400, {"ok": False, "error": "parts_required"})
+                return
+            temperature = body.get("temperature", 0.2)
+            result = call_gemini(parts, body.get("system"), float(temperature) if isinstance(temperature, (int, float)) else 0.2)
+            self._send(200, result)
+        else:
+            self._send(404, {"ok": False, "error": "not_found"})
+
+
+def main() -> None:
+    httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
+    print(f"Space Medic server on http://127.0.0.1:{PORT}  (Gemini: {'on' if api_key() else 'off - offline rules only'})", flush=True)
+    try:
+        httpd.serve_forever()
+    except KeyboardInterrupt:
+        pass
+
+
+if __name__ == "__main__":
+    main()
