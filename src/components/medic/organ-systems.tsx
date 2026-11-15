@@ -3,6 +3,7 @@ import { Pause, Play } from "lucide-react";
 import type { BodySystem } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
 import { OrganModel } from "./organ-model";
+import { SiBadge } from "./primitives";
 // 3D models built from the five reference images (assets/organs/image-to-3d.py).
 import brain from "./assets/organs/image-brain.glb?url";
 import heart from "./assets/organs/image-heart.glb?url";
@@ -54,6 +55,7 @@ export function OrganSystems({
               paused={paused}
             />
             <span className="organ-card-name">{system.label}</span>
+            <SiBadge label="SI-generated 3D" />
           </button>
         ))}
       </div>

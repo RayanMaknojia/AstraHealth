@@ -7,7 +7,7 @@
 
 1. **Gemini image diagnosis.** The astronaut uploads a photo of a scab, bite, scar, infection or injury. It is turned into processed data, the injury type is identified and a solution is given. If it is too severe (for any input, not only images), interim steps are shown and the SOS is pressed, alerting the AstraHealth station on Earth and the nearest ISS. The decision uses the astronaut's past data and the new data (check-in, file/text, wearable).
 2. **Gemini medical briefing.** Pressing **Start scan** on Home runs a Python script that generates new KPI readings. Gemini assesses them together with relevant past data. **Full briefing** shows everything: the last check-in, the last 24 hours and the past 7 days. Every AI feature needs a fallback.
-3. **A proper database** instead of hard-coded values. Wearable, scan and manual inputs append to it. Each user starts with 21 days of fake data, coloured red/yellow/green by `health_rules.md`.
+3. **A proper database** instead of hard-coded values. Wearable, scan and manual inputs append to it. Each user starts with 21 days of fake data, coloured red/yellow/green by `docs/health_rules.md`.
 
 ## Decisions (asked and answered before building)
 
@@ -61,7 +61,7 @@ Browser (React)                                   Python server (server/app.py, 
 | `report-problem.tsx`, `checkin.tsx` | New "Something wrong? Tell Space Medic" panel: text, photo or file. |
 | `photo-check.tsx` | Sends the astronaut's context; shows findings, why-this-colour, do-this-now and get-help-if. |
 | `workspace.tsx` | SOS button sends immediately; 30 s auto-SOS countdown dialog; SOS alert lists recipients and arrival times. |
-| `health_rules.md` | New section: when it is an SOS, skin-photo severity table, briefing colour rule. |
+| `docs/health_rules.md` | New section: when it is an SOS, skin-photo severity table, briefing colour rule. |
 
 ## Severity and SOS (short version)
 

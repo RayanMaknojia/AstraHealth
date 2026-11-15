@@ -21,7 +21,7 @@ KPIS = {
 }
 # Blood sugar is NOT scanned: it comes from the weekly fasting check-in (and lab reports).
 
-# Watch / Alert ranges an anomaly may land in (health_rules.md); none are life-threatening.
+# Watch / Alert ranges an anomaly may land in (docs/health_rules.md); none are life-threatening.
 ANOMALIES = {
     "heart_rate": {"caution": (104, 116), "critical": (122, 130), "note": "Resting heart rate is high for this scan."},
     "body_temp": {"caution": (38.0, 38.3), "critical": (38.6, 38.9), "note": "Body temperature is raised (possible fever)."},

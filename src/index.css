@@ -226,7 +226,7 @@ html {
   }
 }
 
-/* Space Medic - shared visual system. */
+/* AstraHealth - shared visual system. */
 :root:has(.medic-app),
 .medic-app.dark {
   color-scheme: dark;
@@ -7004,4 +7004,37 @@ body:has(.medic-app) {
     width: 56px;
     height: 56px;
   }
+}
+
+/* SI (AI) disclosure watermark on generated imagery (NASA Space Apps SI rules). */
+.si-badge {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  z-index: 2;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgb(5 12 18 / 0.72);
+  border: 1px solid rgb(255 255 255 / 0.18);
+  color: rgb(226 236 242 / 0.88);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  line-height: 1.3;
+  pointer-events: none;
+  white-space: nowrap;
+}
+.organ-card,
+.home-scan-stage,
+.trip-bar {
+  position: relative;
+}
+.trip-bar .si-badge {
+  bottom: 2px;
+  right: 4px;
+  font-size: 9px;
+}
+.organ-card .si-badge {
+  top: 8px;
+  bottom: auto;
 }

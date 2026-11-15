@@ -2,7 +2,7 @@
  * Full medical briefing (Home → "Full briefing").
  *
  * Built after a body scan, a check-in, a photo or file upload, or "Refresh":
- *   - Last check-in: what was entered, each value coloured by health_rules.md
+ *   - Last check-in: what was entered, each value coloured by docs/health_rules.md
  *   - Last 24 hours: every KPI's latest reading, worst colour, sources
  *   - Past 7 days: average, range, number of Watch / Alert days, trend
  *   - Concerns, recommendations, interim steps, SOS recommendation
