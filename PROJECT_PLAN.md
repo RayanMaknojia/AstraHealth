@@ -276,3 +276,11 @@ Phase 9 ChatGPT journey artwork and rotating anatomy (see phases/phase9.chatgpt.
 
 Phase 6 Claude: Body Map organs from the reference images (see phases/phase6Claude.md):
 [x] Build five rotating 3D models (brain, heart, liver, DNA, leg) from the supplied images with `image-to-3d.py` (cut-out, Poisson inflation, relief, textured closed mesh) and replace the Body Map models; side-projection shader so every angle looks solid; 360° turntable at 30°/s.
+
+
+Phase 7 Claude (see phases/phase7Claude.md):
+[x] Rounder 3D organs (deeper inflation) and a true 3D DNA double helix.
+[x] Rename to AstraHealth (UI, titles, meta, package name, README); storage keys unchanged.
+[x] Login page first (session per browser tab).
+[x] `npm run dev` starts the Python server and Vite; quiet fallback when the server is down; AI model order Lite → Flash with failure reasons logged.
+[x] SI disclosure: visible watermarks, labelled AI text, file metadata, SI_DISCLOSURE.md, si-metadata.json; SUBMISSION.md for the Space Apps form.

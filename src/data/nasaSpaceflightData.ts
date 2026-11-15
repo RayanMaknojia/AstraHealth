@@ -1,5 +1,5 @@
 /**
- * NASA HRP + Canadian Space Agency reference data for the Space Medic HUD.
+ * NASA HRP + Canadian Space Agency reference data for the AstraHealth HUD.
  *
  * Sources fetched 2026-11-14 (see CHALLENGE_BRIEF.md):
  *  - NASA 5 Hazards of Human Spaceflight      https://www.nasa.gov/hrp/hazards/

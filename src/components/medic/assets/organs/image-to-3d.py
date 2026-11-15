@@ -13,6 +13,8 @@ For each image in ./source:
     vessels), so the surface catches the moving light as it turns.
  4. Front and back surfaces + a stitched rim make a closed mesh. The original image
     is the texture (front; mirrored on the back) with a smooth alpha edge.
+The DNA is the exception: a helix seen side-on is not its outline, so it is built as
+a true 3D double helix with the picture's proportions and colours (build_dna).
 The front view matches the image exactly; sides and back are a rounded estimate
 from a single picture, not a scan. Output: ./image-<name>.glb
 """
@@ -34,13 +36,16 @@ HERE = Path(__file__).resolve().parent
 SRC = HERE / "source"
 
 # name: (file, depth factor, relief strength, keep holes larger than (fraction of area), threshold)
+# Depth 1.0 = a circular cross-section scaled by 1/sqrt(2); ~1.4 makes a wide part as
+# deep as it is wide (a sphere stays a sphere), so the side view is not squashed.
 ORGANS = {
-    "brain": ("brain.jpg", 0.95, 0.9, 0.002, 22),
-    "heart": ("heart.jpg", 0.90, 0.7, 0.002, 22),
-    "liver": ("liver.jpg", 0.70, 0.5, 0.002, 22),
-    "dna": ("dna.jpg", 1.00, 0.35, 0.0005, 24),
-    "leg": ("leg.jpg", 0.85, 0.6, 0.002, 20),
+    "brain": ("brain.jpg", 1.40, 0.9, 0.002, 22),
+    "heart": ("heart.jpg", 1.35, 0.7, 0.002, 22),
+    "liver": ("liver.jpg", 1.05, 0.5, 0.002, 22),
+    "leg": ("leg.jpg", 1.35, 0.6, 0.002, 20),
 }
+# The DNA is a real double helix (it looks the same from every side), built in
+# build_dna() with the proportions and colours of source/dna.jpg.
 GRID_LONG_SIDE = 170  # geometry resolution (vertices on the long side)
 TEXTURE_LONG_SIDE = 1024
 
@@ -199,6 +204,83 @@ def build(name: str, file: str, depth: float, relief: float, keep_holes: float, 
     return {"name": name, "pos": pos, "nrm": nrm, "uv": uvs, "side": side, "tri": tri, "png": png}
 
 
+def build_dna() -> dict:
+    """True 3D double helix: ~2.5 turns, beaded strands and base-pair rungs (as in dna.jpg)."""
+    img = load(SRC / "dna.jpg")
+    mask = object_mask(img, 24, 0.0005) > 0.5
+    px = img[mask]
+    warm = px[px[:, 0] > px[:, 2] + 4]  # the pink tissue, not the blue rim glow
+    strand = np.median(warm, axis=0) / 255
+    light = np.percentile(warm, 85, axis=0) / 255
+    height, radius, turns = 2.0, 0.40, 2.4
+    tube_r, rung_r = 0.062, 0.03
+    rng = np.random.default_rng(7)
+    parts_pos, parts_col, parts_tri = [], [], []
+
+    def tube(path: np.ndarray, radii: np.ndarray, base: np.ndarray, seg: int = 14) -> None:
+        # Frames along the path (parallel transport) and rings of vertices.
+        t = np.gradient(path, axis=0)
+        t /= np.linalg.norm(t, axis=1, keepdims=True)
+        ref = np.array([0.0, 0.0, 1.0]) if abs(t[0][2]) < 0.9 else np.array([1.0, 0.0, 0.0])
+        n = np.cross(t[0], ref)
+        n /= np.linalg.norm(n)
+        normals = []
+        for k in range(len(path)):
+            n = n - t[k] * np.dot(n, t[k])
+            n /= np.linalg.norm(n)
+            normals.append(n.copy())
+        normals = np.array(normals)
+        binorm = np.cross(t, normals)
+        ang = np.linspace(0, 2 * np.pi, seg, endpoint=False)
+        ring = (np.cos(ang)[None, :, None] * normals[:, None] + np.sin(ang)[None, :, None] * binorm[:, None]) * radii[:, None, None]
+        verts = (path[:, None] + ring).reshape(-1, 3)
+        start = sum(len(p) for p in parts_pos)
+        tri = []
+        m = len(path)
+        for i in range(m - 1):
+            for j in range(seg):
+                a, b = i * seg + j, i * seg + (j + 1) % seg
+                c, d = a + seg, b + seg
+                tri += [(a, c, b), (b, c, d)]
+        # Round end caps.
+        for end, i0, flip in ((path[0] - t[0] * radii[0] * 0.6, 0, False), (path[-1] + t[-1] * radii[-1] * 0.6, m - 1, True)):
+            ci = len(verts)
+            verts = np.vstack([verts, end])
+            for j in range(seg):
+                a, b = i0 * seg + j, i0 * seg + (j + 1) % seg
+                tri.append((ci, b, a) if flip else (ci, a, b))
+        shade = 0.92 + 0.16 * rng.random((len(verts), 1))
+        parts_pos.append(verts)
+        parts_col.append(np.clip(base[None, :] * shade, 0, 1))
+        parts_tri.append(np.array(tri) + start)
+
+    steps = 520
+    s_ = np.linspace(0, 1, steps)
+    theta = s_ * turns * 2 * np.pi
+    y = (s_ - 0.5) * height
+    bead = 1 + 0.12 * np.sin(s_ * 150) ** 2  # the beaded, "lumpy" strands of the picture
+    for phase in (0.0, np.pi):
+        path = np.stack([radius * np.cos(theta + phase), y, radius * np.sin(theta + phase)], 1)
+        tube(path, tube_r * bead, (strand * 0.65 + light * 0.35))
+    rungs = 15
+    for k in range(rungs):
+        s0 = (k + 0.5) / rungs
+        th = s0 * turns * 2 * np.pi
+        yy = (s0 - 0.5) * height
+        a = np.array([radius * np.cos(th), yy, radius * np.sin(th)])
+        b = np.array([radius * np.cos(th + np.pi), yy, radius * np.sin(th + np.pi)])
+        path = a[None] + (b - a)[None] * np.linspace(0.08, 0.92, 24)[:, None]
+        u = np.linspace(0, 1, 24)
+        radii = rung_r * (1 + 0.35 * np.exp(-((u - 0.5) ** 2) / 0.004) + 0.15 * np.sin(u * 40) ** 2)
+        tube(path, radii, strand * 0.8 + light * 0.2, seg=10)
+
+    pos = np.concatenate(parts_pos).astype(np.float32)
+    tri = np.concatenate(parts_tri).astype(np.uint32)
+    pos -= (pos.max(0) + pos.min(0)) / 2
+    pos *= 2.0 / (pos.max(0) - pos.min(0)).max()
+    return {"name": "dna", "pos": pos, "nrm": vertex_normals(pos, tri.astype(np.int64)), "color": (np.concatenate(parts_col) ** 2.2).astype(np.float32), "tri": tri}
+
+
 def write_glb(m: dict, out: Path) -> None:
     chunks, views, accessors = [], [], []
 
@@ -221,31 +303,48 @@ def write_glb(m: dict, out: Path) -> None:
 
     p = acc(m["pos"].astype(np.float32), 5126, "VEC3", 34962, True)
     n = acc(m["nrm"].astype(np.float32), 5126, "VEC3", 34962)
-    t = acc(m["uv"].astype(np.float32), 5126, "VEC2", 34962)
-    sd = acc(m["side"].astype(np.float32), 5126, "VEC2", 34962)
+    attributes = {"POSITION": p, "NORMAL": n}
+    textured = "png" in m
+    if textured:
+        attributes["TEXCOORD_0"] = acc(m["uv"].astype(np.float32), 5126, "VEC2", 34962)
+        attributes["_SIDE"] = acc(m["side"].astype(np.float32), 5126, "VEC2", 34962)
+    else:
+        attributes["COLOR_0"] = acc(m["color"].astype(np.float32), 5126, "VEC3", 34962)
     i = acc(m["tri"].reshape(-1).astype(np.uint32), 5125, "SCALAR", 34963)
-    img_view = add(m["png"])
+    img_view = add(m["png"]) if textured else None
+    material = (
+        {
+            "name": f"{m['name']} (reference image)",
+            "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}, "metallicFactor": 0.0, "roughnessFactor": 0.58},
+            "alphaMode": "MASK",
+            "alphaCutoff": 0.5,
+        }
+        if textured
+        else {"name": f"{m['name']} (colours from reference image)", "pbrMetallicRoughness": {"metallicFactor": 0.0, "roughnessFactor": 0.42}}
+    )
     gltf = {
-        "asset": {"version": "2.0", "generator": "space-medic image-to-3d.py"},
+        "asset": {
+            "version": "2.0",
+            "generator": "AstraHealth image-to-3d.py (SI-assisted)",
+            "copyright": "AstraHealth team, CC0-1.0",
+            "extras": {
+                "siGenerated": True,
+                "siDisclosure": "Built by an SI-written generator (Claude Code) from an SI-generated reference image supplied by the team.",
+            },
+        },
         "scene": 0,
         "scenes": [{"nodes": [0]}],
         "nodes": [{"mesh": 0, "name": m["name"]}],
-        "meshes": [{"name": m["name"], "primitives": [{"attributes": {"POSITION": p, "NORMAL": n, "TEXCOORD_0": t, "_SIDE": sd}, "indices": i, "material": 0}]}],
-        "materials": [
-            {
-                "name": f"{m['name']} (reference image)",
-                "pbrMetallicRoughness": {"baseColorTexture": {"index": 0}, "metallicFactor": 0.0, "roughnessFactor": 0.58},
-                "alphaMode": "MASK",
-                "alphaCutoff": 0.5,
-            }
-        ],
-        "textures": [{"source": 0, "sampler": 0}],
-        "samplers": [{"magFilter": 9729, "minFilter": 9987, "wrapS": 33071, "wrapT": 33071}],
-        "images": [{"bufferView": img_view, "mimeType": "image/png"}],
+        "meshes": [{"name": m["name"], "primitives": [{"attributes": attributes, "indices": i, "material": 0}]}],
+        "materials": [material],
         "accessors": accessors,
         "bufferViews": views,
         "buffers": [{"byteLength": sum(len(c) for c in chunks)}],
     }
+    if textured:
+        gltf["textures"] = [{"source": 0, "sampler": 0}]
+        gltf["samplers"] = [{"magFilter": 9729, "minFilter": 9987, "wrapS": 33071, "wrapT": 33071}]
+        gltf["images"] = [{"bufferView": img_view, "mimeType": "image/png"}]
     js = json.dumps(gltf, separators=(",", ":")).encode()
     js += b" " * ((4 - len(js) % 4) % 4)
     binary = b"".join(chunks)
@@ -259,10 +358,13 @@ def write_glb(m: dict, out: Path) -> None:
 if __name__ == "__main__":
     import sys
 
-    names = sys.argv[1:] or list(ORGANS)
+    names = sys.argv[1:] or [*ORGANS, "dna"]
     for name in names:
-        file, depth, relief, holes, thr = ORGANS[name]
-        mesh = build(name, file, depth, relief, holes, thr)
+        if name == "dna":
+            mesh = build_dna()
+        else:
+            file, depth, relief, holes, thr = ORGANS[name]
+            mesh = build(name, file, depth, relief, holes, thr)
         out = HERE / f"image-{name}.glb"
         write_glb(mesh, out)
         print(f"{out.name}: {len(mesh['pos'])} vertices, {len(mesh['tri'])} triangles, {out.stat().st_size // 1024} KB")

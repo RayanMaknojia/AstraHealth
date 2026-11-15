@@ -1,5 +1,5 @@
 /**
- * Shared data schema for the Space Medic HUD - the CONTRACT between the
+ * Shared data schema for the AstraHealth HUD - the CONTRACT between the
  * backend logic (src/types, src/data, src/services - Claude Code) and the UI
  * (src/components, src/App.tsx, src/index.css - Codex).
  *

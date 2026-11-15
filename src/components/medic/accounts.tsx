@@ -32,7 +32,7 @@ import { Brand, Panel, PageTitle, Status } from "./primitives";
 import { notify } from "./use-mission";
 export function Login({ onLogin }: { onLogin: (s: AuthSession) => void }) {
   useEffect(() => {
-    document.title = "Space Medic · Crew access";
+    document.title = "AstraHealth · Crew access";
   }, []);
   const [login, setLogin] = useState("");
   const [pin, setPin] = useState("");
@@ -145,10 +145,11 @@ export function Login({ onLogin }: { onLogin: (s: AuthSession) => void }) {
         </div>
         <p className="fine-print">
           Demo accounts · Device-local access · Decision support, not diagnosis
+          · Built with SI (AI) assistance, see SI_DISCLOSURE.md
         </p>
       </section>
       <footer className="login-footer">
-        SPACE MEDIC <span>NASA SPACE APPS 2026</span>
+        ASTRAHEALTH <span>NASA SPACE APPS CHALLENGE 2026</span>
       </footer>
     </main>
   );
@@ -210,7 +211,7 @@ function MissionDates({
 }
 export function Admin({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
-    document.title = "Space Medic · Mission control";
+    document.title = "AstraHealth · Mission control";
   }, []);
   const [sos, setSos] = useState(false);
   const [revision, setRevision] = useState(0);
