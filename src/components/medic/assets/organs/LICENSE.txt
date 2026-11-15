@@ -9,6 +9,13 @@ reference-heart.glb, reference-liver.glb, reference-dna.glb and reference-leg.gl
 are likewise dedicated to the public domain under CC0 1.0 Universal.
 The single-view user references guided appearance; no third-party mesh was copied.
 
+The Body Map now uses image-brain.glb, image-heart.glb, image-liver.glb,
+image-dna.glb and image-leg.glb, built by image-to-3d.py from the five reference
+images in source/ that the project owner supplied for this purpose. The images are
+used as the models' textures; the meshes are inflated from their outlines (a
+rounded estimate from a single view, not a scan). The reference-*.glb files are
+kept but no longer used.
+
 To the extent possible under law, the authors waive all copyright and
 related rights in these original anatomical illustration assets.
 The assets are provided without warranty and are not clinically validated.

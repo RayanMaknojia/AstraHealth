@@ -272,3 +272,7 @@ Phase 9 ChatGPT journey artwork and rotating anatomy (see phases/phase9.chatgpt.
 [x] Replace the five Body Map models with original reference-inspired brain, heart, liver, DNA and knee-to-foot bone/muscle meshes; retain system selection, pause and reduced motion.
 [x] Align the Trends indicator dropdown and timeframe buttons to matching heights and baseline.
 [x] Document generation, asset provenance, license and illustrative limits; verify lint/build and browser behavior across 25 page/viewport combinations. No changes to backend services, data or types.
+
+
+Phase 6 Claude: Body Map organs from the reference images (see phases/phase6Claude.md):
+[x] Build five rotating 3D models (brain, heart, liver, DNA, leg) from the supplied images with `image-to-3d.py` (cut-out, Poisson inflation, relief, textured closed mesh) and replace the Body Map models; side-projection shader so every angle looks solid; 360° turntable at 30°/s.
