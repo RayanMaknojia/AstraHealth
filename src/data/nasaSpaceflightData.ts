@@ -823,11 +823,37 @@ export function generateHistory(spec: TrendSpec, days: number, seed: number, sta
   return out
 }
 
+/**
+ * Steady days before the story window (from day `from` up to `before - 1`): the astronaut
+ * at the level where the story starts, with normal day-to-day noise.
+ */
+function steadyBefore(spec: TrendSpec, level: number, from: number, before: number, seed: number, clamp: [number, number]): HistoryPoint[] {
+  const rand = mulberry32(seed)
+  const f = 10 ** spec.decimals
+  const out: HistoryPoint[] = []
+  for (let day = from; day < before; day++) {
+    const raw = level + (rand() * 2 - 1) * spec.noise
+    const value = Math.min(clamp[1], Math.max(clamp[0], Math.round(raw * f) / f))
+    out.push({ day, timestamp: `Day ${day}`, value, baseline: spec.baseline, source: 'wearable_auto' })
+  }
+  return out
+}
+
 // ── Crew profiles (fictional demo personas) ───────────────────────────────
 
 const HISTORY_DAYS = 14
-/** Phase 5: the database is seeded with this many days per astronaut (14 + 7 older days). */
+/** Phase 5: the demo stories cover this many days (14 + 7 older days); older days are steady. */
 export const SEED_HISTORY_DAYS = 21
+/** The database holds simulated history for the whole mission so far, up to this many days. */
+export const MAX_SEED_HISTORY_DAYS = 365
+/** First mission day of the seeded history, so 7D, 30D and Mission charts are full. */
+export function seedFirstDay(missionDay: number): number {
+  return Math.max(1, Math.floor(missionDay) - MAX_SEED_HISTORY_DAYS + 1)
+}
+/** Weekly measurements (fasting blood sugar, bone ultrasound): one reading every 7 days, ending today. */
+export function isWeeklyReadingDay(missionDay: number, day: number): boolean {
+  return (Math.floor(missionDay) - day) % 7 === 0
+}
 
 /**
  * Days BEFORE `start`, continuing the same trend backwards (so the newest 14 days,
@@ -995,8 +1021,18 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
     mood: generateHistory(p.mood, days, p.seed + 7, start),
     spo2: generateHistory(p.spo2, days, p.seed + 10, start),
   }
+  // Newest 21 days: the demo story (unchanged). Older days back to the seed start: steady.
+  const storyStart = Math.max(1, start - extra)
+  const firstDay = seedFirstDay(p.missionDay)
   const full = Object.fromEntries(
-    (Object.keys(recent) as SeriesKey[]).map((k, i) => [k, [...extendBack(p[k], extra, p.seed + 50 + i, start, SERIES_CLAMP[k]), ...recent[k]]]),
+    (Object.keys(recent) as SeriesKey[]).map((k, i) => [
+      k,
+      [
+        ...steadyBefore(p[k], p[k].baseline - p[k].drift * extra, firstDay, storyStart, p.seed + 70 + i, SERIES_CLAMP[k]),
+        ...extendBack(p[k], extra, p.seed + 50 + i, start, SERIES_CLAMP[k]),
+        ...recent[k],
+      ],
+    ]),
   ) as Record<SeriesKey, HistoryPoint[]>
   // Baseline from the original 14-day window, before seed events (so they never shift it).
   const baseline = baselineFromHistory(p.id, { heart_rate: recent.hr, blood_pressure: recent.sys, blood_sugar: recent.glucose, body_temp: recent.temp, sleep_hours: recent.sleep, mood: recent.mood, spo2: recent.spo2 })
@@ -1004,14 +1040,25 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
     const pt = full[e.key].find((x) => x.day === e.day)
     if (pt) pt.value = e.value
   }
-  // Blood sugar is a WEEKLY fasting check-in: keep one reading every 7 days (3 in the 21 days).
-  full.glucose = full.glucose.filter((pt) => (p.missionDay - pt.day) % 7 === 0)
+  // Blood sugar is a WEEKLY fasting check-in: keep one reading every 7 days, ending today.
+  full.glucose = full.glucose.filter((pt) => isWeeklyReadingDay(p.missionDay, pt.day))
   const { hr, sys, dia, glucose, temp, sleep, mood, spo2 } = full
-  const fullStart = hr[0]?.day ?? start
+  // Radiation + bone: the story window is generated exactly as before; older days follow
+  // the mission model (no noise), so the running total joins the window without a jump.
+  const fullStart = storyStart
   const fullDays = p.missionDay - fullStart + 1
+  const olderRadiation: HistoryPoint[] = []
+  const olderBone: HistoryPoint[] = []
+  for (let d = firstDay; d < storyStart; d++) {
+    const dose = integrateOverPhases(mission, d, (e) => e.typicalDoseRateMSvPerDay)
+    const loss = integrateOverPhases(mission, d, (e) => -BONE_LOSS_PCT_PER_DAY_AT_0G * (1 - e.gravityG))
+    olderRadiation.push({ day: d, timestamp: `Day ${d}`, value: Math.round(dose * 100) / 100, baseline: Math.round(dose * 100) / 100, source: 'wearable_auto' })
+    olderBone.push({ day: d, timestamp: `Day ${d}`, value: Math.round(loss * 100) / 100, baseline: 0, source: 'ultrasound_image' })
+  }
   // Radiation + bone follow the phase schedule day by day (the body's "bank account").
-  const radiation = phaseAwareCumulative(mission, fullStart, fullDays, p.seed + 8)
-  const bone = phaseAwareBoneLoss(mission, fullStart, fullDays, p.seed + 9)
+  const radiation = [...olderRadiation, ...phaseAwareCumulative(mission, fullStart, fullDays, p.seed + 8)]
+  // Bone density comes from the WEEKLY guided ultrasound scan (routine task "bone_ultrasound").
+  const bone = [...olderBone, ...phaseAwareBoneLoss(mission, fullStart, fullDays, p.seed + 9)].filter((pt) => isWeeklyReadingDay(p.missionDay, pt.day))
   const diaByDay = new Map(dia.map((pt) => [pt.day, Math.round(pt.value)]))
   const bpHistory = sys.map((pt) => ({ ...pt, diastolic: diaByDay.get(pt.day) }))
 

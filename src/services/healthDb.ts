@@ -10,13 +10,13 @@
  *   sos        SOS events with recipients
  *   meta       seed flags
  *
- * The first time an astronaut opens the app, 21 days of simulated history are written
- * (SEED_HISTORY_DAYS), each reading tagged with its colour (docs/health_rules.md).
+ * The first time an astronaut opens the app, simulated history for the whole mission so far
+ * is written (up to MAX_SEED_HISTORY_DAYS), each reading tagged with its colour (docs/health_rules.md).
  * After that, every new reading is APPENDED; the profile on screen is rebuilt from here.
  * Falls back to an in-memory store when IndexedDB is unavailable (tests / private mode).
  */
 
-import { SEED_HISTORY_DAYS } from '@/data/nasaSpaceflightData'
+import { isWeeklyReadingDay, seedFirstDay } from '@/data/nasaSpaceflightData'
 import {
   evaluateBloodPressure,
   evaluateBloodSugar,
@@ -48,7 +48,7 @@ import type {
 const DB_NAME = 'space-medic'
 const DB_VERSION = 1
 /** Bump to re-seed (v2: blood sugar weekly only). Old seeded rows are replaced. */
-const SEED_VERSION = 'v2'
+const SEED_VERSION = 'v3' // v3: whole mission so far; bone density weekly
 export const TABLES = ['readings', 'scans', 'briefings', 'photos', 'uploads', 'sos', 'meta'] as const
 export type Table = (typeof TABLES)[number]
 
@@ -253,7 +253,7 @@ export async function getReadings(astronautId: string, fromDay = -Infinity, toDa
   return all.filter((r) => r.day >= fromDay && r.day <= toDay).sort((a, b) => a.day - b.day || a.id.localeCompare(b.id))
 }
 
-// ── Seeding (21 days of simulated history, first run only) ─────────────────
+// ── Seeding (whole mission so far, first run only) ─────────────────
 
 /** Population-typical healthy values for astronauts with no generated history. */
 const GENERIC: Record<IndicatorId, { base: number; noise: number; dp: number; unit: string }> = {
@@ -279,7 +279,7 @@ function genericHistory(profile: AstronautProfile, id: IndicatorId): { day: numb
   let x = hash(profile.id + id) || 1
   const rand = () => ((x = Math.imul(x ^ (x >>> 15), 2246822507) ^ Math.imul(x ^ (x >>> 13), 3266489909)), ((x >>> 0) % 10000) / 10000)
   const out: { day: number; value: number | string; diastolic?: number }[] = []
-  const start = Math.max(1, profile.missionDay - SEED_HISTORY_DAYS + 1)
+  const start = seedFirstDay(profile.missionDay)
   const f = 10 ** g.dp
   for (let d = start; d <= Math.max(start, profile.missionDay); d++) {
     if (id === 'radiation_dose') {
@@ -287,11 +287,12 @@ function genericHistory(profile: AstronautProfile, id: IndicatorId): { day: numb
       continue
     }
     if (id === 'bone_density') {
+      if (!isWeeklyReadingDay(profile.missionDay, d)) continue // weekly bone ultrasound
       out.push({ day: d, value: Math.round(-getMissionState(profile.mission, d).exposure.estBoneLossPct * 100) / 100 })
       continue
     }
     const v = Math.round((g.base + (rand() * 2 - 1) * g.noise) * f) / f
-    if (id === 'blood_sugar' && (profile.missionDay - d) % 7 !== 0) continue // weekly fasting check-in
+    if (id === 'blood_sugar' && !isWeeklyReadingDay(profile.missionDay, d)) continue // weekly fasting check-in
     if (id === 'blood_pressure') {
       const dia = Math.round(72 + (rand() * 2 - 1) * 4)
       out.push({ day: d, value: `${v}/${dia}`, diastolic: dia })
@@ -301,7 +302,7 @@ function genericHistory(profile: AstronautProfile, id: IndicatorId): { day: numb
 }
 
 /**
- * Write 21 days of history for this astronaut once per device (and once per seed version).
+ * Write the mission's history so far for this astronaut once per device (and once per seed version).
  * Uses the profile's own generated series (demo crew stories), or healthy population
  * values for admin-created crew. Returns the number of readings written (0 if already seeded).
  */
@@ -316,7 +317,7 @@ export async function ensureSeeded(profile: AstronautProfile): Promise<number> {
     old.filter((r) => r.seeded || (r.indicatorId === 'blood_sugar' && r.source === 'body_scan')).map((r) => r.id),
   )
   const rows: DbReading[] = []
-  const firstDay = Math.max(1, profile.missionDay - SEED_HISTORY_DAYS + 1)
+  const firstDay = seedFirstDay(profile.missionDay)
   for (const ind of profile.indicators) {
     const pts: { day: number; value: number | string; diastolic?: number; source: DbReading['source'] }[] = ind.history.length
       ? ind.history

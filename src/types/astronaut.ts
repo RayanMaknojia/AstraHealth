@@ -1277,7 +1277,7 @@ export interface DbReading {
   timestamp: string
   /** Colour at the time it was stored (docs/health_rules.md). */
   status: StatusLevel
-  /** Part of the generated 21-day demo history. */
+  /** Part of the generated demo history (whole mission so far). */
   seeded?: boolean
 }
 
