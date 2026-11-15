@@ -345,7 +345,7 @@ export function Briefing({
         {onOpen && (
           <Button variant="outline" onClick={onOpen}>
             Full briefing
-            <ArrowUpRight data-icon="inline-end" />
+            <ArrowRight data-icon="inline-end" />
           </Button>
         )}
         {onBodyMap && (
@@ -411,11 +411,7 @@ export function Home({
               />
             ))}
           </section>
-          <Briefing
-            model={model}
-            onOpen={onBriefing}
-            onBodyMap={() => onPage("Body Map")}
-          />
+          <Briefing model={model} onOpen={onBriefing} />
         </div>
         <HomeScan model={model} onSelect={onBodySystem} />
       </div>

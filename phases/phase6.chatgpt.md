@@ -3,6 +3,7 @@
 **Owner:** ChatGPT / Codex (frontend)
 **Branch:** `codex/space-medic-home-redesign`
 **Build:** 6
+**Implementation commit:** `7f130ae`
 **Starting checkpoint:** Build 5, `3c8dbbc`
 **Source:** The user's screenshot-based fixes for alerts, Home scan, vital emphasis, required measurements and physical-exam guidance.
 **Status:** Implemented and verified.
@@ -63,4 +64,4 @@ Browser plugin was unavailable, so Chromium through Playwright tested the offlin
 | 3 | `7b21f9d` |
 | 4 | `551e958` |
 | 5 | `3c8dbbc` |
-| 6 | Current phase implementation commit |
+| 6 | `7f130ae` |
