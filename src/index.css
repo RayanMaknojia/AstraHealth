@@ -424,7 +424,7 @@ body:has(.medic-app) {
 .sidebar-label {
   font-size: 9px;
   letter-spacing: 2px;
-  color: #61788d;
+  color: #8ea3c4;
   margin: 0 13px 14px;
 }
 .mission-sidebar nav {
@@ -466,7 +466,7 @@ body:has(.medic-app) {
 .sidebar-mission {
   margin-top: auto;
   padding: 40px 12px 30px;
-  color: #5c7b91;
+  color: #8ea3c4;
   display: flex;
   flex-direction: column;
   gap: 15px;
@@ -1219,7 +1219,7 @@ body:has(.medic-app) {
   border-top: 1px solid #203140;
   padding: 20px 0;
   font-size: 8px;
-  color: #587387;
+  color: #8ea3c4;
   letter-spacing: 0.2px;
 }
 .mission-footer span:first-child {
@@ -1774,7 +1774,7 @@ body:has(.medic-app) {
   font-family: monospace;
   font-size: 9px;
   letter-spacing: 2px;
-  color: #4f7086;
+  color: #8ea3c4;
   display: flex;
   justify-content: space-between;
 }
@@ -7213,4 +7213,52 @@ body:has(.medic-app) {
   margin-top: 6px;
   font-size: 11px;
   color: #8ea3c4;
+}
+
+/* ---- Frontend QA fixes (qa/FRONTEND_QA_REPORT.md) ---- */
+
+/* #2 Phones: keep toasts above the bottom navigation bar so it stays tappable. */
+@media (max-width: 650px) {
+  [data-slot="toast-viewport"] {
+    bottom: calc(66px + 12px + env(safe-area-inset-bottom, 0px));
+  }
+}
+
+/* #3 Very narrow phones: let a long unit ("mmHg") drop under the value. */
+@media (max-width: 360px) {
+  .workspace .vital-value {
+    white-space: normal;
+    font-size: 26px;
+  }
+  .workspace .vital-value small {
+    display: inline-block;
+    margin-left: 4px;
+  }
+}
+
+/* #4 Narrow phones: Indicator dropdown gets its own full-width row. */
+@media (max-width: 480px) {
+  .trend-controls > label {
+    flex: 1 1 100%;
+  }
+}
+
+/* #7 Admin header: wrap instead of pushing "Log out" past the edge. */
+@media (max-width: 400px) {
+  .admin-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+}
+
+/* #9 Mission day slider: at least 24 px tall touch target. */
+.day-slider input[type="range"] {
+  min-height: 28px;
+}
+
+/* #11 Very large monitors: scale the whole app up instead of leaving wide margins. */
+@media (min-width: 2200px) {
+  .medic-app {
+    zoom: 1.25;
+  }
 }

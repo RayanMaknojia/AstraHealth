@@ -53,6 +53,16 @@ const vitalIds = [
   "sleep_hours",
   "mood",
 ];
+/** Briefings saved by older builds may carry developer wording; show crew-friendly text instead. */
+const LEGACY_REASONS: Record<string, string> = {
+  "Python server not running": "AI briefing unavailable",
+  "No AI key on the server": "AI briefing unavailable",
+  "AI service busy or unavailable": "AI briefing busy, try later",
+};
+function crewReason(reason: string) {
+  return LEGACY_REASONS[reason] ?? reason;
+}
+
 export function TripBar({ model }: { model: MissionModel }) {
   const state = model.missionState;
   const destination: {
@@ -283,7 +293,7 @@ function engineLabel(ai: AiBriefing) {
   const t = new Date(ai.createdAt).toISOString().slice(11, 16);
   return ai.engine === "gemini"
     ? `AI briefing · ${t} UTC`
-    : `Offline rules · ${t} UTC${ai.fallbackReason ? ` (${ai.fallbackReason})` : ""}`;
+    : `Offline rules · ${t} UTC${ai.fallbackReason ? ` (${crewReason(ai.fallbackReason)})` : ""}`;
 }
 function Lines({ lines }: { lines: BriefingLine[] }) {
   return (

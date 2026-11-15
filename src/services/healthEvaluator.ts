@@ -61,8 +61,8 @@ export const STATUS_TO_ACTION: Record<StatusLevel, ActionLevel> = {
 export const STATUS_COLORS: Record<DisplayStatus, string> = {
   nominal: '#10b981',
   caution: '#f59e0b',
-  critical: '#dc2626',
-  no_data: '#6b7280',
+  critical: '#f87171',
+  no_data: '#94a3b8',
 }
 
 /** Crew-facing labels (reference doc wording). */
