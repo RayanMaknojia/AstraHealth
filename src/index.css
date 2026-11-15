@@ -6632,3 +6632,18 @@ body:has(.medic-app) {
     display: none;
   }
 }
+
+/* Keep required marks attached to labels, independent of the changing rating output. */
+.revised-checkin .required-mark {
+  color: #ef4444;
+  display: inline;
+}
+.revised-checkin .required-field-heading {
+  display: inline;
+}
+.home-health-columns .revised-vitals {
+  height: auto;
+  align-self: start;
+}
+.revised-checkin [data-slot="field-label"]:has(output) > .required-field-heading,
+.revised-checkin [data-slot="field-label"] > output { flex-shrink: 0; white-space: nowrap; }
