@@ -18,14 +18,68 @@
 import { raiseSos } from '@/services/alertService'
 import { saveSos } from '@/services/healthDb'
 import { parseBloodPressure } from '@/services/healthEvaluator'
-import { newId } from '@/services/_store'
+import { createStore, newId } from '@/services/_store'
 import { enqueue } from '@/services/syncService'
 import type { AstronautProfile, EmergencyAssessment, HealthReport, IndicatorId, MissionState, PhotoRecord, SosEvent, SosRecipient, StatusLevel } from '@/types/astronaut'
 
 /** Seconds the astronaut has to cancel an automatic SOS. */
 export const SOS_COUNTDOWN_SECONDS = 30
-/** A cancelled automatic SOS is not raised again for the same reasons for this long. */
-export const SOS_SNOOZE_MINUTES = 60
+
+// ── One automatic SOS per issue ────────────────────────────────────────────
+// Every issue (e.g. "chest_pain", "spo2", "ai:body_temp", "photo:<id>") gets a record.
+// Once an automatic SOS for it was sent or cancelled, it is never raised automatically
+// again; later detections only increase its count. The SOS button always works.
+
+export interface SosIssue {
+  key: string
+  /** How many times this issue was detected. */
+  count: number
+  firstSeen: string
+  lastSeen: string
+  firstMissionDay: number
+  outcome: 'sent' | 'cancelled' | 'pending'
+  reasons: string[]
+}
+
+const issueStore = createStore<Record<string, Record<string, SosIssue>>>('sos-issues:v1', () => ({}))
+
+const issueKeys = (a: EmergencyAssessment) => a.key.split('|').filter(Boolean)
+
+/** Count a detection; true when at least one of its issues never had an automatic SOS. */
+export function noteSosDetection(astronautId: string, a: EmergencyAssessment, missionDay: number): boolean {
+  if (!a.sos) return false
+  const now = new Date().toISOString()
+  let fresh = false
+  issueStore.update((all) => {
+    const mine = { ...(all[astronautId] ?? {}) }
+    for (const k of issueKeys(a)) {
+      const cur = mine[k]
+      if (!cur || cur.outcome === 'pending') fresh = fresh || !cur || cur.outcome === 'pending'
+      mine[k] = cur
+        ? { ...cur, count: cur.count + 1, lastSeen: now }
+        : { key: k, count: 1, firstSeen: now, lastSeen: now, firstMissionDay: Math.floor(missionDay), outcome: 'pending', reasons: a.reasons.slice(0, 4) }
+    }
+    return { ...all, [astronautId]: mine }
+  })
+  return fresh
+}
+
+/** Mark the issues of an automatic SOS as handled (sent or cancelled). */
+export function closeSosIssues(astronautId: string, a: EmergencyAssessment, outcome: 'sent' | 'cancelled'): void {
+  issueStore.update((all) => {
+    const mine = { ...(all[astronautId] ?? {}) }
+    for (const k of issueKeys(a)) if (mine[k]) mine[k] = { ...mine[k], outcome }
+    return { ...all, [astronautId]: mine }
+  })
+}
+
+export function listSosIssues(astronautId: string): SosIssue[] {
+  return Object.values(issueStore.get()[astronautId] ?? {}).sort((x, y) => y.lastSeen.localeCompare(x.lastSeen))
+}
+
+export function resetSosIssues(): void {
+  issueStore.reset()
+}
 
 export interface EmergencyInput {
   profile: AstronautProfile
@@ -50,19 +104,19 @@ const RED_FLAGS: RedFlag[] = [
     id: 'chest_pain',
     test: /chest (pain|pressure|tight)|crushing pain|pain (in|down) (my )?(left )?arm|heart attack/i,
     reason: 'Chest pain or pressure (possible heart problem).',
-    steps: ['Stop all activity; sit or strap in and rest.', 'Record HR, BP and SpO2 now; repeat every 5 minutes.', 'Give oxygen if SpO2 is below 94%.', 'Crew medical officer: run the chest-pain protocol and the ECG; aspirin only if not allergic and the protocol says so.'],
+    steps: ['Stop all activity; sit or strap in and rest.', 'Record HR, BP and SpO2 now; repeat every 5 minutes.', 'Oxygen by mask at 2-4 L/min if SpO2 is below 94%.', 'If not allergic to aspirin and no bleeding problem: chew one 300-325 mg aspirin now.'],
   },
   {
     id: 'breathing',
     test: /can.?t breathe|cannot breathe|struggl\w* to breathe|difficulty breathing|short(ness)? of breath|choking|throat (closing|swelling)|wheez/i,
     reason: 'Trouble breathing.',
-    steps: ['Sit upright; loosen anything tight.', 'Put on oxygen; check SpO2.', 'Check cabin CO2 and air (Is it me or the air?).', 'If there are hives or face/tongue swelling: use the epinephrine auto-injector from the kit.'],
+    steps: ['Sit upright; loosen anything tight.', 'Oxygen by mask at 2-4 L/min (up to 10 L/min if SpO2 stays below 90%); re-check SpO2 every 2 minutes.', 'Check cabin CO2 and air (Is it me or the air?).', 'If there are hives or face/tongue swelling: epinephrine 0.3 mg auto-injector into the outer thigh, hold 3 seconds.'],
   },
   {
     id: 'anaphylaxis',
     test: /anaphyla|swollen (tongue|lips|face)|tongue swell|lip swell|face swell|hives all over/i,
     reason: 'Signs of a severe allergic reaction.',
-    steps: ['Use the epinephrine auto-injector (outer thigh) now.', 'Lie flat with legs raised (sit up if breathing is hard).', 'Oxygen; record vitals every 5 minutes.', 'A second dose may be needed after 5-15 minutes if no better.'],
+    steps: ['Epinephrine 0.3 mg auto-injector into the outer thigh now, hold 3 seconds; note the time.', 'Lie flat with legs raised (sit up if breathing is hard).', 'Oxygen; record vitals every 5 minutes.', 'If no better after 5-15 minutes, give a second 0.3 mg dose in the other thigh.'],
   },
   {
     id: 'unresponsive',
@@ -80,7 +134,7 @@ const RED_FLAGS: RedFlag[] = [
     id: 'bleeding',
     test: /won.?t stop bleeding|bleeding (heavily|a lot|won.?t stop)|spurting|severe bleed|lots of blood|pulsing blood/i,
     reason: 'Bleeding that will not stop.',
-    steps: ['Press hard on the wound with a dressing; do not lift to check for 10 minutes.', 'Raise the limb if possible.', 'If bleeding continues through the dressing, add more on top and keep pressing; use the tourniquet for a limb if life-threatening.', 'Watch for pale, cold, fast heart rate (shock).'],
+    steps: ['Press hard with a 10 x 10 cm gauze pad; do not lift to check for 10 full minutes.', 'Raise the limb if possible.', 'If bleeding continues through the dressing, add more on top and keep pressing; use the tourniquet for a limb if life-threatening.', 'Watch for pale, cold, fast heart rate (shock).'],
   },
   {
     id: 'self_harm',
@@ -100,7 +154,7 @@ const num = (v: number | string) => (typeof v === 'number' ? v : Number(v))
 const VITAL_RULES: VitalRule[] = [
   { id: 'spo2', test: (v) => (num(v) < 85 ? `Blood oxygen ${v}% (dangerously low).` : null), steps: ['Put on oxygen now.', 'Check the cabin air (CO2 / O2) and the sensor fit.', 'Sit upright; re-measure in 2 minutes.'] },
   { id: 'heart_rate', test: (v) => (num(v) > 150 ? `Heart rate ${v} bpm at rest (very fast).` : num(v) < 35 ? `Heart rate ${v} bpm (very slow).` : null), steps: ['Stop activity; sit or lie down.', 'Re-measure manually for 30 s.', 'Record BP and SpO2; check for dizziness or chest pain.'] },
-  { id: 'body_temp', test: (v) => (num(v) >= 40 ? `Temperature ${v} °C (very high fever).` : num(v) < 35 ? `Temperature ${v} °C (too cold).` : null), steps: ['Re-measure with the clinical thermometer.', 'High fever: cool cloths, fluids, paracetamol per kit; look for infection (skin, urine, chest).', 'Too cold: warm layers, warm drinks if awake.'] },
+  { id: 'body_temp', test: (v) => (num(v) >= 40 ? `Temperature ${v} °C (very high fever).` : num(v) < 35 ? `Temperature ${v} °C (too cold).` : null), steps: ['Re-measure with the clinical thermometer.', 'High fever: cool damp cloths, 250 mL fluids every hour, paracetamol 1,000 mg (max 4,000 mg in 24 h); look for infection (skin, urine, chest).', 'Too cold: warm layers, warm drinks if awake.'] },
   {
     id: 'blood_pressure',
     test: (v) => {
@@ -112,7 +166,7 @@ const VITAL_RULES: VitalRule[] = [
     },
     steps: ['Sit or lie still for 5 minutes and re-measure.', 'Very low: lie flat, legs up, fluids if awake.', 'Very high: rest, check for headache, chest pain or vision change.'],
   },
-  { id: 'blood_sugar', test: (v) => (num(v) < 54 ? `Blood sugar ${v} mg/dL (dangerously low).` : num(v) > 300 ? `Blood sugar ${v} mg/dL (very high).` : null), steps: ['Low: take 15 g fast sugar now, re-check in 15 minutes.', 'High: drink water, re-check, look for nausea or confusion.'] },
+  { id: 'blood_sugar', test: (v) => (num(v) < 54 ? `Blood sugar ${v} mg/dL (dangerously low).` : num(v) > 300 ? `Blood sugar ${v} mg/dL (very high).` : null), steps: ['Low: take 15 g fast sugar now (4 glucose tablets or 150 mL juice), re-check in 15 minutes; repeat if still below 70.', 'High: drink 500 mL water, re-check in 1 hour, watch for nausea, vomiting or confusion.'] },
 ]
 
 /** Assess the newest data. Pure and synchronous (rules only). */
@@ -168,8 +222,10 @@ export function assessEmergency(input: EmergencyInput): EmergencyAssessment {
   if (input.aiSos?.recommended && (level === 'critical' || sos)) {
     sos = true
     source = 'rules+gemini'
-    if (input.aiSos.reason) reasons.push(`Gemini: ${input.aiSos.reason}`)
-    keyParts.push('ai')
+    if (input.aiSos.reason) reasons.push(`AI review: ${input.aiSos.reason}`)
+    // The issue is what is red right now, so the same fever does not raise a new SOS on every scan.
+    const red = input.report.indicators.filter((e) => e.status === 'critical').map((e) => e.id).sort()
+    keyParts.push(`ai:${red.join('+') || 'general'}`)
   }
   if (sos) level = 'critical'
   return {

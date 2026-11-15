@@ -140,7 +140,6 @@ const KPI_LABEL: Record<string, string> = {
   body_temp: "Temperature",
   spo2: "SpO2",
   systolic: "Blood pressure",
-  blood_sugar: "Blood sugar",
 };
 export function HomeScan({
   model,
@@ -178,7 +177,11 @@ export function HomeScan({
   );
 
   return (
-    <section className="home-scan" aria-label="Body scan">
+    <section
+      className="home-scan"
+      aria-label="Body scan"
+      data-scan-result={scanInfo || undefined}
+    >
       <div className="home-scan-heading">
         <h2>Body scan</h2>
         <span>Latest onboard readings</span>
@@ -257,7 +260,7 @@ export function HomeScan({
                 if (!s) return setScanInfo("Scan readings could not be saved.");
                 const r = s.readings;
                 setScanInfo(
-                  `${s.generator === "python" ? "Python scanner" : "Browser scanner (Python server offline)"}: HR ${r.heart_rate} bpm · ${r.body_temp} °C · SpO2 ${r.spo2}% · BP ${r.systolic}/${r.diastolic} · glucose ${r.blood_sugar} mg/dL${s.anomaly ? `. ${KPI_LABEL[s.anomaly.kpi] ?? s.anomaly.kpi}: ${s.anomaly.level === "critical" ? "Alert" : "Watch"}` : ""}`,
+                  `${s.generator === "python" ? "Python scanner" : "Browser scanner (Python server offline)"}: HR ${r.heart_rate} bpm · ${r.body_temp} °C · SpO2 ${r.spo2}% · BP ${r.systolic}/${r.diastolic}${s.anomaly ? `. ${KPI_LABEL[s.anomaly.kpi] ?? s.anomaly.kpi}: ${s.anomaly.level === "critical" ? "Alert" : "Watch"}` : ""}`,
                 );
               });
             if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
@@ -277,21 +280,10 @@ export function HomeScan({
           {complete
             ? `Scan complete · ${completedAt}`
             : startAt !== null
-              ? onScan
-                ? "Taking new readings from feet to head"
-                : "Reading latest data from feet to head"
+              ? "Reading latest data from feet to head"
               : "Ready when you are"}
         </p>
-        {scanInfo && (
-          <small className="home-scan-result" data-testid="scan-result">
-            {scanInfo}
-          </small>
-        )}
-        <small>
-          {onScan
-            ? "Simulated scanner readings, saved to your health record. Not a diagnostic sensor."
-            : "Visual review of existing data, not a diagnostic sensor."}
-        </small>
+        <small>Visual review of existing data, not a diagnostic sensor.</small>
       </div>
     </section>
   );

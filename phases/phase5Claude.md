@@ -80,6 +80,19 @@ Browser (React)                                   Python server (server/app.py, 
 | Playwright, real Gemini through the Python server (ISS + Mars crew) | 26/26 pass: seed 189 readings on first login; Gemini start-of-shift briefing; Python scan appends 5 readings; Gemini full briefing for the scan with check-in / 24 h / 7-day sections; data and briefing survive reload; chest-pain text opens the SOS countdown with AstraHealth + ISS and interim steps; cancel works and the same reasons are snoozed; text reports stored; bite photo → Gemini "Possible infection 85%", Watch (no fever), with findings and steps; manual SOS lists recipients and is stored; 0 console errors |
 | Playwright, Python server stopped | Browser scanner used; briefing "Offline rules (Python server not running)" with all sections; 0 page errors |
 
+## Round 2 (user feedback after the first demo)
+
+| Feedback | Change |
+|---|---|
+| Don't show the AI model's name | UI says "AI briefing" / "AI first look" / "AI review". Prompts tell the model never to name itself or its vendor, and every AI reply is scrubbed of the name before it reaches the screen. |
+| Are uploaded images saved? Show my data | Yes now: the photo (JPEG ≤ 1280 px) is stored with its assessment; attached files (≤ 10 MB) and typed reports are stored too. New **More → My records**: photos with image, label, colour, findings, care steps; every "Something wrong?" report with the typed text and a download link; SOS history and issue counts; "Download my data" JSON export. Check-in links to it. |
+| Rescan sent another SOS for the same issue | One automatic SOS per issue, remembered on the device with a detection count (`sos-issues:v1`). AI-flagged issues are keyed by what is red right now, so the same fever doesn't re-trigger. |
+| Remove the scan result lines | Removed; the Home scan footer is Codex's original text again. |
+| Wrong "missing fields" message on Check-in | Check-in now lists exactly the required fields that are empty or out of range (e.g. "Still needed (1): 30-second reaction test."). |
+| Body scan changed the blood sugar graph | The scan no longer produces blood sugar. Blood sugar is seeded every 7 days (3 readings in 21 days) and only the weekly check-in (or a lab report) adds more; it stays valid for 8 days. Seed version v2 removes old seeded rows and scan blood sugar on first login. |
+| Too many pop-ups | Automatic warning toasts: at most one per 10 minutes. Full-screen health/cabin alerts: at least 10 minutes apart. After Confirm: shown again only on a later day or if worse (5% further from normal). |
+| Vague treatment advice | Prompts require amounts, durations, frequency and kit items; the offline first aid and emergency steps were rewritten the same way (e.g. "Rinse with 100-200 mL sterile saline from a 20 mL syringe for 30 s", "ibuprofen 400 mg every 6-8 h, max 1,200 mg in 24 h, check allergies first"). |
+
 ## Limits
 
 - Simulated readings and simulated SOS dispatch; decision support, not diagnosis.

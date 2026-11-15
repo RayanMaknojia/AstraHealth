@@ -156,51 +156,97 @@ export const SKIN_KEYWORDS: Record<Exclude<SkinLabel, 'unsure'>, string[]> = {
   normal: ['normal', 'healthy', 'baseline', 'clear', 'checkup'],
 }
 
+/** Offline first aid: precise amounts, times and kit items (used when the AI is unavailable). */
 export const SKIN_GUIDANCE: Record<SkinLabel, { status: StatusLevel; firstAid: string[]; escalateWhen: string[] }> = {
   laceration: {
     status: 'caution',
-    firstAid: ['Clean with saline.', 'Apply firm pressure for 10 minutes.', 'Close small cuts with adhesive strips.', 'Cover with a sterile dressing.'],
-    escalateWhen: ['Bleeding for more than 10 minutes', 'Deep or gaping wound', 'Signs of infection (redness spreading, pus, fever)'],
+    firstAid: [
+      'Wash your hands, put on gloves.',
+      'Press firmly on the cut with a 10 x 10 cm gauze pad for 10 full minutes without lifting.',
+      'Rinse with 100-200 mL sterile saline from a 20 mL syringe until no debris is left (about 30 s).',
+      'If the edges meet easily and the cut is under 2 cm: close with wound-closure strips 3 mm apart.',
+      'Cover with a transparent film dressing; change every 24 h or when wet.',
+      'Pain: paracetamol 500-1,000 mg every 6 h, max 4,000 mg in 24 h (check allergies first).',
+    ],
+    escalateWhen: ['Still bleeding after 10 minutes of firm pressure', 'Deeper than 5 mm, gaping, or edges will not meet', 'Redness spreading more than 1 cm, pus, or fever ≥ 38.0 °C'],
   },
   burn: {
     status: 'caution',
-    firstAid: ['Cool with clean water for 20 minutes (no ice).', 'Remove rings or tight items nearby.', 'Cover loosely with a non-stick dressing.', 'Do not pop blisters.'],
-    escalateWhen: ['Larger than your palm', 'On the face, hands, joints or genitals', 'White, leathery or painless skin', 'Signs of infection'],
+    firstAid: [
+      'Cool under clean running water (or soaked cloths) at 15-25 °C for 20 minutes. No ice.',
+      'Remove rings, watch or tight sleeves from the area within the first 5 minutes.',
+      'Cover loosely with a non-stick dressing or cling film; do not pop blisters.',
+      'Pain: ibuprofen 400 mg every 6-8 h with food, max 1,200 mg in 24 h (check allergies first).',
+      'Drink 250 mL water every hour for the next 4 hours if the burn is bigger than your palm.',
+    ],
+    escalateWhen: ['Bigger than your palm (about 1% of body surface)', 'On the face, hands, joints or genitals', 'White, leathery or painless skin', 'Signs of infection'],
   },
   bruise: {
     status: 'nominal',
-    firstAid: ['Cold pack for 15 minutes, several times today.', 'Rest the area.'],
-    escalateWhen: ['Very painful or swelling fast', 'Can’t move the joint', 'Bruising with no injury (possible bleeding problem)'],
+    firstAid: [
+      'Cold pack wrapped in a cloth for 15 minutes, every 2 hours today (never directly on skin).',
+      'Rest the area; raise it above heart level if possible.',
+      'Pain: paracetamol 500-1,000 mg every 6 h, max 4,000 mg in 24 h (avoid ibuprofen for the first 24 h).',
+      'Re-photograph tomorrow to compare.',
+    ],
+    escalateWhen: ['Very painful or swelling fast within 1 hour', 'Cannot move the joint', 'Bruising with no injury (possible bleeding problem)'],
   },
   abrasion: {
     status: 'caution',
-    firstAid: ['Rinse with saline and remove debris.', 'Apply antibiotic ointment from the kit.', 'Cover with a breathable dressing; change daily.'],
-    escalateWhen: ['Debris you can’t remove', 'Signs of infection', 'Not healing after 5 days'],
+    firstAid: [
+      'Rinse with 100-200 mL sterile saline for at least 30 s; lift out any grit with sterile tweezers.',
+      'Pat dry with sterile gauze.',
+      'Apply a pea-sized amount (about 0.5 g) of antibiotic ointment, once a day.',
+      'Cover with a transparent film dressing; change every 24 h or when wet.',
+      'Check daily for redness spreading more than 1 cm from the edge.',
+    ],
+    escalateWhen: ['Grit you cannot remove', 'Redness spreading more than 1 cm, pus, or fever ≥ 38.0 °C', 'Not smaller after 5 days'],
   },
   bite: {
     status: 'caution',
-    firstAid: ['Wash with soap and water.', 'Cold pack for 10 minutes to reduce swelling.', 'Antihistamine or hydrocortisone cream from the kit for itching.', 'Mark the edge of any redness with a pen to see if it spreads.'],
-    escalateWhen: ['Trouble breathing, lip or tongue swelling, or dizziness (allergic reaction - emergency)', 'Redness spreading past the pen mark', 'Fever or red streaks'],
+    firstAid: [
+      'Wash with soap and 200 mL clean water for 1 minute.',
+      'Cold pack wrapped in a cloth for 10 minutes to reduce swelling.',
+      'Itching: hydrocortisone 1% cream, thin layer twice a day, or cetirizine 10 mg once a day (check allergies first).',
+      'Draw a pen line around the edge of any redness and note the time; re-check every 4 h.',
+    ],
+    escalateWhen: ['Trouble breathing, lip or tongue swelling, or dizziness: allergic reaction, use the epinephrine 0.3 mg auto-injector into the outer thigh and call for help', 'Redness spreading past the pen line', 'Fever ≥ 38.0 °C or red streaks'],
   },
   scab: {
     status: 'nominal',
-    firstAid: ['Leave the scab in place; don’t pick it.', 'Keep it clean and dry; a thin layer of ointment stops cracking.', 'Cover if it rubs on clothing or equipment.'],
-    escalateWhen: ['Pus, warmth or spreading redness around it', 'Not smaller after 7 days'],
+    firstAid: [
+      'Leave the scab in place; do not pick it.',
+      'Keep it clean and dry; a thin layer (about 0.5 g) of ointment once a day stops cracking.',
+      'Cover with a light dressing if it rubs on clothing or equipment.',
+    ],
+    escalateWhen: ['Pus, warmth or redness spreading more than 1 cm around it', 'Not smaller after 7 days'],
   },
   scar: {
     status: 'nominal',
-    firstAid: ['No treatment needed.', 'Moisturise; protect from rubbing.', 'Re-photograph if it changes colour, size or becomes painful.'],
+    firstAid: ['No treatment needed.', 'Moisturise twice a day; protect from rubbing.', 'Re-photograph if it changes colour, size or becomes painful.'],
     escalateWhen: ['A scar that opens, grows, bleeds or becomes painful'],
   },
   infection: {
     status: 'caution',
-    firstAid: ['Wash hands, then clean the area with saline.', 'Mark the edge of the redness with a pen and note the time.', 'Cover with a clean dressing; change it twice a day.', 'Take your temperature now and again in 4 hours.', 'Tell the crew medical officer - antibiotics may be needed (check allergies).'],
-    escalateWhen: ['Fever ≥ 38.5 °C, chills or fast heart rate (possible spreading infection - emergency)', 'Red streaks or redness spreading past the pen mark', 'Severe pain, or skin turning dark or numb'],
+    firstAid: [
+      'Wash hands, put on gloves, clean the area with 100-200 mL sterile saline.',
+      'Draw a pen line around the edge of the redness and write the time next to it.',
+      'Cover with a clean dressing; change it twice a day (every 12 h).',
+      'Take your temperature now and every 4 hours.',
+      'Fever or pain: paracetamol 1,000 mg every 6 h, max 4,000 mg in 24 h (check allergies first).',
+      'Tell the crew medical officer today: oral antibiotics may be needed (check the allergy list).',
+    ],
+    escalateWhen: ['Fever ≥ 38.5 °C, chills or heart rate over 110 at rest (possible spreading infection: emergency)', 'Red streaks, or redness spreading past the pen line within 12 h', 'Severe pain, or skin turning dark or numb'],
   },
   rash: {
     status: 'caution',
-    firstAid: ['Avoid the suspected trigger (new soap, gloves, dust, food).', 'Cool compress; hydrocortisone cream from the kit.', 'Antihistamine tablet if itchy (check drowsiness before tasks).'],
-    escalateWhen: ['Rash with trouble breathing, face swelling or dizziness (emergency)', 'Blisters, peeling or rash in the mouth or eyes', 'Rash with fever'],
+    firstAid: [
+      'Stop using the suspected trigger (new soap, gloves, dust, food).',
+      'Cool compress for 10 minutes, 3 times a day.',
+      'Hydrocortisone 1% cream, thin layer twice a day for up to 7 days.',
+      'Itching: cetirizine 10 mg once a day (may cause drowsiness; check before tasks and allergies first).',
+    ],
+    escalateWhen: ['Rash with trouble breathing, face swelling or dizziness (emergency: epinephrine 0.3 mg auto-injector)', 'Blisters, peeling, or rash in the mouth or eyes', 'Rash with fever ≥ 38.0 °C'],
   },
   normal: {
     status: 'nominal',
@@ -209,7 +255,7 @@ export const SKIN_GUIDANCE: Record<SkinLabel, { status: StatusLevel; firstAid: s
   },
   unsure: {
     status: 'caution',
-    firstAid: ['Keep the area clean and covered.', 'Take another photo in good light, 15-20 cm away, without flash glare.'],
+    firstAid: ['Keep the area clean and covered with a light dressing.', 'Take another photo in good light, 15-20 cm away, without flash glare.'],
     escalateWhen: ['Sent to the flight surgeon for review - escalate sooner if it gets worse.'],
   },
 }

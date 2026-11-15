@@ -100,6 +100,7 @@ export function Checkin({
   onGuidance,
   onReport,
   onPhoto,
+  onRecords,
 }: {
   model: MissionModel;
   save: (input: SaveInput) => Promise<boolean>;
@@ -107,7 +108,8 @@ export function Checkin({
   onJournalHistory: () => void;
   onGuidance: (id: ExamGuideId) => void;
   onReport?: (text: string, file?: File | null) => Promise<void>;
-  onPhoto?: (record: PhotoRecord) => void;
+  onPhoto?: (record: PhotoRecord, image?: Blob | null) => void;
+  onRecords?: () => void;
 }) {
   const profile = model.profile;
   const suggested = nextScheduledCheckin(profile)?.slot ?? "morning";
@@ -200,32 +202,57 @@ export function Checkin({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    const requiredRatings = [
+    // One accurate list of every required field that is still empty.
+    const missing: string[] = [];
+    if (values.bodyTempC === undefined) missing.push("Body temperature");
+    const ratings = [
       ["Mood", values.mood],
       ["Sleep quality", extras.sleepQuality],
       ["Energy / fatigue", extras.fatigue],
       ["Stress", stress],
     ] as const;
-    const missingRatings = requiredRatings
-      .filter(([, v]) => v === undefined || v < 1 || v > 5)
-      .map(([name]) => name);
-    if (values.bodyTempC === undefined || missingRatings.length) {
-      setError(
-        `Complete all required measurements: ${[...(values.bodyTempC === undefined ? ["Body temperature"] : []), ...missingRatings].join(", ")}.`,
-      );
-      return;
+    for (const [name, v] of ratings)
+      if (v === undefined || v < 1 || v > 5) missing.push(`${name} rating`);
+    if (pain > 0 && !region.trim()) missing.push("Pain body region");
+    for (const name of medications) {
+      if (!medDetails[name]?.dose?.trim()) missing.push(`${name} dose`);
+      if (!medDetails[name]?.time) missing.push(`${name} time`);
+    }
+    if (weekly) {
+      if (values.bloodSugarMgDl === undefined) missing.push("Blood sugar");
+      if (!extras.bodyMassKg) missing.push("Body mass");
+      if (!food) missing.push("Food / nutrition questionnaire");
+      if (hydration === "") missing.push("Water / fluids yesterday");
+      if (!values.fasting) missing.push("Fasting glucose confirmation");
+      if (!extras.reactionMs) missing.push("30-second reaction test");
+    }
+    if (extended) {
+      for (const guide of EXAM_GUIDES)
+        if (!examResults[guide.label]) missing.push(`Exam: ${guide.label}`);
+      if (!examDone) missing.push("Exam completed confirmation");
+    }
+    // Values outside the allowed range (the form uses noValidate, so check here).
+    for (const spec of CHECKIN_INPUTS) {
+      const v = values[spec.key];
+      if (typeof v === "number" && (v < spec.min || v > spec.max))
+        missing.push(
+          `${spec.label} between ${spec.min} and ${spec.max} ${spec.unit}`,
+        );
     }
     if (
       weekly &&
-      (!values.fasting || !extras.reactionMs || !food || !hydration)
-    ) {
-      setError(
-        "Complete fasting glucose confirmation, food/hydration answers, and the 30-second reaction test.",
-      );
-      return;
-    }
-    if (extended && !examDone) {
-      setError("Confirm that you completed the guided exam before saving.");
+      extras.bodyMassKg &&
+      (extras.bodyMassKg < 1 || extras.bodyMassKg > 400)
+    )
+      missing.push("Body mass between 1 and 400 kg");
+    if (
+      weekly &&
+      hydration !== "" &&
+      (Number(hydration) < 0 || Number(hydration) > 20)
+    )
+      missing.push("Water / fluids between 0 and 20 litres");
+    if (missing.length) {
+      setError(`Still needed (${missing.length}): ${missing.join(", ")}.`);
       return;
     }
     const wearableValues: VitalsInput = manual
@@ -330,6 +357,7 @@ export function Checkin({
           busy={busy}
           onReport={onReport}
           onPhoto={() => setPhotoOpen(true)}
+          onRecords={onRecords}
         />
       )}
       <div className="scope-tabs" role="tablist" aria-label="Check-in cadence">
@@ -357,7 +385,7 @@ export function Checkin({
             </button>
           ))}
       </div>
-      <form onSubmit={submit}>
+      <form onSubmit={submit} noValidate>
         <Panel
           title={
             slot === "morning" ? "Daily check-in" : CHECKIN_SCHEDULE[slot].title

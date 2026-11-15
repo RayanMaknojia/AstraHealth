@@ -7,10 +7,10 @@
  *   Confidence < 70% → "Unsure. Sent to the flight surgeon for review." - never guess.
  *   1. The photo is turned into processed data in the browser (brightness, sharpness,
  *      % red / dark / yellow pixels).
- *   2. Gemini (via the Python server) reads the image + that data + the astronaut's
+ *   2. The AI (Gemini via the Python server) reads the image + that data + the astronaut's
  *      vitals, symptoms and earlier photos; offline, a stand-in uses the notes, file
  *      name and pixel colours.
- *   3. Severity is decided by rules here (never greener than Gemini says), e.g. a
+ *   3. Severity is decided by rules here (never greener than the AI says), e.g. a
  *      possible infection with a fever ≥ 38.5 °C is an Alert and recommends SOS.
  * Tab 2 - Ultrasound, guided capture with NO AI diagnosis: step-by-step guide,
  *   pixel-based quality check (too dark / too bright / blurry), auto-tagging.
@@ -20,7 +20,7 @@
 
 import { SKIN_CONFIDENCE_MIN, SKIN_GUIDANCE, SKIN_KEYWORDS, SKIN_LABELS, IMAGE_QUALITY as Q, ULTRASOUND_GUIDES } from '@/data/phase3Data'
 import { CREW_PROFILES, phaseForDay } from '@/data/nasaSpaceflightData'
-import { blobToBase64, callGeminiJson, resolveApiKey } from '@/services/_gemini'
+import { blobToBase64, callGeminiJson, resolveApiKey, STYLE_RULES } from '@/services/_gemini'
 import { createStore, missionTimestamp, newId } from '@/services/_store'
 import { enqueue, listInbox } from '@/services/syncService'
 import type {
@@ -184,7 +184,9 @@ function contextText(c?: PhotoContext): string {
 
 const SKIN_SYSTEM =
   'You are an onboard medical decision-support assistant for astronauts. You give a FIRST LOOK, never a diagnosis. ' +
-  'Be conservative: if unsure, say "unsure". Write short, plain-English steps a non-doctor can follow with a basic spacecraft medical kit. Reply with JSON only.'
+  'Be conservative: if unsure, say "unsure". Write short, plain-English steps a non-doctor can follow with a basic spacecraft medical kit. ' +
+  STYLE_RULES +
+  ' Reply with JSON only.'
 
 async function aiSkinGuess(input: SkinPhotoInput, ai?: AIConfig): Promise<SkinGuess | null> {
   if (!resolveApiKey(ai) || !input.file) return null
@@ -200,7 +202,7 @@ async function aiSkinGuess(input: SkinPhotoInput, ai?: AIConfig): Promise<SkinGu
           st ? `Processed image data: brightness ${st.meanBrightness}/255, sharpness ${st.sharpness}, red pixels ${st.rednessPct ?? '?'}%, dark pixels ${st.darkPct ?? '?'}%, yellow pixels ${st.yellowPct ?? '?'}%.` : '',
           contextText(input.context),
           'Consider the vitals and history: e.g. a red, swollen wound plus fever suggests a spreading infection; a bite plus breathing trouble suggests anaphylaxis.',
-          'Reply JSON: {"label":string,"confidence":0..1,"alternatives":[{"label":string,"confidence":number}],"findings":[short observations of the image],"summary":one sentence,"severity":"nominal"|"caution"|"critical","interimSteps":[up to 5 steps to do now],"sosRecommended":boolean,"reason":why that severity}.',
+          'Reply JSON: {"label":string,"confidence":0..1,"alternatives":[{"label":string,"confidence":number}],"findings":[short observations of the image],"summary":one sentence,"severity":"nominal"|"caution"|"critical","interimSteps":[up to 6 precise steps to do now, each with amounts, durations and frequency],"sosRecommended":boolean,"reason":why that severity}.',
           'Use "unsure" if the image is unclear or not skin. sosRecommended only for a possibly life- or limb-threatening situation.',
         ].filter(Boolean).join('\n'),
       },
@@ -290,7 +292,7 @@ export function judgeSkinSeverity(
   }
   if (aiSeverity && ORDER[aiSeverity] > ORDER[status]) {
     status = aiSeverity
-    reasons.push('Gemini judged this more serious than the rules.')
+    reasons.push('The AI review judged this more serious than the rules.')
   }
   if (aiSos && status === 'critical') sos = true
   if (!reasons.length) reasons.push(`${SKIN_LABELS[label]}: ${status === 'nominal' ? 'routine care.' : 'needs onboard care and monitoring.'}`)
@@ -312,7 +314,7 @@ export async function analyzeSkinPhoto(input: SkinPhotoInput, ai?: AIConfig): Pr
   const g = SKIN_GUIDANCE[guess.label]
   const judged = judgeSkinSeverity(guess.label, input, guess.engine === 'gemini' ? guess.severity : undefined, guess.sos)
   const status: StatusLevel = judged.status
-  if (guess.reason && guess.engine === 'gemini') judged.reasons.push(`Gemini: ${guess.reason}`)
+  if (guess.reason && guess.engine === 'gemini') judged.reasons.push(`AI review: ${guess.reason}`)
   const findings = [...(guess.findings ?? []), ...describeImageStats(input.imageStats)].slice(0, 8)
   const interim = (guess.interimSteps?.length ? guess.interimSteps : g.firstAid).slice(0, 6)
 

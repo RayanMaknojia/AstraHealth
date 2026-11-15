@@ -36,6 +36,7 @@ import { statusStyle } from "./status";
 import { statusOf } from "./status";
 import { Panel, Status } from "./primitives";
 import type { MissionModel } from "./use-mission";
+import { MyRecords } from "./my-records";
 export function More({
   model,
   onLogout,
@@ -68,6 +69,7 @@ export function More({
       <div className="scope-tabs" role="tablist" aria-label="More sections">
         {[
           "Cabin readings",
+          "My records",
           "Past journal entries",
           "Guidance & triage",
           "References",
@@ -82,6 +84,11 @@ export function More({
           </button>
         ))}
       </div>
+      {tab === "My records" && (
+        <div role="tabpanel" aria-label="My records">
+          <MyRecords model={model} />
+        </div>
+      )}
       {tab === "Past journal entries" && (
         <div role="tabpanel" aria-label="Past journal entries">
           <JournalHistory astronautId={model.profile.id} />

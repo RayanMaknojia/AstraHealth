@@ -109,7 +109,7 @@ An ordinary Alert (e.g. 3 short nights) shows the full-screen Critical Health al
 | Skin photo judged an emergency | see the photo table below |
 | Gemini says SOS | only counts when the rules already say Alert (Gemini can escalate, never calm things down) |
 
-A cancelled automatic SOS is not raised again for the same reasons for 60 minutes. The SOS button always sends immediately. Recipients: **AstraHealth Station (Earth medical lab)** and the **ISS** (or "ISS crewmates" when you are on the ISS), plus your crewmates, each with the one-way signal delay. Dispatch is simulated (queued in Mission Control Sync).
+**One automatic SOS per issue.** Each issue (e.g. chest pain, SpO2, a given photo, an AI-flagged fever) is remembered on the device with a count of how often it was detected. Once its automatic SOS was sent or cancelled ("I'm OK"), it is never raised automatically again; rescans only increase the count (shown in More → My records). A *new* issue still opens a countdown. The SOS button always sends immediately. Recipients: **AstraHealth Station (Earth medical lab)** and the **ISS** (or "ISS crewmates" when you are on the ISS), plus your crewmates, each with the one-way signal delay. Dispatch is simulated (queued in Mission Control Sync).
 
 ### Skin photo severity (context-aware)
 | Label | Default | Becomes 🔴 Alert | Also recommends SOS |
@@ -121,6 +121,15 @@ A cancelled automatic SOS is not raised again for the same reasons for 60 minute
 | Bruise, scab, scar, normal | 🟢 | pain ≥ 4/5 → 🟡 | - |
 | Unsure (< 70 % confident) | 🟡 | - | - (sent to the flight surgeon) |
 The same spot flagged earlier raises the colour by one step. Gemini's view can only make it more serious.
+
+### Pop-ups (presentation-friendly)
+- **Toasts** for automatic warnings (status change, trajectory, cabin) appear at most **once every 10 minutes**. Results of something you just did (readings logged, file added/rejected) always show.
+- **Full-screen alerts** (Critical Health, Cabin Emergency) are spaced at least **10 minutes** apart; Radiation Storm (shelter) and SOS are never delayed.
+- **After Confirm**, the same alert is shown again only if it happens again on a **later mission day**, or it gets **worse** (at least 5% further from normal than when confirmed).
+
+### Measurement sources
+- The body scan measures heart rate, temperature, SpO2 and blood pressure only.
+- **Blood sugar** comes only from the **weekly fasting check-in** (or a lab report): one reading every 7 days in the seeded history, and it stays valid for 8 days.
 
 ### Full briefing
 Colours of every data line (last check-in, last 24 h, past 7 days) come from this file. Gemini writes the words; its overall status is never greener than the rules.

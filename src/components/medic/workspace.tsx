@@ -329,6 +329,10 @@ export function Workspace({
                   busy={busy}
                   onReport={controller.report}
                   onPhoto={controller.photoAssessed}
+                  onRecords={() => {
+                    setMoreTab("My records");
+                    go("More");
+                  }}
                   onGuidance={(id) => {
                     setGuidanceTarget(id);
                     setMoreTab("Guidance & triage");
