@@ -12,6 +12,7 @@ import {
 } from "@/services/wellbeingService";
 import { listCheckins } from "@/services/checkinService";
 import type {
+  ScanResult,
   BodySystem,
   DisplayStatus,
   IndicatorId,
@@ -134,14 +135,24 @@ function regionState(r: (typeof regions)[number], model: MissionModel) {
   };
 }
 
+const KPI_LABEL: Record<string, string> = {
+  heart_rate: "Heart rate",
+  body_temp: "Temperature",
+  spo2: "SpO2",
+  systolic: "Blood pressure",
+};
 export function HomeScan({
   model,
   onSelect,
+  onScan,
 }: {
   model: MissionModel;
   onSelect: (system: BodySystem) => void;
+  /** Generates new readings (Python server or browser fallback) while the beam runs. */
+  onScan?: () => Promise<ScanResult | null>;
 }) {
   const [startAt, setStartAt] = useState<number | null>(null);
+  const [scanInfo, setScanInfo] = useState<string>("");
   const [progress, setProgress] = useState(0);
   const [completedAt, setCompletedAt] = useState("");
   useEffect(() => {
@@ -166,7 +177,11 @@ export function HomeScan({
   );
 
   return (
-    <section className="home-scan" aria-label="Body scan">
+    <section
+      className="home-scan"
+      aria-label="Body scan"
+      data-scan-result={scanInfo || undefined}
+    >
       <div className="home-scan-heading">
         <h2>Body scan</h2>
         <span>Latest onboard readings</span>
@@ -239,6 +254,15 @@ export function HomeScan({
           onClick={() => {
             setProgress(0);
             setCompletedAt("");
+            setScanInfo("");
+            if (onScan)
+              void onScan().then((s) => {
+                if (!s) return setScanInfo("Scan readings could not be saved.");
+                const r = s.readings;
+                setScanInfo(
+                  `${s.generator === "python" ? "Python scanner" : "Browser scanner (Python server offline)"}: HR ${r.heart_rate} bpm · ${r.body_temp} °C · SpO2 ${r.spo2}% · BP ${r.systolic}/${r.diastolic}${s.anomaly ? `. ${KPI_LABEL[s.anomaly.kpi] ?? s.anomaly.kpi}: ${s.anomaly.level === "critical" ? "Alert" : "Watch"}` : ""}`,
+                );
+              });
             if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
               setProgress(1);
               setCompletedAt(new Date().toISOString().slice(11, 19) + " UTC");

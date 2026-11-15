@@ -11,11 +11,17 @@ import {
   Radiation,
   Bone,
   Orbit,
-  Globe,
-  Satellite,
-  Navigation2,
+  RefreshCw,
+  Sparkles,
+  ShieldAlert,
 } from "lucide-react";
-import type { BodySystem, HealthIndicator } from "@/types/astronaut";
+import type {
+  AiBriefing,
+  BodySystem,
+  BriefingLine,
+  HealthIndicator,
+  ScanResult,
+} from "@/types/astronaut";
 import { THRESHOLDS } from "@/data/nasaSpaceflightData";
 import {
   ESCALATION_MODE_LABELS,
@@ -25,6 +31,7 @@ import { Button } from "@/components/ui/button";
 import { Panel, Status, Meter } from "./primitives";
 import { statusOf, statusStyle } from "./status";
 import { getDueCheckins, listCheckins } from "@/services/checkinService";
+import { JourneyArt } from "./journey-art";
 import { HomeScan } from "./home-scan";
 import type { MissionModel } from "./use-mission";
 const icons = {
@@ -48,15 +55,17 @@ const vitalIds = [
 ];
 export function TripBar({ model }: { model: MissionModel }) {
   const state = model.missionState;
-  const destination =
+  const destination: {
+    kind: "earth" | "moon" | "mars" | "iss";
+    label: string;
+  } =
     state.plan.destination === "ISS"
-      ? { Icon: Satellite, label: "ISS" }
+      ? { kind: "iss", label: "International Space Station" }
       : state.plan.destination === "EARTH_TRAINING"
-        ? { Icon: Globe, label: "Earth" }
-        : {
-            Icon: state.plan.destination === "MOON" ? Moon : Orbit,
-            label: state.plan.destination === "MOON" ? "Moon" : "Mars",
-          };
+        ? { kind: "earth", label: "Earth" }
+        : state.plan.destination === "MOON"
+          ? { kind: "moon", label: "Moon" }
+          : { kind: "mars", label: "Mars" };
   const progress = Math.max(0, Math.min(1, state.progress));
   return (
     <section
@@ -65,7 +74,7 @@ export function TripBar({ model }: { model: MissionModel }) {
     >
       <div className="trip-route">
         <span className="journey-endpoint" role="img" aria-label="Earth">
-          <Globe size={16} />
+          <JourneyArt kind="earth" />
         </span>
         <div
           className="trip-track"
@@ -95,7 +104,7 @@ export function TripBar({ model }: { model: MissionModel }) {
             role="img"
             aria-label="Spacecraft"
           >
-            <Navigation2 size={14} />
+            <JourneyArt kind="shuttle" />
           </span>
         </div>
         <span
@@ -103,7 +112,7 @@ export function TripBar({ model }: { model: MissionModel }) {
           role="img"
           aria-label={destination.label}
         >
-          <destination.Icon size={16} />
+          <JourneyArt kind={destination.kind} />
         </span>
       </div>
     </section>
@@ -270,30 +279,159 @@ function BriefingText({
       ),
     );
 }
+function engineLabel(ai: AiBriefing) {
+  const t = new Date(ai.createdAt).toISOString().slice(11, 16);
+  return ai.engine === "gemini"
+    ? `AI briefing · ${t} UTC`
+    : `Offline rules · ${t} UTC${ai.fallbackReason ? ` (${ai.fallbackReason})` : ""}`;
+}
+function Lines({ lines }: { lines: BriefingLine[] }) {
+  return (
+    <ul className="briefing-lines">
+      {lines.map((l, n) => (
+        <li key={l.label + n} data-status={l.status}>
+          <span
+            className="briefing-dot"
+            aria-hidden="true"
+            style={{ background: STATUS_COLORS[l.status] }}
+          />
+          <strong>{l.label}</strong>
+          <span
+            className="briefing-line-status"
+            style={{ color: STATUS_COLORS[l.status] }}
+          >
+            {l.status === "nominal"
+              ? "Normal"
+              : l.status === "caution"
+                ? "Watch"
+                : l.status === "critical"
+                  ? "Alert"
+                  : ""}
+          </span>
+          <span className="briefing-line-text">{l.text}</span>
+        </li>
+      ))}
+    </ul>
+  );
+}
+function FullAiBriefing({ ai }: { ai: AiBriefing }) {
+  return (
+    <div className="full-briefing ai-briefing" data-engine={ai.engine}>
+      {ai.sosRecommended && (
+        <div className="risk" style={statusStyle("critical")}>
+          <strong>
+            <ShieldAlert size={15} /> SOS recommended
+          </strong>
+          <p>{ai.sosReason}</p>
+        </div>
+      )}
+      {ai.interimSteps.length > 0 && (
+        <>
+          <h3>Do this now</h3>
+          <ol>
+            {ai.interimSteps.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ol>
+        </>
+      )}
+      <h3>Last check-in{ai.lastCheckin ? ` · ${ai.lastCheckin.when}` : ""}</h3>
+      {ai.sectionNotes?.checkin && <p>{ai.sectionNotes.checkin}</p>}
+      {ai.lastCheckin ? (
+        <Lines lines={ai.lastCheckin.lines} />
+      ) : (
+        <p>No check-in recorded yet.</p>
+      )}
+      <h3>Last 24 hours</h3>
+      {ai.sectionNotes?.last24h && <p>{ai.sectionNotes.last24h}</p>}
+      <Lines lines={ai.last24h} />
+      <h3>Past 7 days</h3>
+      {ai.sectionNotes?.sevenDay && <p>{ai.sectionNotes.sevenDay}</p>}
+      <Lines lines={ai.sevenDay} />
+      {ai.concerns.length > 0 && (
+        <>
+          <h3>Concerns</h3>
+          {ai.concerns.map((c, n) => (
+            <div
+              className="risk"
+              key={c.title + n}
+              style={statusStyle(c.status)}
+            >
+              <strong>{c.title}</strong>
+              <p>{c.detail}</p>
+              {c.action && <p>→ {c.action}</p>}
+            </div>
+          ))}
+        </>
+      )}
+      {ai.recommendations.length > 0 && (
+        <>
+          <h3>Recommended next checks</h3>
+          <ol>
+            {ai.recommendations.map((x) => (
+              <li key={x}>{x}</li>
+            ))}
+          </ol>
+        </>
+      )}
+      <p className="fine-print">
+        {engineLabel(ai)} · Trigger: {ai.trigger} · Based on{" "}
+        {ai.basedOn.readings} readings from the last 7 days
+        {ai.basedOn.uploads ? `, ${ai.basedOn.uploads} photos/uploads` : ""}.
+        Colours come from the health rules; decision support, not diagnosis.
+      </p>
+    </div>
+  );
+}
 export function Briefing({
   model,
   onOpen,
   onBodyMap,
+  onRefresh,
   full = false,
 }: {
   model: MissionModel;
   onOpen?: () => void;
   onBodyMap?: () => void;
+  onRefresh?: () => void;
   full?: boolean;
 }) {
-  const b = model.briefing;
+  const rules = model.briefing;
+  const ai = model.aiBriefing;
+  const b = ai
+    ? {
+        ...rules,
+        overallStatus: ai.overallStatus,
+        headline: ai.headline,
+        plainEnglishSummary: ai.summary,
+      }
+    : rules;
   const allMissing = model.profile.indicators.every(
     (i) => statusOf(i) === "no_data",
   );
+  const outdated =
+    ai && ai.rulesStatusAtCreation !== model.report.overallStatus;
   const alerts = [
-    ...b.environmentAlerts,
-    ...b.emergingRisks.map((r) => r.explanation),
+    ...rules.environmentAlerts,
+    ...rules.emergingRisks.map((r) => r.explanation),
   ];
   return (
     <Panel
       title="Medical briefing"
       className={full ? "briefing-full" : "briefing-compact"}
-      accessory={<span className="meta">Updated {b.lastUpdated}</span>}
+      accessory={
+        <span className="meta" data-testid="briefing-meta">
+          {model.briefingWorking ? (
+            <>
+              <Sparkles size={12} /> Writing briefing…
+            </>
+          ) : ai ? (
+            engineLabel(ai)
+          ) : (
+            `Updated ${rules.lastUpdated}`
+          )}
+        </span>
+      }
     >
       <div className="briefing-heading">
         <h3 style={allMissing ? { color: STATUS_COLORS.no_data } : undefined}>
@@ -328,7 +466,12 @@ export function Briefing({
           }
         />
       </p>
-      {alerts.length > 0 && (
+      {outdated && !model.briefingWorking && (
+        <p className="fine-print" role="status">
+          New readings since this briefing; it will update shortly.
+        </p>
+      )}
+      {alerts.length > 0 && (!ai || full) && (
         <div className="briefing-alerts">
           <h3>Active alerts & trajectory warnings</h3>
           <ul>
@@ -348,6 +491,17 @@ export function Briefing({
             <ArrowRight data-icon="inline-end" />
           </Button>
         )}
+        {onRefresh && (
+          <Button
+            variant="ghost"
+            onClick={onRefresh}
+            disabled={model.briefingWorking}
+            aria-label="Refresh briefing"
+          >
+            <RefreshCw data-icon="inline-start" />
+            {model.briefingWorking ? "Writing…" : "Refresh"}
+          </Button>
+        )}
         {onBodyMap && (
           <Button variant="ghost" onClick={onBodyMap}>
             View Body Map & Countermeasures
@@ -355,15 +509,16 @@ export function Briefing({
           </Button>
         )}
       </div>
-      {full && (
+      {full && ai && <FullAiBriefing ai={ai} />}
+      {full && !ai && (
         <div className="full-briefing">
           <h3>Recommended tool checks</h3>
           <ol>
-            {b.recommendedToolChecks.map((s) => (
+            {rules.recommendedToolChecks.map((s) => (
               <li key={s}>{s}</li>
             ))}
           </ol>
-          {b.emergingRisks.map((r, n) => (
+          {rules.emergingRisks.map((r, n) => (
             <div
               className="risk"
               key={r.indicatorId + n}
@@ -384,12 +539,16 @@ export function Home({
   onPage,
   onBriefing,
   onBodySystem,
+  onScan,
+  onRefreshBriefing,
 }: {
   model: MissionModel;
   onTrend: (id: string) => void;
   onPage: (page: string) => void;
   onBriefing: () => void;
   onBodySystem: (system: BodySystem) => void;
+  onScan?: () => Promise<ScanResult | null>;
+  onRefreshBriefing?: () => void;
 }) {
   const state = model.missionState,
     exposure = state.exposure,
@@ -411,9 +570,13 @@ export function Home({
               />
             ))}
           </section>
-          <Briefing model={model} onOpen={onBriefing} />
+          <Briefing
+            model={model}
+            onOpen={onBriefing}
+            onRefresh={onRefreshBriefing}
+          />
         </div>
-        <HomeScan model={model} onSelect={onBodySystem} />
+        <HomeScan model={model} onSelect={onBodySystem} onScan={onScan} />
       </div>
       <section
         className="exposure-grid compact-exposure"

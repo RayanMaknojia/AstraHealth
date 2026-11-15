@@ -122,7 +122,10 @@ export function VitalChart({
     sources?: string;
   }[] = points.map((p, n) => ({
     ...p,
-    wearable: p.source === "wearable_auto" ? p.value : undefined,
+    wearable:
+      p.source === "wearable_auto" || p.source === "body_scan"
+        ? p.value
+        : undefined,
     manual: [
       "manual_slider",
       "lab_document",
