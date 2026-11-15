@@ -25,7 +25,7 @@ Open the localhost address printed by Vite (it forwards `/api` to the Python ser
 
 **Health database:** readings, scans, briefings, photo assessments, uploads and SOS events are stored in the browser's IndexedDB (`space-medic`). The first login of each astronaut writes 21 days of simulated history; every new reading is appended. Clear site data to reset. Demo logins: `iss_crew` / `2222`, `moon_crew` / `3333`, `mars_crew` / `1111`, and admin `admin` / `0000`.
 
-The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase8.chatgpt.md`.
+The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase9.chatgpt.md`.
 
 ## Anatomical 3D assets
 
@@ -47,6 +47,18 @@ blender --background --python src/components/medic/assets/organs/generate.py
 ```
 
 Three.js is MIT licensed. Lucide icons are ISC licensed. The bundled DM Sans font license is in `src/components/medic/assets/FONT-LICENSE.txt`. The standing-body illustration is the generated asset introduced in Build 1.
+
+## Reference-inspired artwork (Phase 9)
+
+The current Body Map uses `reference-brain.glb`, `reference-heart.glb`, `reference-liver.glb`, `reference-dna.glb` and `reference-leg.glb`. These original CC0 meshes follow the user’s brain, heart, liver, DNA and knee-to-foot bone/muscle references. They are genuine meshes with depth and full horizontal rotation, not photographs flipped on a flat plane. The unshown surfaces are illustrative approximations; these are not exact photo-to-3D reconstructions or clinically validated models. Earlier models remain available in the repository.
+
+Regenerate the current models with:
+
+```bash
+blender --background --python src/components/medic/assets/organs/generate-reference-organs.py
+```
+
+The trip bar uses newly generated transparent Earth, Moon, Mars, ISS and shuttle artwork in `src/components/medic/assets/journey/mission-artwork.png`, inspired by the supplied visual references. `JourneyArt` selects each image through CSS background positioning, without altering the source image. These are generated illustrations, not NASA photographs or downloaded third-party model textures. Destination selection and spacecraft position continue to follow mission state.
 
 ## Data and privacy
 
