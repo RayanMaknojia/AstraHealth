@@ -10,7 +10,7 @@ import type { ProxyOptions } from "vite"
 let warnedNoServer = false
 function apiProxy(): ProxyOptions {
   return {
-    target: process.env.API_TARGET || "http://127.0.0.1:8787",
+    target: process.env.API_TARGET || `http://127.0.0.1:${process.env.API_PORT || "8787"}`,
     changeOrigin: true,
     configure: (proxy) => {
       // Vite adds its own (noisy) error logger after this; keep only ours.
