@@ -7,11 +7,14 @@ import { fileURLToPath } from "node:url";
 import path from "node:path";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// The Python server gets its own port. A PORT set by the terminal, editor or host is
+// meant for the web app; passing it on would put both on the same port.
+const API_PORT = process.env.API_PORT || "8787";
 const children = [];
 
 async function serverRunning() {
   try {
-    const res = await fetch("http://127.0.0.1:8787/api/health", {
+    const res = await fetch(`http://127.0.0.1:${API_PORT}/api/health`, {
       signal: AbortSignal.timeout(800),
     });
     return res.ok;
@@ -32,6 +35,7 @@ function startPython(candidates) {
   const child = spawn(cmd, [path.join("server", "app.py")], {
     cwd: root,
     stdio: "inherit",
+    env: { ...process.env, PORT: API_PORT },
   });
   child.on("error", () => startPython(rest)); // command not found: try the next one
   child.on("exit", (code) => {
@@ -41,7 +45,7 @@ function startPython(candidates) {
   children.push(child);
 }
 
-if (await serverRunning()) console.log("[astrahealth] Python server already running on port 8787.");
+if (await serverRunning()) console.log(`[astrahealth] Python server already running on port ${API_PORT}.`);
 else
   startPython(
     process.platform === "win32" ? ["python", "py", "python3"] : ["python3", "python"],

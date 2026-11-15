@@ -626,6 +626,9 @@ export interface RadiationEvent {
   /** True → show the "Go to shelter" alert. */
   shelterAdvised: boolean
   summary: string
+  /** Real event this is based on (source 'donki'): UTC time and DONKI page. */
+  observedAt?: string
+  link?: string
 }
 
 export interface RadiationSample {
@@ -633,6 +636,10 @@ export interface RadiationSample {
   day: number
   doseRateMSvPerDay: number
   source: 'radlab' | 'simulated'
+  /** For source 'radlab': the real ISS measurement being replayed. */
+  measuredAtUtc?: string
+  absorbedUGyPerH?: number
+  instrument?: string
 }
 
 export interface EnvironmentTick {

@@ -78,8 +78,8 @@ export const SOURCES = {
   marsFacts: { label: 'NASA NSSDC - Mars Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html' },
   moonFacts: { label: 'NASA NSSDC - Moon Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html' },
   osdr: { label: 'NASA Open Science Data Repository (OSDR)', url: 'https://osdr.nasa.gov' },
-  radlab: { label: 'NASA OSDR RadLab', url: 'https://visualization.osdr.nasa.gov/radlab/' },
-  donki: { label: 'NASA DONKI - Space weather (SEP events)', url: 'https://api.nasa.gov' },
+  radlab: { label: 'NASA OSDR RadLab Portal - ISS radiation telemetry', url: 'https://visualization.osdr.nasa.gov/radlab/gui/overview/' },
+  donki: { label: 'NASA DONKI - Space weather (SEP events)', url: 'https://ccmc.gsfc.nasa.gov/tools/DONKI' },
 } as const satisfies Record<string, SourceRef>
 
 // ── NASA HRP: 5 Hazards ────────────────────────────────────────────────────

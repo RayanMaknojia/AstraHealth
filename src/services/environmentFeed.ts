@@ -8,10 +8,14 @@
  *    live DONKI API only when a key is configured; otherwise simulated events,
  *    so the app runs with no Earth link.
  *
- * Values are SIMULATED replays shaped like the public datasets.
+ * ISS (EARTH_ORBIT) radiation replays REAL NASA OSDR RadLab measurements
+ * (DOSTEL2, Dec 2019) and "Trigger solar storm" uses REAL 2024 NASA DONKI
+ * SEP events (see src/data/nasaOpenData.ts). Cabin air, and radiation for
+ * the Moon / Mars / deep space, remain simulated (no public data there).
  */
 
 import { CABIN_STANDARD_LIMITS as L, ENVIRONMENTS, mulberry32 } from '@/data/nasaSpaceflightData'
+import { DONKI_SEP_2024, RADLAB_ISS_INSTRUMENT, radlabSampleAt, ugyPerHourToMSvPerDay } from '@/data/nasaOpenData'
 import type {
   CabinEvaluation,
   CabinParam,
@@ -120,10 +124,20 @@ export function evaluateCabin(reading: CabinReading): CabinEvaluation {
   return { status, params, advisories }
 }
 
-function solarEvent(day: number, envId: EnvironmentType, minuteOfDay: number, source: RadiationEvent['source'] = 'simulated'): RadiationEvent {
+function solarEvent(
+  day: number,
+  envId: EnvironmentType,
+  minuteOfDay: number,
+  source: RadiationEvent['source'] = 'simulated',
+  real?: { eventTime: string; instrument: string | null; link: string },
+): RadiationEvent {
   const rate = SEP_DOSE_RATE_MSV_PER_HOUR[envId]
   const total = round(rate * SOLAR_EVENT_DURATION_HOURS, 1)
+  const basis = real
+    ? ` Based on a real NASA DONKI event observed ${real.eventTime.replace('T', ' ')}${real.instrument ? ` (${real.instrument})` : ''}.`
+    : ''
   return {
+    ...(real ? { observedAt: real.eventTime, link: real.link } : {}),
     id: `sep-${source}-${day.toFixed(3)}`,
     type: 'SEP',
     startTime: `Day ${Math.floor(day)} ${pad2(Math.floor(minuteOfDay / 60))}:${pad2(Math.round(minuteOfDay % 60))}`,
@@ -133,8 +147,8 @@ function solarEvent(day: number, envId: EnvironmentType, minuteOfDay: number, so
     shelterAdvised: rate > 0,
     summary:
       rate > 0
-        ? `Solar particle event: about +${rate} mSv/h here for ~${SOLAR_EVENT_DURATION_HOURS} h (≈${total} mSv unsheltered; storm limit ${L.perStormLimitMSv} mSv). Go to the storm shelter now.`
-        : 'Solar particle event detected; no extra exposure expected on Earth.',
+        ? `Solar particle event: about +${rate} mSv/h here for ~${SOLAR_EVENT_DURATION_HOURS} h (≈${total} mSv unsheltered; storm limit ${L.perStormLimitMSv} mSv). Go to the storm shelter now.${basis}`
+        : `Solar particle event detected; no extra exposure expected on Earth.${basis}`,
   }
 }
 
@@ -149,6 +163,7 @@ export function createEnvironmentFeed(config: EnvironmentFeedConfig): Environmen
   let activeEvent: RadiationEvent | undefined
   let eventTicksLeft = 0
   let timer: ReturnType<typeof setInterval> | null = null
+  let solarTriggers = 0
   const history: CabinReading[] = []
   const HISTORY_TICKS = Math.ceil((24 * 60) / perTick)
 
@@ -192,13 +207,19 @@ export function createEnvironmentFeed(config: EnvironmentFeedConfig): Environmen
     history.push(cabin)
     if (history.length > HISTORY_TICKS) history.splice(0, history.length - HISTORY_TICKS)
 
-    const backgroundPerDay = env.typicalDoseRateMSvPerDay * (1 + noise(0.1))
+    // ISS: replay the real RadLab measurement for this 15-minute step.
+    // Elsewhere: simulated around the environment's typical dose rate.
+    const real = env.id === 'EARTH_ORBIT' ? radlabSampleAt(Math.floor((tick * perTick) / 15)) : undefined
+    const backgroundPerDay = real ? ugyPerHourToMSvPerDay(real.absorbedUGyPerH) : env.typicalDoseRateMSvPerDay * (1 + noise(0.1))
     const eventPerDay = activeEvent ? activeEvent.doseRateMSvPerHour * 24 : 0
     const radiation: RadiationSample = {
       timestamp,
       day,
       doseRateMSvPerDay: round(backgroundPerDay + eventPerDay, 3),
-      source: 'simulated',
+      source: real ? 'radlab' : 'simulated',
+      ...(real
+        ? { measuredAtUtc: real.timestampUtc, absorbedUGyPerH: round(real.absorbedUGyPerH, 1), instrument: RADLAB_ISS_INSTRUMENT }
+        : {}),
     }
     totalDose = round(totalDose + (radiation.doseRateMSvPerDay * perTick) / 1440, 3)
 
@@ -247,7 +268,9 @@ export function createEnvironmentFeed(config: EnvironmentFeedConfig): Environmen
     tickOnce,
     triggerSolarEvent() {
       const absMinute = STREAM_START_MINUTE_OF_DAY + tick * perTick
-      activeEvent = solarEvent(round(state0.missionDay + absMinute / 1440, 4), env.id, absMinute % 1440)
+      // Base the demo storm on a real 2024 NASA DONKI SEP event (cycling).
+      const real = DONKI_SEP_2024.length ? DONKI_SEP_2024[solarTriggers++ % DONKI_SEP_2024.length] : undefined
+      activeEvent = solarEvent(round(state0.missionDay + absMinute / 1440, 4), env.id, absMinute % 1440, real ? 'donki' : 'simulated', real)
       eventTicksLeft = Math.ceil((SOLAR_EVENT_DURATION_HOURS * 60) / perTick)
       return activeEvent
     },

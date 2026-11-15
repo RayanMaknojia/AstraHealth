@@ -83,10 +83,19 @@ function Rating({
         aria-required={required}
         aria-label={label}
         aria-valuetext={
-          value === undefined ? "Not yet provided" : `${value} out of 5`
+          value === undefined
+            ? "Not yet provided. Press Enter to choose 3, or use the arrow keys"
+            : `${value} out of 5`
         }
         onPointerUp={(e) => onChange(Number(e.currentTarget.value))}
         onChange={(e) => onChange(Number(e.target.value))}
+        onKeyDown={(e) => {
+          // Keyboard users: Enter or Space confirms the value shown (e.g. the starting 3).
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onChange(Number(e.currentTarget.value));
+          }
+        }}
       />
       {help && <small>{help}</small>}
     </Field>
@@ -310,7 +319,7 @@ export function Checkin({
   };
   return (
     <div className="revised-checkin">
-      <Panel title="Shirt / watch & latest readings">
+      <Panel title="Wearable readings">
         <p>
           Review the latest HR, BP, SpO₂ and sleep readings. Breathing is shown
           only when a sensor provides it.
