@@ -41,7 +41,7 @@ export function ReportProblem({
     );
   };
   return (
-    <Panel title="Something wrong? Tell Space Medic" className="report-problem">
+    <Panel title="Something wrong? Tell AstraHealth" className="report-problem">
       <p>
         Describe a symptom or injury (scab, bite, rash, cut, infection...), add
         a photo, or attach a lab report. It is checked against your recent
@@ -82,7 +82,7 @@ export function ReportProblem({
           disabled={busy || (!text.trim() && !file)}
         >
           <Send data-icon="inline-start" />
-          {busy ? "Checking…" : "Send to Space Medic"}
+          {busy ? "Checking…" : "Send to AstraHealth"}
         </Button>
       </div>
       {sent && (

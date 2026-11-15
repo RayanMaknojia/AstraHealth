@@ -1,0 +1,24 @@
+{
+  "project": "AstraHealth",
+  "event": "NASA Space Apps Challenge 2026",
+  "challenge": "Create Health Monitoring Software for Astronauts on Space Missions",
+  "siAssisted": true,
+  "nasaBrandingUsed": false,
+  "disclosure": "README.md#use-of-super-intelligence-si",
+  "tools": [
+    { "name": "Claude Code", "vendor": "Anthropic", "type": "coding assistant (LLM)", "usedFor": ["backend services", "data schema and health rules engine", "health database", "Python server", "AI briefing, photo diagnosis and SOS logic", "3D organ generator", "UI changes", "documentation"] },
+    { "name": "OpenAI Codex / ChatGPT", "vendor": "OpenAI", "type": "coding assistant and image generation", "usedFor": ["frontend UI", "earlier Blender organ generators", "journey artwork", "human body figure"] },
+    { "name": "Image generator", "type": "image generation model", "usedFor": ["organ reference images (brain, heart, liver, DNA, leg)"] },
+    { "name": "Gemini API", "vendor": "Google", "type": "LLM at runtime", "usedFor": ["medical briefing text", "skin photo first look", "text/file value extraction"], "fallback": "deterministic offline rules" }
+  ],
+  "artifacts": [
+    { "path": "src/components/medic/assets/human-model.webp", "kind": "image", "siGenerated": true, "visibleWatermark": "SI-generated (Home body scan)", "metadata": "EXIF ImageDescription" },
+    { "path": "src/components/medic/assets/journey/mission-artwork.png", "kind": "image", "siGenerated": true, "visibleWatermark": "SI-generated art (mission header)", "metadata": "PNG tEXt Description/Comment" },
+    { "path": "src/components/medic/assets/organs/source/*.jpg", "kind": "image", "siGenerated": true, "visibleWatermark": "SI-generated 3D (Body Map cards, as model textures)", "metadata": "EXIF ImageDescription" },
+    { "path": "src/components/medic/assets/organs/image-*.glb", "kind": "3d-model", "siGenerated": true, "visibleWatermark": "SI-generated 3D (Body Map cards)", "metadata": "glTF asset.generator, asset.extras.siGenerated" },
+    { "path": "src/**/*.ts, src/**/*.tsx, server/*.py, scripts/*.mjs", "kind": "code", "siGenerated": true, "notes": "Written with SI coding assistants; reviewed and tested by the team" },
+    { "path": "runtime: health readings, scans, cabin feed", "kind": "data", "siGenerated": true, "notes": "Simulated by SI-written code; no real astronaut data" },
+    { "path": "runtime: AI briefing, photo first look", "kind": "text", "siGenerated": true, "visibleLabel": "AI briefing (SI-generated) / AI first look (SI-generated text)" }
+  ],
+  "audio": []
+}

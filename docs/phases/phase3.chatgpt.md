@@ -34,7 +34,7 @@ Backend services, data and health thresholds are consumed by the UI. They are no
 - Added `src/components/medic/organ-systems.tsx`.
 - Updated `body-map.tsx` and `human-scan.tsx` to share system selection with the cards.
 - Added responsive card and motion styling in `src/index.css`.
-- Marked the completed task in `PROJECT_PLAN.md`.
+- Marked the completed task in `docs/PROJECT_PLAN.md`.
 
 ## Checks
 

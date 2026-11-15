@@ -1,5 +1,5 @@
 """
-Space Medic local server (Python standard library only, no pip installs).
+AstraHealth local server (Python standard library only, no pip installs).
 
     python server/app.py            # listens on http://127.0.0.1:8787
 
@@ -46,9 +46,10 @@ def load_env_file(path: Path) -> None:
 
 load_env_file(HERE / ".env")
 PORT = int(os.environ.get("PORT", "8787"))
-MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", "gemini-flash-latest,gemini-flash-lite-latest").split(",") if m.strip()]
-TIMEOUT = float(os.environ.get("GEMINI_TIMEOUT_SECONDS", "15"))  # per attempt
-DEADLINE = float(os.environ.get("GEMINI_DEADLINE_SECONDS", "35"))  # whole request (browser waits 45 s)
+MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", "gemini-flash-lite-latest,gemini-flash-latest").split(",") if m.strip()]
+TIMEOUT = float(os.environ.get("GEMINI_TIMEOUT_SECONDS", "10"))  # per attempt (text)
+IMAGE_TIMEOUT = float(os.environ.get("GEMINI_IMAGE_TIMEOUT_SECONDS", "25"))  # per attempt (with an image)
+DEADLINE = float(os.environ.get("GEMINI_DEADLINE_SECONDS", "40"))  # whole request (browser waits 45 s)
 SKIP_FAILED_SECONDS = 300  # a model that timed out / errored is skipped for 5 minutes
 _bad_until: dict[str, float] = {}
 
@@ -92,6 +93,7 @@ def call_gemini(parts: list[dict], system: str | None, temperature: float) -> di
         messages.append({"role": "system", "content": system})
     messages.append({"role": "user", "content": to_openai_content(parts)})
     last_error = "unknown"
+    per_attempt = IMAGE_TIMEOUT if any(isinstance(p.get("inline_data"), dict) for p in parts) else TIMEOUT
     start = time.monotonic()
     now = time.time()
     healthy = [m for m in MODELS if _bad_until.get(m, 0) <= now]
@@ -112,7 +114,7 @@ def call_gemini(parts: list[dict], system: str | None, temperature: float) -> di
                 "authorization": f"Bearer {key}",
             })
             try:
-                with urllib.request.urlopen(req, timeout=min(TIMEOUT, remaining)) as res:
+                with urllib.request.urlopen(req, timeout=min(per_attempt, remaining)) as res:
                     data = json.loads(res.read().decode())
                 text = data["choices"][0]["message"]["content"] or ""
                 _bad_until.pop(model, None)
@@ -136,7 +138,7 @@ def call_gemini(parts: list[dict], system: str | None, temperature: float) -> di
 
 
 class Handler(BaseHTTPRequestHandler):
-    server_version = "SpaceMedic/1.0"
+    server_version = "AstraHealth/1.0"
 
     def log_message(self, fmt, *args):  # quieter console: one line per request
         sys.stderr.write("[server] " + (fmt % args) + "\n")
@@ -188,7 +190,14 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(400, {"ok": False, "error": "parts_required"})
                 return
             temperature = body.get("temperature", 0.2)
+            started = time.monotonic()
             result = call_gemini(parts, body.get("system"), float(temperature) if isinstance(temperature, (int, float)) else 0.2)
+            took = time.monotonic() - started
+            if result.get("ok"):
+                sys.stderr.write(f"[server] AI ok: {result.get('model')} in {took:.1f}s\n")
+            else:
+                hint = " (rate limit / quota: wait a minute or check your key's quota)" if "429" in str(result.get("error")) else ""
+                sys.stderr.write(f"[server] AI unavailable after {took:.1f}s: {result.get('error')}{hint}. The app used offline rules.\n")
             self._send(200, result)
         else:
             self._send(404, {"ok": False, "error": "not_found"})
@@ -196,7 +205,7 @@ class Handler(BaseHTTPRequestHandler):
 
 def main() -> None:
     httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"Space Medic server on http://127.0.0.1:{PORT}  (Gemini: {'on' if api_key() else 'off - offline rules only'})", flush=True)
+    print(f"AstraHealth server on http://127.0.0.1:{PORT}  (Gemini: {'on' if api_key() else 'off - offline rules only'})", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:

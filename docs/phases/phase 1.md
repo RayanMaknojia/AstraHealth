@@ -4,7 +4,7 @@
 **Branch:** `claude/clever-bardeen-mn9gw6`
 **Status:** Done. Parallel execution with Codex can start.
 
-Phase 1 locks the shared schema in `src/types/astronaut.ts`. That file is the agreement between the backend logic (Claude Code) and the UI (Codex). It now covers `PROJECT_PLAN.md` v2.0 plus the team reference doc `astronaut_health_monitor_plan.md`.
+Phase 1 locks the shared schema in `src/types/astronaut.ts`. That file is the agreement between the backend logic (Claude Code) and the UI (Codex). It now covers `docs/PROJECT_PLAN.md` v2.0 plus the team reference doc `docs/astronaut_health_monitor_plan.md`.
 
 **Codex should start from this branch** (or after it is merged into `main`). Older copies of the schema are out of date.
 
@@ -66,7 +66,7 @@ Mission control (admin) creates astronaut accounts; astronauts log in with name 
 | `mars_crew` | Flying to Mars, day 45 | Watch | Act now, then report |
 | `moon_crew` | Moon base, day 21 | Alert | Contact ground |
 
-### `PROJECT_PLAN.md`
+### `docs/PROJECT_PLAN.md`
 - Schema section describes v2.1.
 - New Phase 2 tasks listed for Claude Code.
 - "UI implications" note for Codex: environment switcher becomes a trip bar/slider, grey for missing data, SpO2 tile, login screen, shelter banner. Codex's task list was left as written.
