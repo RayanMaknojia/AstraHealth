@@ -242,3 +242,9 @@ Phase 6 ChatGPT fixes (see phases/phase6.chatgpt.md):
 [x] Link the third physical-exam option to its matching More guidance and add all seven examination checklists with Back to Check-in controls.
 [x] Preserve the in-memory form draft across guidance navigation and reset it only after successful submission, including reaction/photo state.
 [x] Verify build/lint, required-field validation, seven guidance round trips, successful reset, private journal separation and 20 responsive page checks with no console errors/warnings. Backend files remain unchanged.
+
+
+Phase 7 ChatGPT presentation updates (see phases/phase7.chatgpt.md):
+[x] Fix red required-mark placement and stability while preserving validation behavior; compact Home vital cards without losing bold values (`533874c`).
+[x] Implement the approved Home prototype with briefing below the vitals, aligned scan height and matching 12 px vertical gaps above the briefing and exposure row (`b1b96b2`).
+[x] Record implementation scope, prototype approval, verification and commit references in the phases folder. This phase-note commit changes documentation only.
