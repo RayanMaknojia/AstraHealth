@@ -12,6 +12,7 @@ import {
 } from "@/services/wellbeingService";
 import { listCheckins } from "@/services/checkinService";
 import type {
+  ScanResult,
   BodySystem,
   DisplayStatus,
   IndicatorId,
@@ -134,14 +135,25 @@ function regionState(r: (typeof regions)[number], model: MissionModel) {
   };
 }
 
+const KPI_LABEL: Record<string, string> = {
+  heart_rate: "Heart rate",
+  body_temp: "Temperature",
+  spo2: "SpO2",
+  systolic: "Blood pressure",
+  blood_sugar: "Blood sugar",
+};
 export function HomeScan({
   model,
   onSelect,
+  onScan,
 }: {
   model: MissionModel;
   onSelect: (system: BodySystem) => void;
+  /** Generates new readings (Python server or browser fallback) while the beam runs. */
+  onScan?: () => Promise<ScanResult | null>;
 }) {
   const [startAt, setStartAt] = useState<number | null>(null);
+  const [scanInfo, setScanInfo] = useState<string>("");
   const [progress, setProgress] = useState(0);
   const [completedAt, setCompletedAt] = useState("");
   useEffect(() => {
@@ -239,6 +251,15 @@ export function HomeScan({
           onClick={() => {
             setProgress(0);
             setCompletedAt("");
+            setScanInfo("");
+            if (onScan)
+              void onScan().then((s) => {
+                if (!s) return setScanInfo("Scan readings could not be saved.");
+                const r = s.readings;
+                setScanInfo(
+                  `${s.generator === "python" ? "Python scanner" : "Browser scanner (Python server offline)"}: HR ${r.heart_rate} bpm · ${r.body_temp} °C · SpO2 ${r.spo2}% · BP ${r.systolic}/${r.diastolic} · glucose ${r.blood_sugar} mg/dL${s.anomaly ? `. ${KPI_LABEL[s.anomaly.kpi] ?? s.anomaly.kpi}: ${s.anomaly.level === "critical" ? "Alert" : "Watch"}` : ""}`,
+                );
+              });
             if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
               setProgress(1);
               setCompletedAt(new Date().toISOString().slice(11, 19) + " UTC");
@@ -256,10 +277,21 @@ export function HomeScan({
           {complete
             ? `Scan complete · ${completedAt}`
             : startAt !== null
-              ? "Reading latest data from feet to head"
+              ? onScan
+                ? "Taking new readings from feet to head"
+                : "Reading latest data from feet to head"
               : "Ready when you are"}
         </p>
-        <small>Visual review of existing data, not a diagnostic sensor.</small>
+        {scanInfo && (
+          <small className="home-scan-result" data-testid="scan-result">
+            {scanInfo}
+          </small>
+        )}
+        <small>
+          {onScan
+            ? "Simulated scanner readings, saved to your health record. Not a diagnostic sensor."
+            : "Visual review of existing data, not a diagnostic sensor."}
+        </small>
       </div>
     </section>
   );

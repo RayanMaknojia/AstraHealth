@@ -133,6 +133,11 @@ export const SKIN_LABELS: Record<SkinLabel, string> = {
   burn: 'Burn',
   bruise: 'Bruise',
   abrasion: 'Abrasion (scrape)',
+  bite: 'Bite or sting',
+  scab: 'Scab (healing wound)',
+  scar: 'Scar',
+  infection: 'Possible infection',
+  rash: 'Rash or skin reaction',
   normal: 'Normal skin',
   unsure: 'Unsure',
 }
@@ -143,6 +148,11 @@ export const SKIN_KEYWORDS: Record<Exclude<SkinLabel, 'unsure'>, string[]> = {
   burn: ['burn', 'scald', 'hot', 'heater', 'blister', 'thermal'],
   bruise: ['bruise', 'bump', 'hit', 'knock', 'contusion', 'purple'],
   abrasion: ['scrape', 'graze', 'abrasion', 'rub', 'friction', 'scuff'],
+  bite: ['bite', 'sting', 'insect', 'bug', 'mosquito', 'spider', 'tick', 'animal'],
+  scab: ['scab', 'crust', 'healing', 'dried'],
+  scar: ['scar', 'old wound', 'keloid', 'healed'],
+  infection: ['infect', 'pus', 'swollen', 'swelling', 'warm', 'red streak', 'abscess', 'oozing', 'cellulitis'],
+  rash: ['rash', 'itch', 'hives', 'eczema', 'dermatitis', 'allerg', 'spots', 'bumps'],
   normal: ['normal', 'healthy', 'baseline', 'clear', 'checkup'],
 }
 
@@ -166,6 +176,31 @@ export const SKIN_GUIDANCE: Record<SkinLabel, { status: StatusLevel; firstAid: s
     status: 'caution',
     firstAid: ['Rinse with saline and remove debris.', 'Apply antibiotic ointment from the kit.', 'Cover with a breathable dressing; change daily.'],
     escalateWhen: ['Debris you can’t remove', 'Signs of infection', 'Not healing after 5 days'],
+  },
+  bite: {
+    status: 'caution',
+    firstAid: ['Wash with soap and water.', 'Cold pack for 10 minutes to reduce swelling.', 'Antihistamine or hydrocortisone cream from the kit for itching.', 'Mark the edge of any redness with a pen to see if it spreads.'],
+    escalateWhen: ['Trouble breathing, lip or tongue swelling, or dizziness (allergic reaction - emergency)', 'Redness spreading past the pen mark', 'Fever or red streaks'],
+  },
+  scab: {
+    status: 'nominal',
+    firstAid: ['Leave the scab in place; don’t pick it.', 'Keep it clean and dry; a thin layer of ointment stops cracking.', 'Cover if it rubs on clothing or equipment.'],
+    escalateWhen: ['Pus, warmth or spreading redness around it', 'Not smaller after 7 days'],
+  },
+  scar: {
+    status: 'nominal',
+    firstAid: ['No treatment needed.', 'Moisturise; protect from rubbing.', 'Re-photograph if it changes colour, size or becomes painful.'],
+    escalateWhen: ['A scar that opens, grows, bleeds or becomes painful'],
+  },
+  infection: {
+    status: 'caution',
+    firstAid: ['Wash hands, then clean the area with saline.', 'Mark the edge of the redness with a pen and note the time.', 'Cover with a clean dressing; change it twice a day.', 'Take your temperature now and again in 4 hours.', 'Tell the crew medical officer - antibiotics may be needed (check allergies).'],
+    escalateWhen: ['Fever ≥ 38.5 °C, chills or fast heart rate (possible spreading infection - emergency)', 'Red streaks or redness spreading past the pen mark', 'Severe pain, or skin turning dark or numb'],
+  },
+  rash: {
+    status: 'caution',
+    firstAid: ['Avoid the suspected trigger (new soap, gloves, dust, food).', 'Cool compress; hydrocortisone cream from the kit.', 'Antihistamine tablet if itchy (check drowsiness before tasks).'],
+    escalateWhen: ['Rash with trouble breathing, face swelling or dizziness (emergency)', 'Blisters, peeling or rash in the mouth or eyes', 'Rash with fever'],
   },
   normal: {
     status: 'nominal',

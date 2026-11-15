@@ -44,6 +44,7 @@ export const MODALITY_LABELS: Record<DataModality, string> = {
   ultrasound_image: 'Medical image',
   voice_log: 'Voice log',
   environment_feed: 'Environment sensor',
+  body_scan: 'Body scan',
 }
 
 // ── Vocabulary ─────────────────────────────────────────────────────────────

@@ -26,6 +26,8 @@ import { nextScheduledCheckin, visibleSchedule } from "./checkin-schedule";
 import { ReactionTest } from "./reaction-test";
 import type { MissionModel } from "./use-mission";
 import { PhotoCheck } from "./photo-check";
+import { ReportProblem } from "./report-problem";
+import type { PhotoRecord } from "@/types/astronaut";
 import { statusStyle } from "./status";
 import { EXAM_GUIDES, type ExamGuideId } from "./exam-guidance";
 import { notify } from "./use-mission";
@@ -96,12 +98,16 @@ export function Checkin({
   busy,
   onJournalHistory,
   onGuidance,
+  onReport,
+  onPhoto,
 }: {
   model: MissionModel;
   save: (input: SaveInput) => Promise<boolean>;
   busy: boolean;
   onJournalHistory: () => void;
   onGuidance: (id: ExamGuideId) => void;
+  onReport?: (text: string, file?: File | null) => Promise<void>;
+  onPhoto?: (record: PhotoRecord) => void;
 }) {
   const profile = model.profile;
   const suggested = nextScheduledCheckin(profile)?.slot ?? "morning";
@@ -296,7 +302,9 @@ export function Checkin({
                   ? "Wearable · simulated"
                   : i.history.at(-1)?.source === "manual_slider"
                     ? "Manual"
-                    : "Latest profile reading"}
+                    : i.history.at(-1)?.source === "body_scan"
+                      ? "Body scan · simulated"
+                      : "Latest profile reading"}
               </small>
             </div>
           ))}
@@ -317,6 +325,13 @@ export function Checkin({
           </p>
         )}
       </Panel>
+      {onReport && (
+        <ReportProblem
+          busy={busy}
+          onReport={onReport}
+          onPhoto={() => setPhotoOpen(true)}
+        />
+      )}
       <div className="scope-tabs" role="tablist" aria-label="Check-in cadence">
         {(["morning", "weekly", "monthly"] as CheckinSlot[])
           .filter(
@@ -772,6 +787,7 @@ export function Checkin({
         onClose={() => setPhotoOpen(false)}
         model={model}
         bodyLocation={region}
+        onResult={onPhoto}
       />
     </div>
   );

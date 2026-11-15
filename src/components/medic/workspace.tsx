@@ -16,7 +16,8 @@ import {
   formatDelay,
   ESCALATION_MODE_LABELS,
 } from "@/services/healthEvaluator";
-import { confirmOverride, raiseSos, getBanner } from "@/services/alertService";
+import { confirmOverride, getBanner } from "@/services/alertService";
+import { formatEta, sosRecipients } from "@/services/emergencyService";
 import { Switch } from "@/components/ui/switch";
 import { Button } from "@/components/ui/button";
 import {
@@ -37,6 +38,7 @@ import { MissionClock } from "./mission-clock";
 import { Home, Briefing, TripBar } from "./home";
 import type { ExamGuideId } from "./exam-guidance";
 import { useMission, notify } from "./use-mission";
+import type { PendingSos } from "./use-mission";
 import { DemoControls } from "./demo-controls";
 const Checkin = lazy(() =>
   import("./checkin").then((m) => ({ default: m.Checkin })),
@@ -76,6 +78,76 @@ const descriptions: Record<string, string> = {
   Trends: "Compare actual readings, source, baseline and changes over time.",
   More: "Cabin conditions and guidance for NASA’s five spaceflight hazards.",
 };
+function SosCountdown({
+  pending,
+  recipients,
+  onCancel,
+  onSend,
+}: {
+  pending: PendingSos;
+  recipients: ReturnType<typeof sosRecipients>;
+  onCancel: () => void;
+  onSend: () => void;
+}) {
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const t = window.setInterval(() => setNow(Date.now()), 250);
+    return () => window.clearInterval(t);
+  }, []);
+  const left = Math.max(0, Math.ceil((pending.endsAt - now) / 1000));
+  const a = pending.assessment;
+  return (
+    <Dialog open onOpenChange={() => {}}>
+      <DialogContent
+        className="critical-dialog sos-countdown"
+        showCloseButton={false}
+      >
+        <DialogTitle>Emergency: sending SOS in {left} s</DialogTitle>
+        <DialogDescription>
+          {pending.trigger}: this looks too serious for onboard care alone.
+        </DialogDescription>
+        <ShieldAlert className="override-icon" />
+        <h3>Why</h3>
+        <ul>
+          {a.reasons.map((r) => (
+            <li key={r}>{r}</li>
+          ))}
+        </ul>
+        {a.interimSteps.length > 0 && (
+          <>
+            <h3>Do this now</h3>
+            <ol>
+              {a.interimSteps.map((x) => (
+                <li key={x}>{x}</li>
+              ))}
+            </ol>
+          </>
+        )}
+        <h3>Will be alerted</h3>
+        <ul>
+          {recipients.map((r) => (
+            <li key={r.id}>
+              {r.name}: arrives in {formatEta(r.etaSeconds)}
+            </li>
+          ))}
+        </ul>
+        <div className="override-actions">
+          <Button variant="outline" onClick={onCancel}>
+            I&apos;m OK, cancel
+          </Button>
+          <Button variant="destructive" onClick={onSend}>
+            <ShieldAlert data-icon="inline-start" />
+            Send SOS now
+          </Button>
+        </div>
+        <p className="fine-print">
+          If nobody answers, the SOS is sent automatically. Simulated dispatch:
+          messages are queued in Mission Control Sync, no real emergency call.
+        </p>
+      </DialogContent>
+    </Dialog>
+  );
+}
 export function Workspace({
   initialProfile,
   onLogout,
@@ -126,14 +198,9 @@ export function Workspace({
     return () => window.clearInterval(timer);
   }, [refresh]);
   const sos = () => {
-    raiseSos({
-      astronautId: model.profile.id,
-      name: model.profile.name,
-      location: model.missionState.phase.name,
-      missionDay: model.profile.missionDay,
-    });
-    refresh();
+    void controller.sendSosNow("manual");
   };
+  const recipients = sosRecipients(model.missionState);
   return (
     <div className="workspace">
       <aside className="mission-sidebar">
@@ -247,6 +314,10 @@ export function Workspace({
                   setBodySystem(s);
                   go("Body Map");
                 }}
+                onScan={controller.scan}
+                onRefreshBriefing={() =>
+                  void controller.refreshBriefing("Refresh")
+                }
               />
             )}{" "}
             {checkinOpened && (
@@ -256,6 +327,8 @@ export function Workspace({
                   model={model}
                   save={saveCheckin}
                   busy={busy}
+                  onReport={controller.report}
+                  onPhoto={controller.photoAssessed}
                   onGuidance={(id) => {
                     setGuidanceTarget(id);
                     setMoreTab("Guidance & triage");
@@ -322,6 +395,7 @@ export function Workspace({
           <Briefing
             model={model}
             full
+            onRefresh={() => void controller.refreshBriefing("Refresh")}
             onBodyMap={() => {
               setBriefingOpen(false);
               go("Body Map");
@@ -329,7 +403,15 @@ export function Workspace({
           />
         </SheetContent>
       </Sheet>
-      <Dialog open={!!active} onOpenChange={() => {}}>
+      {model.pendingSos && (
+        <SosCountdown
+          pending={model.pendingSos}
+          recipients={recipients}
+          onCancel={controller.cancelSos}
+          onSend={() => void controller.sendSosNow("auto")}
+        />
+      )}
+      <Dialog open={!!active && !model.pendingSos} onOpenChange={() => {}}>
         <DialogContent className="critical-dialog" showCloseButton={false}>
           <DialogTitle>{active?.title}</DialogTitle>
           <DialogDescription>
@@ -348,6 +430,21 @@ export function Workspace({
                   <li key={s}>{s}</li>
                 ))}
               </ol>
+              {active.kind === "sos" && (
+                <>
+                  <h3>SOS sent to</h3>
+                  <ul data-testid="sos-recipients">
+                    {(model.lastSos?.overrideId === active.id
+                      ? model.lastSos.recipients
+                      : recipients
+                    ).map((r) => (
+                      <li key={r.id}>
+                        {r.name}: arrives in {formatEta(r.etaSeconds)}
+                      </li>
+                    ))}
+                  </ul>
+                </>
+              )}
               <p>{ESCALATION_MODE_LABELS[model.report.escalationMode]}</p>
               <div className="override-actions">
                 <Button
