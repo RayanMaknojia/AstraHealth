@@ -4,6 +4,11 @@ The original Blender generator generate.py and the generated brain.glb,
 heart.glb, liver.glb, dna.glb, bone.glb and musculoskeletal.glb in this directory are dedicated
 to the public domain under CC0 1.0 Universal.
 
+The original generate-reference-organs.py generator and reference-brain.glb,
+reference-heart.glb, reference-liver.glb, reference-dna.glb and reference-leg.glb
+are likewise dedicated to the public domain under CC0 1.0 Universal.
+The single-view user references guided appearance; no third-party mesh was copied.
+
 To the extent possible under law, the authors waive all copyright and
 related rights in these original anatomical illustration assets.
 The assets are provided without warranty and are not clinically validated.
