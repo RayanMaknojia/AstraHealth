@@ -195,4 +195,16 @@ Codex Tasks (Movie-Grade Spacecraft HUD, Interactive Body Map & Demo Controls)
 [x] Add Mission Control Demo Bar in header (+15m Wearable Sync, Trigger Solar Flare Spike, Test Valid Ultrasound vs. Invalid File) for live hackathon judging
 
 
-UI MVP integration (Codex): login and admin account creation / mission-date editing; shared mission state; Home, Check-in, Body Map, Trends, Streaks checklist, More, briefing, timeline; live wearable and cabin subscriptions; demo anomalies and normalized-file ingestion; confirmable critical-health / solar-shelter overlays. Phase 3 pages remain explicit Coming soon views. Services, types, data, and health thresholds were not edited.
+Final UI scope revision (Codex, integrated with Claude Phase 3 backend):
+[x] Merge latest main into codex/space-medic-home-redesign; preserve backend services, types, data, and health thresholds.
+[x] Consolidate navigation into Home, Check-in, Body Map, Trends, and More; remove standalone Countermeasures, Photo Check, and Mission Timeline routes.
+[x] Compact Home journey, next-check-in reminder and exposure row; enlarge typography; consolidate alerts into the chart-free briefing with full drawer.
+[x] Move interactive anatomical scan and countermeasures into Body Map, with keyboard selection, explicit status labels, threshold references, and pause/resume; keep graphs exclusively in Trends.
+[x] Wire persisted scheduled check-ins, wearable review/manual fallback, daily basics, weekly fasting glucose/body mass/food/hydration and actual 60-second reaction test, and extended guided exams.
+[x] Keep symptom/exam image previews temporary; persist the private journal using the device-only journal service, separate from clinical ingestion.
+[x] Add 1D/7D/30D/mission Trends with units and wearable/manual/synthetic source distinctions.
+[x] Expand cabin readings and wire cabin summaries, air-versus-symptoms helper, five NASA hazards, triage, procedures, medications, and references.
+[x] Integrate backend-confirmed critical overrides, SOS and communication status.
+[x] Verify TypeScript, ESLint, production build, persisted check-ins, journal/image privacy boundaries, timed reaction test, extended exams, and all five pages at 1440/834/390/320px without horizontal overflow.
+
+Browser verification used the offline demo. External Google Fonts requests can fail in the cloud network; the bundled font remains available. Clinical reference rules and simulated readings are supplied by the existing backend. Image previews are local only and are not analyzed or uploaded.

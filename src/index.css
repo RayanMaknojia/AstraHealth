@@ -4068,3 +4068,1183 @@ body:has(.medic-app) {
     font-size: 10px;
   }
 }
+
+/* Final scope revision — one job per page, readable at arm's length. */
+.medic-app {
+  font-size: 15px;
+}
+.workspace .meta,
+.workspace small,
+.admin-shell small {
+  font-size: 13px;
+  color: #aec2cf;
+}
+.workspace [data-slot="button"],
+.admin-shell [data-slot="button"] {
+  font-size: 14px;
+  min-height: 42px;
+}
+.workspace [data-slot="field-label"],
+.admin-shell [data-slot="field-label"] {
+  font-size: 15px;
+}
+.workspace .med-panel p,
+.workspace .med-panel li {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #c4d3dc;
+}
+.workspace .panel-heading h2 {
+  font-size: 20px;
+  font-weight: 600;
+}
+.workspace .panel-heading > .meta {
+  font-size: 13px;
+}
+.workspace .page-title p {
+  font-size: 15px;
+}
+.workspace .fine-print {
+  font-size: 13px !important;
+  line-height: 1.65;
+}
+.workspace .check-label {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.workspace .mission-sidebar nav button {
+  font-size: 15px;
+}
+.workspace .health-status {
+  font-size: 12px !important;
+  padding: 4px 7px !important;
+  line-height: 1.3;
+}
+.workspace .earth-delay,
+.workspace .demo-toggle {
+  font-size: 13px;
+}
+.workspace .mission-footer {
+  font-size: 11px;
+}
+.workspace .last-reading {
+  font-size: 12px !important;
+  color: #a7bdca !important;
+}
+.workspace .vital-label {
+  font-size: 12px;
+  letter-spacing: 0;
+  text-transform: none;
+  white-space: normal;
+  line-height: 1.4;
+}
+.workspace .vital-bottom > span:last-child:not(.health-status) {
+  font-size: 11px;
+}
+.workspace .vital-value small {
+  font-size: 13px;
+}
+.workspace .vital-value {
+  font-size: 30px;
+}
+.workspace .vital-tile {
+  padding: 16px 13px;
+  background: #111e28;
+}
+.workspace input:not([type="checkbox"]):not([type="range"]),
+.workspace select,
+.workspace textarea {
+  font-size: 15px;
+}
+.workspace input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+}
+.workspace .med-panel details > summary {
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: 500;
+  padding: 12px 0;
+}
+.workspace .med-panel details > p {
+  margin-top: 12px;
+}
+.scope-tabs,
+.timeframe-toggle {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-bottom: 20px;
+}
+.scope-tabs > button,
+.timeframe-toggle > button {
+  padding: 11px 16px;
+  border: 1px solid #3c5361;
+  background: #0d1924;
+  border-radius: 6px;
+  color: #c2d4df;
+  font-size: 15px;
+  min-height: 44px;
+}
+.scope-tabs > button[aria-selected="true"],
+.timeframe-toggle > button[aria-pressed="true"] {
+  background: #183a3e;
+  border-color: var(--primary);
+  color: #aaf1e9;
+}
+.scope-tabs > button:focus-visible,
+.timeframe-toggle > button:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 3px;
+}
+.scope-tabs {
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
+}
+.revised-home .compact-journey {
+  min-height: 0;
+  padding: 15px 20px !important;
+  gap: 15px;
+  margin-bottom: 16px;
+  cursor: default;
+}
+.compact-journey-label {
+  display: flex;
+  gap: 14px;
+  align-items: baseline;
+  flex-wrap: wrap;
+}
+.compact-journey-label > strong {
+  font-size: 27px;
+  line-height: 1.15;
+  letter-spacing: -0.7px;
+  color: #f1f5f7;
+  font-variant-numeric: tabular-nums;
+}
+.compact-journey-label > span {
+  font-size: 15px;
+  color: #c4d8e1;
+}
+.compact-journey-label > small {
+  margin-left: auto;
+  font-size: 13px;
+}
+.compact-journey .journey-endpoint {
+  font-size: 23px !important;
+}
+.compact-journey .trip-track {
+  height: 4px;
+}
+.compact-journey .journey-spacecraft > span {
+  font-size: 25px;
+}
+.compact-checkin {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  justify-content: space-between;
+  background: #182b2e;
+  border: 1px solid #355258;
+  border-radius: 7px;
+  padding: 14px 18px;
+  margin-bottom: 20px;
+}
+.compact-checkin > p {
+  font-size: 15px;
+  line-height: 1.65;
+  margin: 0;
+}
+.compact-checkin > p strong {
+  font-weight: 550;
+  color: #d8eee9;
+}
+.compact-checkin > p span {
+  color: #bbd0d3;
+}
+.compact-checkin [data-slot="button"] {
+  flex-shrink: 0;
+}
+.revised-home .revised-vitals {
+  margin-bottom: 20px;
+}
+.revised-home .briefing-compact {
+  padding: 22px;
+  background: #111e28;
+}
+.briefing-compact .briefing-summary {
+  display: -webkit-box;
+  -webkit-line-clamp: 5;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  line-height: 1.75 !important;
+  font-size: 16px !important;
+  margin-bottom: 15px !important;
+  max-width: 95ch;
+}
+.briefing-full .briefing-summary {
+  font-size: 16px !important;
+  line-height: 1.75;
+}
+.briefing-compact .briefing-heading h3,
+.briefing-full .briefing-heading h3 {
+  font-size: 18px;
+  font-weight: 500;
+}
+.briefing-alerts {
+  border-top: 1px solid #314754;
+  padding-top: 16px;
+  margin-top: 16px;
+}
+.briefing-alerts h3 {
+  font-size: 16px;
+  font-weight: 550;
+}
+.briefing-alerts ul {
+  margin-bottom: 16px;
+}
+.briefing-alerts li {
+  font-size: 14px !important;
+}
+.briefing-escalation {
+  color: #c4d8e3 !important;
+  margin-top: 14px !important;
+}
+.briefing-actions {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 18px;
+}
+.briefing-drawer {
+  width: 740px !important;
+  max-width: 100vw !important;
+}
+.briefing-drawer .med-panel {
+  padding: 15px;
+  border: 0;
+  background: transparent;
+}
+.revised-home .compact-exposure {
+  margin-bottom: 20px;
+}
+.compact-exposure > div {
+  padding: 15px 18px;
+  gap: 12px;
+}
+.compact-exposure h3 {
+  font-size: 14px;
+}
+.compact-exposure strong {
+  font-size: 29px;
+  line-height: 1.4;
+}
+.compact-exposure section > span {
+  font-size: 13px;
+  margin-bottom: 6px;
+}
+.compact-exposure .med-meter {
+  margin-top: 8px;
+}
+.revised-body-map {
+  grid-template-columns: minmax(300px, 1fr) minmax(0, 1.25fr);
+  gap: 24px;
+  align-items: start;
+}
+.interactive-anatomy.human-scan-panel {
+  display: flex;
+  gap: 0;
+  overflow: visible;
+  padding: 21px;
+}
+.interactive-anatomy .scan-panel-heading h2 {
+  font-size: 20px;
+}
+.interactive-anatomy .scan-panel-heading > span {
+  font-size: 13px;
+}
+.interactive-anatomy .human-scan-stage {
+  height: 490px;
+  min-height: 0;
+  flex: none;
+  width: 100%;
+  margin: 16px 0;
+}
+.interactive-anatomy .human-scan-stage img {
+  height: 100%;
+  max-height: none;
+  min-height: 0;
+}
+.anatomy-hotspots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.anatomy-zone {
+  cursor: pointer;
+  outline: 0;
+}
+.anatomy-zone:hover path,
+.anatomy-zone:focus-visible path {
+  fill-opacity: 0.35;
+  stroke-width: 2.2;
+}
+.anatomy-zone:focus-visible path {
+  stroke: #fff;
+}
+.interactive-anatomy .scan-sweep {
+  pointer-events: none;
+}
+.interactive-anatomy .scan-controls {
+  flex-wrap: wrap;
+  margin-bottom: 16px;
+}
+.interactive-anatomy .scan-controls .meta {
+  font-size: 12px;
+}
+.anatomy-system-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  border-top: 1px solid #304755;
+  padding-top: 16px;
+}
+.anatomy-system-buttons > button {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+  padding: 12px;
+  border: 1px solid var(--border);
+  background: #0d1923;
+  border-radius: 5px;
+  text-align: left;
+  font-size: 15px;
+  min-height: 48px;
+  color: #c6dce5;
+}
+.anatomy-system-buttons > button[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: #18343a;
+}
+.revised-body-map .system-detail h3 {
+  font-size: 18px;
+}
+.revised-body-map .system-detail h4 {
+  font-size: 17px;
+}
+.revised-body-map .system-detail p,
+.revised-body-map .system-detail li {
+  font-size: 15px;
+  line-height: 1.7;
+}
+.revised-body-map .system-function {
+  margin-bottom: 20px;
+}
+.revised-body-map .chart-value {
+  font-family: "Medic Sans", sans-serif;
+  font-size: 33px;
+  font-variant-numeric: tabular-nums;
+}
+.reference-ranges {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 9px 15px;
+  background: #152733;
+  border: 1px solid #2c4757;
+  border-radius: 6px;
+  padding: 14px;
+  margin: 16px 0;
+  font-size: 14px;
+}
+.reference-ranges dt {
+  color: #adc6d5;
+}
+.reference-ranges dd {
+  margin: 0;
+  color: #d3e3eb;
+}
+.system-countermeasure-tasks {
+  border-top: 1px solid var(--border);
+  padding-top: 20px;
+  margin-top: 25px;
+}
+.system-countermeasure-tasks h3 {
+  font-size: 18px;
+  margin-bottom: 15px;
+}
+.system-countermeasure-tasks label {
+  margin-bottom: 14px;
+}
+.scope-tabs > button {
+  flex: 0 1 auto;
+}
+.checkin-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 22px 28px;
+}
+.revised-checkin .section-intro {
+  font-size: 15px;
+}
+.numeric-reading {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+}
+.numeric-reading input {
+  width: 100%;
+  min-width: 0;
+}
+.numeric-reading span {
+  flex-shrink: 0;
+  color: #b8cbd8;
+  font-size: 14px;
+}
+.revised-checkin [data-slot="field-label"] {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  justify-content: space-between;
+}
+.revised-checkin output {
+  color: var(--primary);
+  font-variant-numeric: tabular-nums;
+}
+.revised-checkin input[type="range"] {
+  min-height: 30px;
+}
+.wearable-header {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 15px;
+  margin-top: 20px;
+}
+.wearable-header > div {
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: #14232e;
+  padding: 16px;
+  min-width: 0;
+  display: flex;
+  align-items: start;
+  flex-direction: column;
+  gap: 10px;
+}
+.wearable-header h3 {
+  font-size: 14px;
+  font-weight: 500;
+}
+.wearable-header strong {
+  font-size: 26px;
+  font-weight: 500;
+  line-height: 1.25;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+.wearable-header strong small {
+  font-size: 12px;
+}
+.wearable-header > div > small {
+  font-size: 12px;
+  line-height: 1.5;
+}
+.wearable-confirm {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+  margin-top: 20px;
+}
+.workspace .manual-notice {
+  margin-top: 16px !important;
+  color: #e9c78e !important;
+  font-size: 14px !important;
+}
+.revised-checkin .symptom-grid {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 15px;
+}
+.meds-taken {
+  display: flex;
+  flex-direction: column;
+  gap: 13px;
+}
+.meds-taken .health-status {
+  margin-left: auto;
+}
+.local-preview {
+  border: 1px dashed #416170;
+  border-radius: 6px;
+  padding: 18px;
+  background: #10232d;
+}
+.local-preview > label {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  font-size: 16px;
+  color: #c6e2ed;
+}
+.local-preview input {
+  width: 100%;
+  margin-top: 12px;
+}
+.local-preview p {
+  font-size: 14px !important;
+  margin: 12px 0 !important;
+  color: #d3decf !important;
+}
+.local-preview img {
+  display: block;
+  max-width: 100%;
+  max-height: 280px;
+  object-fit: contain;
+  margin: 16px auto;
+  border-radius: 5px;
+}
+.cadence-section {
+  border-top: 1px solid var(--border);
+  padding-top: 23px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+.cadence-section h3,
+.journal-section h3,
+.reaction-test h3 {
+  font-size: 19px;
+  font-weight: 550;
+}
+.journal-section {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  border-top: 1px solid var(--border);
+  padding-top: 25px;
+}
+.journal-section textarea {
+  width: 100%;
+  line-height: 1.7;
+  min-height: 150px;
+}
+.journal-section > [data-slot="button"] {
+  align-self: start;
+}
+.journal-entry {
+  padding: 16px 0;
+  border-top: 1px solid var(--border);
+}
+.journal-entry p {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.reaction-test {
+  padding: 20px;
+  border: 1px solid #35525f;
+  border-radius: 6px;
+  background: #12232e;
+}
+.reaction-test p {
+  margin: 12px 0 !important;
+}
+.reaction-status {
+  display: flex;
+  justify-content: space-between;
+  gap: 15px;
+  color: #c1d7e4;
+  margin: 15px 0;
+  font-variant-numeric: tabular-nums;
+}
+.reaction-target {
+  display: block;
+  width: 100%;
+  min-height: 120px;
+  margin-top: 18px;
+  border: 1px solid #576f7c;
+  border-radius: 7px;
+  background: #243641;
+  color: #e4edf5;
+  font-size: 20px;
+  font-weight: 500;
+}
+.reaction-target.ready {
+  background: #71d6ca;
+  color: #09221f;
+  border-color: #abede2;
+}
+.reaction-target:disabled {
+  cursor: default !important;
+  opacity: 0.6;
+}
+.triage-start {
+  display: flex;
+  gap: 15px;
+  align-items: end;
+  margin-top: 22px;
+}
+.triage-start label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.triage-step,
+.triage-outcome {
+  padding: 20px;
+  background: #152934;
+  border: 1px solid #355365;
+  border-radius: 6px;
+  margin-top: 20px;
+}
+.triage-step > h3,
+.triage-outcome > h3 {
+  font-size: 19px;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+.triage-step > div {
+  display: flex;
+  gap: 12px;
+}
+.hazard-list > details {
+  border-top: 1px solid var(--border);
+  padding: 5px 0 15px;
+}
+.hazard-list > details:first-child {
+  border-top: 0;
+}
+.hazard-list > details > summary {
+  font-size: 19px !important;
+  padding: 17px 0 !important;
+}
+.hazard-list h3 {
+  font-size: 17px;
+  margin-top: 20px;
+}
+.procedure {
+  border-top: 1px solid var(--border);
+  padding: 8px 0;
+}
+.medication-list {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 20px;
+}
+.medication-list > div {
+  padding: 18px;
+  background: #152630;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+.medication-list h3 {
+  font-size: 18px;
+  margin-bottom: 10px;
+}
+.medication-list p {
+  margin-top: 10px;
+}
+.cabin-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+  margin-top: 25px;
+}
+.cabin-metric-grid > div {
+  padding: 20px;
+  background: #142630;
+  border: 1px solid #37505f;
+  border-radius: 7px;
+}
+.cabin-metric-grid h3 {
+  font-size: 17px;
+  font-weight: 500;
+}
+.cabin-metric-grid strong {
+  font-size: 34px;
+  font-weight: 500;
+  display: block;
+  line-height: 1.5;
+  margin: 10px 0;
+  font-variant-numeric: tabular-nums;
+}
+.cabin-metric-grid strong small {
+  font-size: 16px;
+}
+.cabin-metric-grid p {
+  font-size: 14px !important;
+  margin-top: 13px;
+}
+.cabin-averages {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 12px 20px;
+  border-top: 1px solid var(--border);
+  margin-top: 22px;
+  padding-top: 18px;
+  font-size: 15px;
+}
+.cabin-averages dt {
+  color: #a9c4d3;
+}
+.cabin-averages dd {
+  margin: 0;
+  color: #d7e9f3;
+}
+.empty-reading {
+  grid-column: 1/-1;
+  padding: 20px;
+}
+.reference-links {
+  list-style: none;
+  padding: 0 !important;
+}
+.reference-links a {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: #98e1da;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--border);
+  text-decoration: underline;
+  text-underline-offset: 5px;
+  font-size: 15px;
+  overflow-wrap: anywhere;
+}
+.timeframe-toggle {
+  margin: 0;
+  align-items: center;
+}
+.trend-controls {
+  align-items: center;
+}
+.trend-controls label {
+  font-size: 14px;
+}
+.chart-key {
+  font-size: 13px;
+  flex-wrap: wrap;
+}
+.chart-key small {
+  font-size: 12px;
+}
+.vital-chart {
+  height: 340px;
+}
+.comms-banner {
+  padding: 12px 30px;
+  background: #302719;
+  color: #e5cfaa;
+  font-size: 14px;
+  border-bottom: 1px solid #675339;
+}
+.workspace .system-detail .escalation-rule {
+  font-size: 15px !important;
+}
+.workspace .critical-dialog > ol {
+  font-size: 15px;
+}
+.workspace .demo-result {
+  font-size: 14px;
+}
+.workspace .demo-tools [data-slot="button"],
+.workspace .demo-tools select {
+  font-size: 13px;
+}
+.workspace .demo-bar summary {
+  font-size: 13px;
+}
+.workspace .day-slider {
+  font-size: 14px;
+}
+.admin-shell .med-panel p,
+.admin-shell [data-slot="field-label"] {
+  font-size: 15px;
+}
+.admin-shell .crew-table strong {
+  font-size: 15px;
+}
+.admin-shell .crew-table strong small {
+  font-size: 13px;
+}
+.admin-shell .mission-edit > strong {
+  font-size: 15px;
+}
+.admin-shell .mission-edit label {
+  font-size: 14px;
+}
+@media (max-width: 1250px) {
+  .revised-home .revised-vitals {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .wearable-header {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .cabin-metric-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .revised-body-map {
+    grid-template-columns: minmax(260px, 1fr) minmax(0, 1.2fr);
+    gap: 18px;
+  }
+  .reference-ranges {
+    grid-template-columns: 1fr;
+  }
+  .reference-ranges dd {
+    margin-bottom: 9px;
+  }
+  .compact-exposure > div:last-child {
+    grid-column: auto;
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+  .compact-exposure {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .compact-exposure > div:last-child section {
+    display: block;
+  }
+  .compact-exposure > div:last-child strong {
+    line-height: 1.4;
+  }
+}
+@media (max-width: 900px) {
+  .revised-body-map {
+    grid-template-columns: 1fr;
+  }
+  .interactive-anatomy.human-scan-panel {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0 20px;
+  }
+  .interactive-anatomy .scan-panel-heading {
+    grid-column: 1/-1;
+  }
+  .interactive-anatomy .human-scan-stage {
+    grid-column: 1;
+    grid-row: 2/4;
+    height: 400px;
+    margin: 15px 0;
+  }
+  .interactive-anatomy .scan-controls {
+    grid-column: 1/-1;
+    margin-top: 0;
+  }
+  .anatomy-system-buttons {
+    grid-column: 2;
+    grid-row: 2/4;
+    border-top: 0;
+    align-self: center;
+    padding-top: 0;
+  }
+  .anatomy-system-buttons > button {
+    flex-direction: column;
+    align-items: start;
+    gap: 8px;
+  }
+  .compact-journey-label > small {
+    display: none;
+  }
+  .scope-tabs {
+    gap: 8px;
+  }
+  .scope-tabs > button {
+    font-size: 14px;
+    padding: 10px 12px;
+  }
+  .workspace .page-title h1 {
+    font-size: 30px;
+  }
+}
+@media (max-width: 650px) {
+  .workspace .page-title h1 {
+    font-size: 27px;
+  }
+  .workspace .page-title p {
+    font-size: 14px;
+  }
+  .workspace .panel-heading {
+    align-items: start;
+  }
+  .workspace .panel-heading h2 {
+    font-size: 19px;
+  }
+  .workspace .panel-heading > .meta {
+    font-size: 12px;
+    max-width: 150px;
+  }
+  .workspace .med-panel {
+    padding: 18px 16px;
+  }
+  .workspace .med-panel p,
+  .workspace .med-panel li {
+    font-size: 14px;
+  }
+  .workspace .meta,
+  .workspace small {
+    font-size: 12px;
+  }
+  .workspace .vital-label {
+    font-size: 12px;
+  }
+  .workspace .vital-value {
+    font-size: 29px;
+  }
+  .workspace .vital-value small {
+    font-size: 12px;
+  }
+  .workspace .health-status {
+    font-size: 11px !important;
+  }
+  .workspace .vital-bottom {
+    flex-wrap: wrap;
+    gap: 7px;
+  }
+  .workspace .last-reading {
+    font-size: 11px !important;
+  }
+  .workspace .vital-bottom > span:last-child:not(.health-status) {
+    font-size: 10px;
+  }
+  .workspace .mission-sidebar nav button {
+    min-height: 55px;
+  }
+  .workspace .mission-sidebar nav button > span:not(.nav-active-dot) {
+    font-size: 11px;
+  }
+  .workspace .demo-toggle {
+    font-size: 10px;
+  }
+  .revised-home .compact-journey {
+    min-height: 0;
+    padding: 15px !important;
+    gap: 16px;
+  }
+  .compact-journey-label {
+    gap: 8px;
+    align-items: start;
+    flex-direction: column;
+  }
+  .compact-journey-label > strong {
+    font-size: 28px;
+  }
+  .compact-journey-label > span {
+    font-size: 13px;
+    line-height: 1.6;
+  }
+  .compact-checkin {
+    flex-direction: column;
+    align-items: stretch;
+    padding: 14px;
+  }
+  .compact-checkin p {
+    font-size: 14px;
+  }
+  .compact-checkin [data-slot="button"] {
+    justify-content: space-between;
+    width: 100%;
+  }
+  .revised-home .revised-vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .revised-home .briefing-compact {
+    padding: 18px 16px;
+  }
+  .briefing-compact .briefing-summary {
+    font-size: 15px !important;
+    line-height: 1.7 !important;
+  }
+  .briefing-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .briefing-actions [data-slot="button"] {
+    white-space: normal;
+    height: auto;
+    min-height: 44px;
+  }
+  .briefing-compact .briefing-heading {
+    align-items: start;
+    flex-direction: column;
+  }
+  .compact-exposure {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+  }
+  .compact-exposure > div {
+    padding: 12px 10px;
+    gap: 5px;
+    display: block;
+    min-width: 0;
+  }
+  .compact-exposure > div > svg {
+    width: 20px;
+    height: 20px;
+    margin-bottom: 8px;
+  }
+  .compact-exposure strong {
+    font-size: 23px;
+  }
+  .compact-exposure strong small {
+    font-size: 11px;
+  }
+  .compact-exposure h3 {
+    font-size: 12px;
+  }
+  .compact-exposure section > span {
+    font-size: 11px;
+    margin-top: 5px;
+    line-height: 1.5;
+  }
+  .compact-exposure > div + div {
+    border-top: 0;
+    border-left: 1px solid var(--border);
+  }
+  .interactive-anatomy.human-scan-panel {
+    display: flex;
+    padding: 18px 15px;
+  }
+  .interactive-anatomy .human-scan-stage {
+    height: 420px;
+    max-height: none;
+  }
+  .interactive-anatomy .scan-panel-heading > span {
+    font-size: 12px;
+  }
+  .anatomy-system-buttons {
+    width: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 9px;
+  }
+  .anatomy-system-buttons > button {
+    font-size: 13px;
+    padding: 10px;
+    min-height: 83px;
+  }
+  .checkin-fields {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  .wearable-header {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .wearable-header > div {
+    padding: 13px 10px;
+    gap: 8px;
+  }
+  .wearable-header > div:last-child {
+    grid-column: 1/-1;
+  }
+  .wearable-header strong {
+    font-size: 24px;
+    white-space: normal;
+  }
+  .wearable-header strong small {
+    font-size: 11px;
+  }
+  .wearable-header h3 {
+    font-size: 13px;
+  }
+  .wearable-header > div > small {
+    font-size: 11px;
+  }
+  .scope-tabs {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .scope-tabs > button {
+    font-size: 13px;
+    flex: 1 1 45%;
+    padding: 11px 8px;
+  }
+  .workspace .check-label {
+    font-size: 14px;
+  }
+  .meds-taken .check-label {
+    flex-wrap: wrap;
+  }
+  .meds-taken .health-status {
+    margin-left: 0;
+  }
+  .reaction-test {
+    padding: 15px;
+  }
+  .reaction-status {
+    font-size: 13px;
+  }
+  .reaction-test [data-slot="button"] {
+    width: 100%;
+    white-space: normal;
+  }
+  .reaction-target {
+    font-size: 18px;
+    min-height: 110px;
+  }
+  .medication-list,
+  .cabin-metric-grid {
+    grid-template-columns: 1fr;
+  }
+  .cabin-metric-grid > div {
+    padding: 20px;
+  }
+  .cabin-metric-grid strong {
+    font-size: 36px;
+  }
+  .cabin-metric-grid strong small {
+    font-size: 17px;
+  }
+  .cabin-averages {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    font-size: 14px;
+  }
+  .triage-start {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .triage-start select {
+    width: 100%;
+  }
+  .timeframe-toggle {
+    gap: 6px;
+  }
+  .timeframe-toggle > button {
+    font-size: 13px;
+    padding: 9px 11px;
+    min-height: 42px;
+  }
+  .trend-controls [data-slot="button"] {
+    font-size: 13px;
+  }
+  .reference-ranges {
+    font-size: 14px;
+  }
+  .briefing-drawer {
+    padding: 24px 15px !important;
+  }
+  .briefing-drawer .med-panel {
+    padding: 0;
+  }
+  .comms-banner {
+    padding: 12px 16px;
+    font-size: 13px;
+  }
+  .workspace .mission-footer {
+    font-size: 10px;
+  }
+  .workspace .mission-footer span:last-child {
+    display: none;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .interactive-anatomy .scan-sweep {
+    animation: none;
+    transform: translateY(-50%);
+    opacity: 0.35;
+  }
+}
