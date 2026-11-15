@@ -333,7 +333,9 @@ export function Workspace({
         <DialogContent className="critical-dialog" showCloseButton={false}>
           <DialogTitle>{active?.title}</DialogTitle>
           <DialogDescription>
-            Follow the onboard protocol and confirm to acknowledge this alert.
+            {model.overrides.length > 1
+              ? `${model.overrides.length} active alerts are listed below. Review each one, then Confirm all to acknowledge all listed alerts and return to the dashboard.`
+              : "Follow the onboard protocol, then Confirm to acknowledge this alert and return to the dashboard."}
           </DialogDescription>
           {active && (
             <>
@@ -348,6 +350,25 @@ export function Workspace({
                   <li key={s}>{s}</li>
                 ))}
               </ol>
+              {model.overrides.slice(1).map((alert) => (
+                <section
+                  className="additional-override"
+                  key={alert.id}
+                  aria-label={alert.title}
+                >
+                  <h3>{alert.title}</h3>
+                  <h4>{alert.headline}</h4>
+                  {alert.details.map((detail) => (
+                    <p key={detail}>{detail}</p>
+                  ))}
+                  <h4>Do this now</h4>
+                  <ol>
+                    {alert.steps.map((step) => (
+                      <li key={step}>{step}</li>
+                    ))}
+                  </ol>
+                </section>
+              ))}
               <p>{ESCALATION_MODE_LABELS[model.report.escalationMode]}</p>
               <div className="override-actions">
                 <Button
@@ -377,17 +398,25 @@ export function Workspace({
                 </Button>
                 <Button
                   onClick={() => {
-                    confirmOverride(active.id, model.profile.name);
+                    // Acknowledge exactly the alerts rendered above before reevaluating.
+                    // Confirming only an escalated SOS leaves its original alert open,
+                    // which would immediately raise another SOS.
+                    const displayedAlerts = model.overrides;
+                    displayedAlerts.forEach((alert) =>
+                      confirmOverride(alert.id, model.profile.name),
+                    );
                     setCrewNotified(false);
                     refresh();
                     notify(
-                      "Alert confirmed",
-                      "Acknowledgment saved on this device.",
+                      displayedAlerts.length > 1
+                        ? `${displayedAlerts.length} alerts confirmed`
+                        : "Alert confirmed",
+                      "Acknowledgment saved on this device. Abnormal readings remain visible on the dashboard.",
                     );
                   }}
                 >
                   <Check data-icon="inline-start" />
-                  Confirm
+                  {model.overrides.length > 1 ? "Confirm all" : "Confirm"}
                 </Button>
               </div>
               <p className="fine-print">

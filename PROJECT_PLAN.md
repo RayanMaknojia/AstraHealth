@@ -248,3 +248,9 @@ Phase 7 ChatGPT presentation updates (see phases/phase7.chatgpt.md):
 [x] Fix red required-mark placement and stability while preserving validation behavior; compact Home vital cards without losing bold values (`533874c`).
 [x] Implement the approved Home prototype with briefing below the vitals, aligned scan height and matching 12 px vertical gaps above the briefing and exposure row (`b1b96b2`).
 [x] Record implementation scope, prototype approval, verification and commit references in the phases folder. This phase-note commit changes documentation only.
+
+
+Phase 8 ChatGPT emergency-dialog acknowledgment fix (see phases/phase8.chatgpt.md):
+[x] Reproduce the loop caused by confirming an escalated SOS while its original critical alert stays open.
+[x] Display all pending alerts and acknowledge exactly those displayed before reevaluation; use Confirm all for grouped alerts.
+[x] Verify dashboard access after confirmation, automatic reevaluation/reload, new SOS, retained readings and mobile confirmation. No backend or Home-layout changes.
