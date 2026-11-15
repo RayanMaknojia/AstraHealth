@@ -120,8 +120,7 @@ export function ReactionTest({
         30-second reaction test
         {required && (
           <span className="required-mark" aria-hidden="true">
-            {" "}
-            *
+            *{" "}
           </span>
         )}
       </h3>

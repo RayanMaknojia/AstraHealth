@@ -38,10 +38,11 @@ type SaveInput = {
 };
 function RequiredMark() {
   return (
-    <span className="required-mark" aria-hidden="true">
-      {" "}
-      *
-    </span>
+    <>
+      <span className="required-mark" aria-hidden="true">
+        *
+      </span>{" "}
+    </>
   );
 }
 function Rating({
@@ -61,8 +62,10 @@ function Rating({
   return (
     <Field>
       <FieldLabel htmlFor={id}>
-        {label}
-        {required && <RequiredMark />}{" "}
+        <span className="required-field-heading">
+          {label}
+          {required && <RequiredMark />}
+        </span>
         <output>
           {value === undefined ? "Choose a rating" : `${value}/5`}
         </output>
@@ -152,8 +155,10 @@ export function Checkin({
       return (
         <Field key={key}>
           <FieldLabel htmlFor={`value-${key}`}>
-            {spec.label}
-            {required && <RequiredMark />}
+            <span className="required-field-heading">
+              {spec.label}
+              {required && <RequiredMark />}
+            </span>
           </FieldLabel>
           <div className="numeric-reading">
             <input
@@ -454,7 +459,9 @@ export function Checkin({
               </Field>
               <Field>
                 <FieldLabel htmlFor="pain-region">
-                  Pain body region{pain > 0 && <RequiredMark />}
+                  <span className="required-field-heading">
+                    Pain body region{pain > 0 && <RequiredMark />}
+                  </span>
                 </FieldLabel>
                 <input
                   id="pain-region"
@@ -488,7 +495,10 @@ export function Checkin({
                     {medications.includes(m.name) && (
                       <div className="medication-dose-fields">
                         <label>
-                          Dose <RequiredMark />
+                          <span className="required-field-heading">
+                            Dose
+                            <RequiredMark />
+                          </span>
                           <input
                             aria-label={`${m.name} dose`}
                             required
@@ -506,7 +516,10 @@ export function Checkin({
                           />
                         </label>
                         <label>
-                          Time <RequiredMark />
+                          <span className="required-field-heading">
+                            Time
+                            <RequiredMark />
+                          </span>
                           <input
                             aria-label={`${m.name} time`}
                             required
@@ -536,8 +549,10 @@ export function Checkin({
                   {inputs(["bloodSugarMgDl"])}
                   <Field>
                     <FieldLabel htmlFor="mass">
-                      Body mass (kg)
-                      <RequiredMark />
+                      <span className="required-field-heading">
+                        Body mass (kg)
+                        <RequiredMark />
+                      </span>
                     </FieldLabel>
                     <input
                       id="mass"
@@ -557,7 +572,10 @@ export function Checkin({
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="food">
-                      Food / nutrition questionnaire <RequiredMark />
+                      <span className="required-field-heading">
+                        Food / nutrition questionnaire
+                        <RequiredMark />
+                      </span>
                     </FieldLabel>
                     <select
                       id="food"
@@ -577,7 +595,10 @@ export function Checkin({
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="hydration">
-                      Water / fluids yesterday (litres) <RequiredMark />
+                      <span className="required-field-heading">
+                        Water / fluids yesterday (litres)
+                        <RequiredMark />
+                      </span>
                     </FieldLabel>
                     <input
                       id="hydration"
@@ -600,7 +621,10 @@ export function Checkin({
                       setValues((v) => ({ ...v, fasting: e.target.checked }))
                     }
                   />
-                  Fasting glucose measured before food <RequiredMark />
+                  <span className="required-field-heading">
+                    Fasting glucose measured before food
+                    <RequiredMark />
+                  </span>
                 </label>
               </section>
             )}
@@ -618,7 +642,10 @@ export function Checkin({
                     return (
                       <li key={item}>
                         <label>
-                          {n + 1}. {item} <RequiredMark />
+                          <span className="required-field-heading">
+                            {n + 1}. {item}
+                            <RequiredMark />
+                          </span>
                           <select
                             aria-label={`Exam: ${item}`}
                             required
@@ -667,8 +694,11 @@ export function Checkin({
                       checked={examDone}
                       onChange={(e) => setExamDone(e.target.checked)}
                     />
-                    Guided full health exam and sleep/team questionnaire
-                    completed with a crewmate <RequiredMark />
+                    <span className="required-field-heading">
+                      Guided full health exam and sleep/team questionnaire
+                      completed with a crewmate
+                      <RequiredMark />
+                    </span>
                   </label>
                 )}
               </section>
