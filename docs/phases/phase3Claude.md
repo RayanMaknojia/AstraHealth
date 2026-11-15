@@ -4,7 +4,7 @@
 **Branch:** `claude/clever-bardeen-mn9gw6` · PR [RayanMaknojia/Uranus-monitoring#3](https://github.com/RayanMaknojia/Uranus-monitoring/pull/3)
 **Status:** Done. Merge before Codex builds the Check-in sliders (mood is now 1-5).
 
-A new team doc, `astronaut_health_monitor_pages.md`, gave different thresholds from the plan doc and from what was built in Phase 2. This step merges all three into **one rules file, `health_rules.md`**, choosing for each reading the rule that is safer, less noisy, or closer to real spaceflight practice, with the reason written next to it. The code now implements exactly that file.
+A new team doc, `docs/astronaut_health_monitor_pages.md`, gave different thresholds from the plan doc and from what was built in Phase 2. This step merges all three into **one rules file, `docs/health_rules.md`**, choosing for each reading the rule that is safer, less noisy, or closer to real spaceflight practice, with the reason written next to it. The code now implements exactly that file.
 
 ## Folder ownership
 
@@ -13,11 +13,11 @@ A new team doc, `astronaut_health_monitor_pages.md`, gave different thresholds f
 | Claude Code | `src/types`, `src/data`, `src/services` |
 | Codex | `src/components`, `src/App.tsx`, `src/index.css`, and `package.json` / `package-lock.json` (only Codex runs `npm install` / `npx shadcn`) |
 
-This step changed `src/data`, `src/services`, small **additive** fields in `src/types/astronaut.ts`, `PROJECT_PLAN.md`, the new `health_rules.md`, and this file. No UI files or `package.json`.
+This step changed `src/data`, `src/services`, small **additive** fields in `src/types/astronaut.ts`, `docs/PROJECT_PLAN.md`, the new `docs/health_rules.md`, and this file. No UI files or `package.json`.
 
 ## What changed
 
-| Reading | Before (Phase 2) | Now (`health_rules.md`) | Why |
+| Reading | Before (Phase 2) | Now (`docs/health_rules.md`) | Why |
 |---|---|---|---|
 | **Mood** | 1-10 scale | **1-5 scale** | Matches the pages doc and every other check-in scale (sleep quality, fatigue, nausea, pain); easier to tap while floating |
 | **Mood Alert** | single day ≤ 3/10 | **1-2 for 3 days in a row**; self-harm mention is still an immediate Alert | One bad day is human; three is a pattern |
@@ -43,7 +43,7 @@ Unchanged: heart-rate ranges, radiation (% of the 600 mSv career limit and daily
 
 | Check | Result |
 |---|---|
-| 39 rule-by-rule tests against `health_rules.md` | all pass |
+| 39 rule-by-rule tests against `docs/health_rules.md` | all pass |
 | `npx tsc --noEmit` | pass |
 | `npx tsc -p tsconfig.app.json --noEmit` (whole app, incl. UI) | pass, 0 errors |
 | `npx eslint src/services src/types src/data` | pass |
@@ -57,7 +57,7 @@ Dependencies were installed in a throwaway copy outside the repo; `package-lock.
 Send this after the PR is merged:
 
 ```text
-Pull the latest main first (git checkout main && git pull). Read, in this order: PROJECT_PLAN.md (v2.2, incl. the "STEP 2 - SERVICES LIVE" wiring cheat-sheet), astronaut_health_monitor_pages.md (pages + layout), health_rules.md (status rules - the backend already implements them; never re-implement thresholds in the UI), then src/types/astronaut.ts, src/data/ and src/services/ (read-only).
+Pull the latest main first (git checkout main && git pull). Read, in this order: docs/PROJECT_PLAN.md (v2.2, incl. the "STEP 2 - SERVICES LIVE" wiring cheat-sheet), docs/astronaut_health_monitor_pages.md (pages + layout), docs/health_rules.md (status rules - the backend already implements them; never re-implement thresholds in the UI), then src/types/astronaut.ts, src/data/ and src/services/ (read-only).
 
 RULES
 - Only create/edit files inside src/components/, src/App.tsx and src/index.css. Do NOT edit src/types/, src/data/ or src/services/. If you need something from the backend, leave a TODO and tell the user.
@@ -66,7 +66,7 @@ RULES
 - Colours ONLY via displayStatus(indicator) + STATUS_COLORS / STATUS_LABELS: Emerald = Normal, Amber = Watch (also trend drifting_caution), pulsing Crimson = Alert, Slate Grey = No data (never green). Show a "Simulated" tag when indicator.simulated is true.
 - All services are implemented and work offline. Do not add "not implemented" fallbacks; just handle errors gracefully (toast + keep the last good state).
 
-BUILD (dark-mode, movie-grade Spacecraft Medical HUD, PC + tablet), MVP pages from astronaut_health_monitor_pages.md:
+BUILD (dark-mode, movie-grade Spacecraft Medical HUD, PC + tablet), MVP pages from docs/astronaut_health_monitor_pages.md:
 1. Login - name/login + PIN via accountService.authenticate(login, pin); astronauts → Home via getProfileForSession(session), admin → Admin. List the demo logins under the form from DEMO_LOGINS (admin, iss_crew, mars_crew, moon_crew). Logout via accountService.logout().
 2. Global shell on every page - top bar with compact trip bar (missionTimeline.getMissionState(profile.mission, profile.missionDay) + formatTripBarLabel), Earth delay (formatDelay(state.earthDelaySeconds)), overall status dot, SOS button (opens a placeholder modal for now); side/bottom nav: Home, Check-in, Body Map, Trends, Streaks, More. Animated deep-space backdrop.
 3. Mission Control Demo Bar (header, demo mode only): "+15m Wearable Sync" (wearable.tickOnce()), "Trigger Solar Storm Shelter Alert" (environmentFeed.triggerSolarEvent() then feed.tickOnce(), plus wearable.injectAnomaly('solar_flare')), "Inject fever / tachycardia / low SpO2 / sleep deprivation" (wearable.injectAnomaly from ANOMALY_LABELS), "Test Valid Ultrasound" and "Test Invalid File" (ingestionEngine.ingest(createDemoInput('valid_ultrasound' | 'invalid_file'))), and a Mission Day slider: on change build state = getMissionState(profile.mission, day) and evaluate with evaluateProfile(profile, { missionState: state, ignoreStaleness: true }); every page must update live.
@@ -83,12 +83,12 @@ LIVE LOOP (on login, per astronaut): wearable = createWearableStream({ profile }
 
 NOT YET (Phase 3 backend is in progress) - show tidy "Coming soon" cards: Photo Check (skin AI + guided ultrasound), Habitat page, Exercise & Bone, Sleep/Mood/Journal, Guidance & Triage, Mission Control Sync, Cabin Emergency / SOS override flows, real streaks/badges/leaderboard.
 
-FINISH: mark completed UI tasks [x] in PROJECT_PLAN.md, and make sure npx tsc -p tsconfig.app.json --noEmit and npm run build both pass with zero console errors.
+FINISH: mark completed UI tasks [x] in docs/PROJECT_PLAN.md, and make sure npx tsc -p tsconfig.app.json --noEmit and npm run build both pass with zero console errors.
 ```
 
 ## Next (Claude Code, Phase 3 backend)
 
-Backend for the "Coming soon" pages, already listed as tasks in `PROJECT_PLAN.md`:
+Backend for the "Coming soon" pages, already listed as tasks in `docs/PROJECT_PLAN.md`:
 
 1. **Check-ins:** morning / evening / weekly / monthly schedule and eye exams (day 30, day 90, then every 90 days), streaks (a reported symptom counts as done; admin can excuse), badges, crew leaderboard (consistency only, never health values).
 2. **Body mass and exercise** as indicators (body mass: Watch 3-5% loss, Alert > 5%; exercise: Watch 60-119 min, Alert < 60 min for 3 days), workout log, bone-loss projection (no exercise vs actual), reaction test.

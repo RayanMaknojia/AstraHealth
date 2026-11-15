@@ -3,7 +3,7 @@
  * backend logic (src/types, src/data, src/services - Claude Code) and the UI
  * (src/components, src/App.tsx, src/index.css - Codex).
  *
- * Version 2.1 = PROJECT_PLAN.md v2.0 schema + astronaut_health_monitor_plan.md
+ * Version 2.1 = docs/PROJECT_PLAN.md v2.0 schema + docs/astronaut_health_monitor_plan.md
  * (mission timeline, personal baselines, SpO2, cabin/radiation feeds,
  * delay-based escalation, admin/crew accounts, grey "missing data").
  *
@@ -426,7 +426,7 @@ export interface VitalsInput {
   diastolicMmHg?: number
   bodyTempC?: number
   sleepHours?: number
-  /** Self-rated 1-5 (5 = best). See health_rules.md. */
+  /** Self-rated 1-5 (5 = best). See docs/health_rules.md. */
   mood?: number
   spo2Pct?: number
   /** Dose recorded by personal dosimeter over the last 24 h, mSv. */
@@ -452,7 +452,7 @@ export interface EvaluationContext {
 
 /** Spaceflight physiology shifts applied to ranges for the current mission day. */
 export interface SpaceAdjustments {
-  /** Top of Normal rises 37.5 → 37.9 °C after day 60 in 0 g (health_rules.md). Alert stays at 38.5. */
+  /** Top of Normal rises 37.5 → 37.9 °C after day 60 in 0 g (docs/health_rules.md). Alert stays at 38.5. */
   bodyTempShiftC: number
   /** In-flight BP runs 8-10 mmHg lower → the LOW limits relax by this much (negative). 0 for 14 days after landing. */
   bpShiftSystolic: number
@@ -756,7 +756,7 @@ export interface AIConfig {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// §7 Phase 3 contracts (astronaut_health_monitor_pages.md pages 3-13, O1-O4)
+// §7 Phase 3 contracts (docs/astronaut_health_monitor_pages.md pages 3-13, O1-O4)
 // ════════════════════════════════════════════════════════════════════════════
 
 /** A 1-5 self-rating. Which end is "good" depends on the field - see each field's doc. */
@@ -891,7 +891,7 @@ export interface WorkoutLog {
 export interface ExerciseSummary {
   todayMinutes: number
   goalMinutes: number
-  /** Status from completed days (health_rules.md: Watch 60-119, Alert < 60 for 3 days). */
+  /** Status from completed days (docs/health_rules.md: Watch 60-119, Alert < 60 for 3 days). */
   status: StatusLevel
   message: string
   /** Days in the last 7 that met the goal, out of exerciseDaysGoal. */
@@ -1268,7 +1268,7 @@ export interface DbReading {
   /** Mission day, fractional for intra-day readings. */
   day: number
   timestamp: string
-  /** Colour at the time it was stored (health_rules.md). */
+  /** Colour at the time it was stored (docs/health_rules.md). */
   status: StatusLevel
   /** Part of the generated 21-day demo history. */
   seeded?: boolean

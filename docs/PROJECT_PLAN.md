@@ -16,8 +16,8 @@ Frontend: Vite + React + TypeScript + Tailwind CSS + shadcn/ui + Recharts (Respo
 AI / Multimodal Pipeline: Gemini Flash (Gatekeeper + One-Time Media Extractor + Incremental Briefing Updater) with deterministic fallback rules in healthEvaluator.ts
 
 Shared Data Schema v2.2 (src/types/astronaut.ts - SOURCE OF TRUTH)
-Status thresholds: health_rules.md (reconciled; the code implements exactly that file). Pages/UX: astronaut_health_monitor_pages.md.
-v2.1 = the v2.0 schema + astronaut_health_monitor_plan.md (team reference doc). Read the file itself for every field; key points:
+Status thresholds: docs/health_rules.md (reconciled; the code implements exactly that file). Pages/UX: docs/astronaut_health_monitor_pages.md.
+v2.1 = the v2.0 schema + docs/astronaut_health_monitor_plan.md (team reference doc). Read the file itself for every field; key points:
 
 TypeScript
 export type StatusLevel = 'nominal' | 'caution' | 'critical';        // UI labels: Normal / Watch / Alert
@@ -28,7 +28,7 @@ export type DataModality = 'wearable_auto' | 'manual_slider' | 'lab_document' | 
 export type IndicatorId = 'blood_sugar' | 'radiation_dose' | 'heart_rate' | 'blood_pressure' | 'bone_density'
                         | 'sleep_hours' | 'mood' | 'body_temp' | 'spo2';   // spo2 NEW (cardiovascular zone)
 export type ActionLevel = 'self_care' | 'crew_alert' | 'flight_surgeon';
-// v2.2: mood is a 1-5 scale (unit '/5'). Sleep and mood Alerts need 3 in a row (health_rules.md).
+// v2.2: mood is a 1-5 scale (unit '/5'). Sleep and mood Alerts need 3 in a row (docs/health_rules.md).
 export type EscalationMode = 'contact_ground' | 'act_then_report';   // by Earth delay (ISS/Moon vs transit/Mars)
 
 // Environment = WHERE THE CREW IS ON A GIVEN MISSION DAY (replaces ISS_ORBIT/LUNAR_BASE/MARS_TRANSIT/SURFACE_ROVER)
@@ -111,7 +111,7 @@ Accounts (accountService.ts):
 Admin (mission control) creates astronauts (name, role, PIN, destination, launch date, notes) and edits dates for delays; astronauts log in with name + PIN. Demo logins: admin, mars_crew, iss_crew, moon_crew. localStorage, offline-first, demo-grade auth.
 
 Task Board
-[x] STEP 1 - CONTRACT LOCKED v2.1 (Claude Code): src/types/astronaut.ts now covers PROJECT_PLAN v2.0 + astronaut_health_monitor_plan.md. Stubs with final signatures (bodies throw "not implemented" until Step 2): src/services/wearableStream.ts, ingestionEngine.ts, briefingEngine.ts, missionTimeline.ts, environmentFeed.ts, accountService.ts. Ready now (real, not stubs): src/data (ENVIRONMENTS ×6, MISSION_TEMPLATES, CREW_PROFILES iss_crew / mars_crew / moon_crew, INDICATOR_GUIDES incl. SpO2) and healthEvaluator (evaluateProfile, evaluateVitals, displayStatus, STATUS_COLORS / STATUS_LABELS / ESCALATION_MODE_LABELS, escalationModeFor). Parallel execution may start.
+[x] STEP 1 - CONTRACT LOCKED v2.1 (Claude Code): src/types/astronaut.ts now covers PROJECT_PLAN v2.0 + docs/astronaut_health_monitor_plan.md. Stubs with final signatures (bodies throw "not implemented" until Step 2): src/services/wearableStream.ts, ingestionEngine.ts, briefingEngine.ts, missionTimeline.ts, environmentFeed.ts, accountService.ts. Ready now (real, not stubs): src/data (ENVIRONMENTS ×6, MISSION_TEMPLATES, CREW_PROFILES iss_crew / mars_crew / moon_crew, INDICATOR_GUIDES incl. SpO2) and healthEvaluator (evaluateProfile, evaluateVitals, displayStatus, STATUS_COLORS / STATUS_LABELS / ESCALATION_MODE_LABELS, escalationModeFor). Parallel execution may start.
 
 
 [x] STEP 2 - SERVICES LIVE (Claude Code): every function in src/services is implemented - no "not implemented" throws remain, so no try/catch fallbacks are needed. `npx tsc --noEmit`, `tsc -p tsconfig.app.json --noEmit`, eslint on src/services|types|data, and `npm run build` all pass. All services work fully offline; Gemini is used only if VITE_GEMINI_API_KEY (or AIConfig.apiKey) is set. Wiring cheat-sheet for Codex:
@@ -125,7 +125,7 @@ Task Board
 - Colors/labels: displayStatus(ind), STATUS_COLORS, STATUS_LABELS, ESCALATION_MODE_LABELS. Cabin panel: tick.cabinEvaluation; shelter banner: tick.activeEvent?.shelterAdvised.
 
 
-[x] STEP 2b - RULES RECONCILED (Claude Code): health_rules.md merges the plan doc, the pages doc and Phase 2. Mood is now 1-5. Sleep/mood Alerts need 3 in a row. Temperature, BP (low limits relax in flight, not after landing), glucose, bone, SpO2 and the heart-rate 15% baseline rule follow that file. New for the UI: CHECKIN_INPUTS (slider min/max/step/unit/normal text) and CHECKIN_SYMPTOMS in src/data.
+[x] STEP 2b - RULES RECONCILED (Claude Code): docs/health_rules.md merges the plan doc, the pages doc and Phase 2. Mood is now 1-5. Sleep/mood Alerts need 3 in a row. Temperature, BP (low limits relax in flight, not after landing), glucose, bone, SpO2 and the heart-rate 15% baseline rule follow that file. New for the UI: CHECKIN_INPUTS (slider min/max/step/unit/normal text) and CHECKIN_SYMPTOMS in src/data.
 
 
 [x] PHASE 3 - BACKEND FOR ALL REMAINING PAGES (Claude Code). New services (all offline, localStorage-persisted, demo crew pre-seeded):
@@ -169,7 +169,7 @@ Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental A
 
 [x] Create src/services/accountService.ts (admin-created accounts, name + PIN login, launch-date edits, offline localStorage) + src/data reference tables (REFERENCE_RANGES, CABIN_LIMITS, HAZARD_RISK_MAP)
 
-[x] Reconcile thresholds with astronaut_health_monitor_pages.md → health_rules.md (mood 1-5, 3-in-a-row sleep/mood Alerts, CHECKIN_INPUTS)
+[x] Reconcile thresholds with docs/astronaut_health_monitor_pages.md → docs/health_rules.md (mood 1-5, 3-in-a-row sleep/mood Alerts, CHECKIN_INPUTS)
 
 [x] PHASE 3 backend: check-in schedule (morning / evening / weekly / monthly / eye exams) + streaks + badges + crew leaderboard (consistency only)
 
@@ -212,7 +212,7 @@ Browser verification used the offline demo. External Google Fonts requests can f
 [x] Add five selectable organ cards on Body Map only, with slow horizontal rotation around the vertical axis, shared detail/figure selection, pause/resume, and reduced-motion support.
 
 
-Phase 4 ChatGPT UI implementation (see phases/phase4.chatgpt.md):
+Phase 4 ChatGPT UI implementation (see docs/phases/phase4.chatgpt.md):
 [x] Move compact professional trip bar and Earth/local clocks into the shared header.
 [x] Restore Home's click-to-start body scan with staged region colors and Body Map navigation; use 2x3 desktop vitals and daily/weekly/monthly reminders.
 [x] Replace the Body Map standing figure with five vertical, selectable, rotating local GLB models; include generator, CC0 license, reduced motion and source documentation.
@@ -223,7 +223,7 @@ Phase 4 ChatGPT UI implementation (see phases/phase4.chatgpt.md):
 [x] Verify build, lint, real check-in/photo/journal flows, reaction boundaries, scan timing, responsive pages and zero final browser console errors/warnings. Document Mars-clock, model and demo limits.
 
 
-Phase 5 ChatGPT UI polish (see phases/phase5.chatgpt.md):
+Phase 5 ChatGPT UI polish (see docs/phases/phase5.chatgpt.md):
 [x] Lock the desktop mission header to three stable zones; remove floating title-row sync text and retain the prototype footer / Log out.
 [x] Clip scan status fills to the same SVG silhouette as the body and synchronize continuous reveal with the beam.
 [x] Match desktop vitals-grid and scan heights; place briefing below both and align inline status typography.
@@ -235,7 +235,7 @@ Phase 5 ChatGPT UI polish (see phases/phase5.chatgpt.md):
 [x] Verify build/lint/TypeScript, functional navigation/saves, three demo-profile header layouts, 20 page/viewport combinations, and zero comprehensive-run console errors/warnings. Backend files remain unchanged.
 
 
-Phase 6 ChatGPT fixes (see phases/phase6.chatgpt.md):
+Phase 6 ChatGPT fixes (see docs/phases/phase6.chatgpt.md):
 [x] Consolidate the critical briefing into one red cross / uppercase ALERT headline and remove repeated Alert labels.
 [x] Restore the exact Build 4 Home scan component and presentation; make vital measurements bold.
 [x] Require explicit core temperature, mood, sleep quality, energy/fatigue and stress, leaving resting heart rate optional; mark all required fields with asterisks.
@@ -244,15 +244,15 @@ Phase 6 ChatGPT fixes (see phases/phase6.chatgpt.md):
 [x] Verify build/lint, required-field validation, seven guidance round trips, successful reset, private journal separation and 20 responsive page checks with no console errors/warnings. Backend files remain unchanged.
 
 
-Phase 7 ChatGPT presentation updates (see phases/phase7.chatgpt.md):
+Phase 7 ChatGPT presentation updates (see docs/phases/phase7.chatgpt.md):
 [x] Fix red required-mark placement and stability while preserving validation behavior; compact Home vital cards without losing bold values (`533874c`).
 [x] Implement the approved Home prototype with briefing below the vitals, aligned scan height and matching 12 px vertical gaps above the briefing and exposure row (`b1b96b2`).
 [x] Record implementation scope, prototype approval, verification and commit references in the phases folder. This phase-note commit changes documentation only.
 
 
-Phase 5 Claude: Gemini, health database, body scan, auto-SOS (see phases/phase5Claude.md):
+Phase 5 Claude: Gemini, health database, body scan, auto-SOS (see docs/phases/phase5Claude.md):
 [x] Python server (`server/app.py`, stdlib only): `/api/scan` trend-following KPI generator (~12% Watch/Alert anomalies) and `/api/ai/json` Gemini proxy (key in `server/.env`, model fallback chain). Browser never holds the key.
-[x] IndexedDB health database (`src/services/healthDb.ts`): readings, scans, briefings, photos, uploads, SOS. 21 days of seeded history per astronaut (realistic mix of Normal / Watch / Alert days), every new reading appended and coloured by health_rules.md; profile rebuilt from the database at login.
+[x] IndexedDB health database (`src/services/healthDb.ts`): readings, scans, briefings, photos, uploads, SOS. 21 days of seeded history per astronaut (realistic mix of Normal / Watch / Alert days), every new reading appended and coloured by docs/health_rules.md; profile rebuilt from the database at login.
 [x] Home "Start scan" → new readings (Python, browser fallback) → database → emergency check → new briefing.
 [x] Full medical briefing (`aiBriefing.ts`): last check-in, last 24 h, past 7 days, concerns, next checks, interim steps; Gemini writes it, offline rules otherwise; never greener than the rules.
 [x] Skin / injury photo first look: 11 classes (adds bite, scab, scar, infection, rash), processed pixel data (red / dark / yellow %), Gemini with the astronaut's vitals, symptoms and earlier photos; context-aware severity.
@@ -260,13 +260,13 @@ Phase 5 Claude: Gemini, health database, body scan, auto-SOS (see phases/phase5C
 [x] Emergency assessor + 30 s cancellable auto-SOS to AstraHealth Station (Earth) and the ISS with signal delays; manual SOS shows recipients; events stored.
 [x] Round 2: no model name in the UI; photos and files stored + More → My records with export; one automatic SOS per issue (with counts); scan lines removed; exact check-in validation; blood sugar weekly only (not scanned); warning toasts ≤ 1 per 10 min, full-screen alerts ≥ 10 min apart and re-shown only on a later day or if worse; precise care steps.
 
-Phase 8 ChatGPT emergency-dialog acknowledgment fix (see phases/phase8.chatgpt.md):
+Phase 8 ChatGPT emergency-dialog acknowledgment fix (see docs/phases/phase8.chatgpt.md):
 [x] Reproduce the loop caused by confirming an escalated SOS while its original critical alert stays open.
 [x] Display all pending alerts and acknowledge exactly those displayed before reevaluation; use Confirm all for grouped alerts.
 [x] Verify dashboard access after confirmation, automatic reevaluation/reload, new SOS, retained readings and mobile confirmation. No backend or Home-layout changes.
 
 
-Phase 9 ChatGPT journey artwork and rotating anatomy (see phases/phase9.chatgpt.md):
+Phase 9 ChatGPT journey artwork and rotating anatomy (see docs/phases/phase9.chatgpt.md):
 [x] Verify Claude’s PR #9 is merged and fast-forward the frontend branch to main at 7085952 before making changes.
 [x] Replace small journey icons with larger, balanced Earth/Moon/Mars/ISS artwork and a separate shuttle marker in the shared header.
 [x] Replace the five Body Map models with original reference-inspired brain, heart, liver, DNA and knee-to-foot bone/muscle meshes; retain system selection, pause and reduced motion.
@@ -274,13 +274,13 @@ Phase 9 ChatGPT journey artwork and rotating anatomy (see phases/phase9.chatgpt.
 [x] Document generation, asset provenance, license and illustrative limits; verify lint/build and browser behavior across 25 page/viewport combinations. No changes to backend services, data or types.
 
 
-Phase 6 Claude: Body Map organs from the reference images (see phases/phase6Claude.md):
+Phase 6 Claude: Body Map organs from the reference images (see docs/phases/phase6Claude.md):
 [x] Build five rotating 3D models (brain, heart, liver, DNA, leg) from the supplied images with `image-to-3d.py` (cut-out, Poisson inflation, relief, textured closed mesh) and replace the Body Map models; side-projection shader so every angle looks solid; 360° turntable at 30°/s.
 
 
-Phase 7 Claude (see phases/phase7Claude.md):
+Phase 7 Claude (see docs/phases/phase7Claude.md):
 [x] Rounder 3D organs (deeper inflation) and a true 3D DNA double helix.
 [x] Rename to AstraHealth (UI, titles, meta, package name, README); storage keys unchanged.
 [x] Login page first (session per browser tab).
 [x] `npm run dev` starts the Python server and Vite; quiet fallback when the server is down; AI model order Lite → Flash with failure reasons logged.
-[x] SI disclosure: visible watermarks, labelled AI text, file metadata, SI_DISCLOSURE.md, si-metadata.json; SUBMISSION.md for the Space Apps form.
+[x] SI disclosure: visible watermarks, labelled AI text, file metadata, README.md, docs/si-metadata.json; docs/SUBMISSION.md for the Space Apps form.

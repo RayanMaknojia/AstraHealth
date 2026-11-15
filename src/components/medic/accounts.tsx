@@ -145,7 +145,7 @@ export function Login({ onLogin }: { onLogin: (s: AuthSession) => void }) {
         </div>
         <p className="fine-print">
           Demo accounts · Device-local access · Decision support, not diagnosis
-          · Built with SI (AI) assistance, see SI_DISCLOSURE.md
+          · Built with SI (AI) assistance, see the README
         </p>
       </section>
       <footer className="login-footer">

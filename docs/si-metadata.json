@@ -4,7 +4,7 @@
   "challenge": "Create Health Monitoring Software for Astronauts on Space Missions",
   "siAssisted": true,
   "nasaBrandingUsed": false,
-  "disclosure": "SI_DISCLOSURE.md",
+  "disclosure": "README.md#use-of-super-intelligence-si",
   "tools": [
     { "name": "Claude Code", "vendor": "Anthropic", "type": "coding assistant (LLM)", "usedFor": ["backend services", "data schema and health rules engine", "health database", "Python server", "AI briefing, photo diagnosis and SOS logic", "3D organ generator", "UI changes", "documentation"] },
     { "name": "OpenAI Codex / ChatGPT", "vendor": "OpenAI", "type": "coding assistant and image generation", "usedFor": ["frontend UI", "earlier Blender organ generators", "journey artwork", "human body figure"] },

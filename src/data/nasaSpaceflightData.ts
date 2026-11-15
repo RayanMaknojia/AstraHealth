@@ -1,7 +1,7 @@
 /**
  * NASA HRP + Canadian Space Agency reference data for the AstraHealth HUD.
  *
- * Sources fetched 2026-11-14 (see CHALLENGE_BRIEF.md):
+ * Sources fetched 2026-11-14 (see docs/CHALLENGE_BRIEF.md):
  *  - NASA 5 Hazards of Human Spaceflight      https://www.nasa.gov/hrp/hazards/
  *  - NASA Risks of Human Spaceflight          https://www.nasa.gov/hrp/risks/
  *  - NASA Ongoing HRP Research                https://www.nasa.gov/hrp/ongoing-hrp-research/
@@ -64,7 +64,7 @@ export const SOURCES = {
   sleep: { label: 'Barger et al., Lancet Neurology 2014 - astronaut sleep', url: 'https://doi.org/10.1016/S1474-4422(14)70122-X' },
   ada: { label: 'American Diabetes Association - Standards of Care (glycemic thresholds)', url: 'https://diabetesjournals.org/care' },
   aha: { label: 'American Heart Association - Blood pressure categories', url: 'https://www.heart.org/en/health-topics/high-blood-pressure' },
-  // From astronaut_health_monitor_plan.md (team reference doc)
+  // From docs/astronaut_health_monitor_plan.md (team reference doc)
   std3001Vol2: { label: 'NASA-STD-3001 Vol. 2 §6 - Natural and induced environments', url: 'https://www.nasa.gov/reference/6-0-natural-and-induced-environments-vol-2' },
   ochmoCo2: { label: 'NASA OCHMO Technical Brief - Carbon dioxide', url: 'https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf' },
   ochmoRadiation: { label: 'NASA OCHMO Technical Brief - Radiation protection', url: 'https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf' },
@@ -242,7 +242,7 @@ export const CSA_RADIATION_MONITORING = {
  * nominal; "critical" covers values outside caution.
  */
 export const THRESHOLDS = {
-  // All values below follow health_rules.md (reconciled team rules).
+  // All values below follow docs/health_rules.md (reconciled team rules).
   bloodSugar: {
     // ADA: <70 hypoglycaemia (L1), <54 clinically significant (L2). Pages doc: Alert > 180.
     criticalLow: 54,
@@ -450,7 +450,7 @@ export const HAZARD_RISK_MAP: HazardRiskEntry[] = [
 // ── Mission environments ──────────────────────────────────────────────────
 
 export const ENVIRONMENTS: Record<EnvironmentType, EnvironmentProfile> = {
-  // Values from astronaut_health_monitor_plan.md §4/§7; some are midpoints of published ranges.
+  // Values from docs/astronaut_health_monitor_plan.md §4/§7; some are midpoints of published ranges.
   EARTH: {
     id: 'EARTH',
     label: 'Earth (training / baseline)',

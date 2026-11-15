@@ -27,13 +27,13 @@ export function Status({ status }: { status: DisplayStatus }) {
 }
 /**
  * Visible watermark for SI-generated (AI-generated) imagery, required by the
- * NASA Space Apps SI rules. Details: SI_DISCLOSURE.md.
+ * NASA Space Apps SI rules. Details: README (SI use).
  */
 export function SiBadge({ label = "SI-generated" }: { label?: string }) {
   return (
     <span
       className="si-badge"
-      title="Created with Super Intelligence (AI) tools. See SI_DISCLOSURE.md."
+      title="Created with Super Intelligence (AI) tools. See the README."
     >
       {label}
     </span>
