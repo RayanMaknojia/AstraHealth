@@ -7005,3 +7005,204 @@ body:has(.medic-app) {
     height: 56px;
   }
 }
+
+/* Body Map organ images (public/organs). Each stays a plain <img>; the
+   motion is CSS/SVG around it: lighten-blend into the card, gentle float,
+   pointer tilt (vars set by tiltHandlers), two slow-rotating dashed scanner
+   rings and a soft radial glow in the system's status colour. */
+.organ-rows .organ-model.organ-stage {
+  height: 200px;
+  display: block;
+  position: relative;
+  overflow: visible;
+}
+.organ-view {
+  position: absolute;
+  inset: 0;
+  display: block;
+  isolation: isolate;
+  pointer-events: none;
+}
+.organ-glow {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--glow) 38%, transparent),
+    color-mix(in srgb, var(--glow) 10%, transparent) 55%,
+    transparent 90%
+  );
+  transition: background 0.6s ease;
+}
+.organ-tilt {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  height: 100%;
+  width: auto;
+  max-width: 100%;
+  aspect-ratio: 1 / 1;
+  transform: perspective(800px) rotateX(var(--rx, 0deg))
+    rotateY(var(--ry, 0deg));
+  transition: transform 0.25s ease-out;
+  will-change: transform;
+}
+.organ-float {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  mix-blend-mode: lighten;
+  -webkit-mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+  mask-image: radial-gradient(closest-side, #000 72%, transparent 100%);
+  animation: organ-float 5s ease-in-out infinite;
+  user-select: none;
+}
+.organ-rings {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+.organ-ring ellipse {
+  fill: none;
+  stroke: var(--glow);
+  stroke-width: 0.9;
+  stroke-dasharray: 4 6;
+  opacity: 0.6;
+}
+.organ-ring-b ellipse {
+  stroke: #cfe8ff;
+  stroke-dasharray: 1.5 5;
+  opacity: 0.4;
+}
+.organ-ring {
+  /* Spin each ring about its own centre (the organ), not the page. */
+  transform-box: fill-box;
+  transform-origin: center;
+}
+.organ-ring-a {
+  animation: organ-ring-spin 24s linear infinite;
+}
+.organ-ring-b {
+  animation: organ-ring-spin 36s linear infinite reverse;
+}
+@keyframes organ-float {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-5px);
+  }
+}
+@keyframes organ-ring-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+.system-hero {
+  display: grid;
+  grid-template-columns: minmax(220px, 300px) 1fr;
+  align-items: center;
+  gap: 8px 24px;
+  margin-bottom: 12px;
+}
+.organ-hero-frame {
+  position: relative;
+  height: 300px;
+}
+@media (max-width: 760px) {
+  .system-hero {
+    grid-template-columns: 1fr;
+  }
+  .organ-hero-frame {
+    height: 260px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .organ-view *,
+  .organ-view {
+    animation: none !important;
+    transition: none !important;
+  }
+}
+
+/* Emergency dialog: on laptops/desktops widen into columns instead of
+   scrolling (column count set by useFitColumns); phones keep scrolling. */
+.critical-body {
+  column-gap: 36px;
+  column-rule: 1px solid #3a536655;
+}
+.critical-body > section {
+  break-inside: avoid;
+  margin-bottom: 16px;
+}
+.critical-body > section:last-child {
+  margin-bottom: 0;
+}
+.critical-body ol {
+  padding-left: 22px;
+  margin: 4px 0 0;
+  list-style: decimal;
+  color: #bdcddd;
+}
+.critical-body ol li {
+  margin: 4px 0;
+}
+.critical-body ul {
+  padding: 0;
+  margin: 4px 0 0;
+  list-style: none;
+}
+.critical-body .additional-override {
+  border-top: 1px solid #3a536655;
+  padding-top: 12px;
+}
+.critical-body[style*="column-count: 2"] .additional-override,
+.critical-body[style*="column-count: 3"] .additional-override {
+  border-top: 0;
+  padding-top: 0;
+}
+@media (min-width: 900px) {
+  [data-slot="dialog-content"].critical-dialog {
+    max-height: calc(100dvh - 64px) !important;
+    overflow-y: auto;
+    transition: max-width 0.2s ease;
+  }
+  [data-slot="dialog-content"].critical-dialog[data-cols="2"] {
+    width: min(960px, calc(100vw - 48px));
+    max-width: min(960px, calc(100vw - 48px));
+  }
+  [data-slot="dialog-content"].critical-dialog[data-cols="3"] {
+    width: min(1380px, calc(100vw - 48px));
+    max-width: min(1380px, calc(100vw - 48px));
+  }
+}
+
+/* Sidebar on shorter laptop screens: keep Log out on screen. The sidebar is
+   fixed to the window height, so its contents must fit; tighten the info
+   note and, as a last resort, let the sidebar scroll. */
+.mission-sidebar {
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+@media (max-height: 860px) {
+  .mission-sidebar .sidebar-mission {
+    padding: 16px 12px 14px;
+    gap: 8px;
+  }
+  .mission-sidebar .crew-identity {
+    padding: 12px 0;
+  }
+}
+@media (max-height: 760px) {
+  .mission-sidebar .sidebar-mission {
+    display: none;
+  }
+}

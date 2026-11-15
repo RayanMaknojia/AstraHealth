@@ -10,7 +10,8 @@ import {
 import { CHECKIN_INPUTS } from "@/data/nasaSpaceflightData";
 import { Button } from "@/components/ui/button";
 import { Panel, Status, NumberedInstructions } from "./primitives";
-import { OrganSystems } from "./organ-systems";
+import { OrganSystems, OrganView } from "./organ-systems";
+import { tiltHandlers } from "./organ-systems-data";
 import { statusOf } from "./status";
 import type { MissionModel } from "./use-mission";
 const labels: Record<BodySystem, { name: string; function: string }> = {
@@ -60,15 +61,39 @@ export function BodyMap({
     .map(statusOf)
     .filter((s): s is StatusLevel => s !== "no_data");
   const status: DisplayStatus = states.length ? worstStatus(states) : "no_data";
+  // Live status per system drives each organ model's glow colour.
+  const statuses = Object.fromEntries(
+    (Object.keys(labels) as BodySystem[]).map((sys) => {
+      const known = model.profile.indicators
+        .filter((i) => i.system === sys)
+        .map(statusOf)
+        .filter((s): s is StatusLevel => s !== "no_data");
+      return [sys, known.length ? worstStatus(known) : "no_data"];
+    }),
+  ) as Record<BodySystem, DisplayStatus>;
   return (
     <div className="body-map-page">
       <div className="body-layout revised-body-map">
-        <OrganSystems selected={selected} onSelect={onSelect} />
+        <OrganSystems
+          selected={selected}
+          onSelect={onSelect}
+          statuses={statuses}
+        />
         <Panel
           title={labels[selected].name}
           accessory={<Status status={status} />}
         >
-          <p className="system-function">{labels[selected].function}</p>
+          <div className="system-hero">
+            <div className="organ-hero-frame" {...tiltHandlers}>
+              <OrganView
+                key={selected}
+                system={selected}
+                status={status}
+                className="organ-view-hero"
+              />
+            </div>
+            <p className="system-function">{labels[selected].function}</p>
+          </div>
           <div className="system-detail">
             {indicators.map((i) => {
               const bounds = boundsFor(
