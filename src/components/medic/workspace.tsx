@@ -38,6 +38,7 @@ import { MissionClock } from "./mission-clock";
 import { Home, Briefing, TripBar } from "./home";
 import type { ExamGuideId } from "./exam-guidance";
 import { useMission, notify } from "./use-mission";
+import { useFitColumns } from "./use-fit-columns";
 import type { PendingSos } from "./use-mission";
 import { DemoControls } from "./demo-controls";
 const Checkin = lazy(() =>
@@ -178,6 +179,12 @@ export function Workspace({
     [briefingOpen, setBriefingOpen] = useState(false),
     [crewNotified, setCrewNotified] = useState(false);
   const active = model.overrides[0];
+  // On laptops/desktops the alert dialog widens into columns instead of
+  // scrolling when its text is taller than the screen.
+  const { ref: alertFitRef, cols: alertCols } = useFitColumns(
+    !!active && !model.pendingSos,
+    model.overrides.map((o) => o.id).join("|"),
+  );
   const banner = getBanner(model.missionState, model.profile.id);
   const go = (target: string) => {
     startTransition(() => {
@@ -417,7 +424,11 @@ export function Workspace({
         />
       )}
       <Dialog open={!!active && !model.pendingSos} onOpenChange={() => {}}>
-        <DialogContent className="critical-dialog" showCloseButton={false}>
+        <DialogContent
+          className="critical-dialog"
+          showCloseButton={false}
+          data-cols={alertCols}
+        >
           <DialogTitle>{active?.title}</DialogTitle>
           <DialogDescription>
             {model.overrides.length > 1
@@ -426,52 +437,62 @@ export function Workspace({
           </DialogDescription>
           {active && (
             <>
-              <ShieldAlert className="override-icon" />
-              <h3>{active.headline}</h3>
-              {active.details.map((d) => (
-                <p key={d}>{d}</p>
-              ))}
-              <h3>Do this now</h3>
-              <ol>
-                {active.steps.map((s) => (
-                  <li key={s}>{s}</li>
-                ))}
-              </ol>
-              {active.kind === "sos" && (
-                <>
-                  <h3>SOS sent to</h3>
-                  <ul data-testid="sos-recipients">
-                    {(model.lastSos?.overrideId === active.id
-                      ? model.lastSos.recipients
-                      : recipients
-                    ).map((r) => (
-                      <li key={r.id}>
-                        {r.name}: arrives in {formatEta(r.etaSeconds)}
-                      </li>
-                    ))}
-                  </ul>
-                </>
-              )}
-              {model.overrides.slice(1).map((alert) => (
-                <section
-                  className="additional-override"
-                  key={alert.id}
-                  aria-label={alert.title}
-                >
-                  <h3>{alert.title}</h3>
-                  <h4>{alert.headline}</h4>
-                  {alert.details.map((detail) => (
-                    <p key={detail}>{detail}</p>
+              <div
+                className="critical-body"
+                ref={alertFitRef}
+                style={{ columnCount: alertCols }}
+              >
+                <section className="primary-override" aria-label={active.title}>
+                  <ShieldAlert className="override-icon" />
+                  <h3>{active.headline}</h3>
+                  {active.details.map((d) => (
+                    <p key={d}>{d}</p>
                   ))}
-                  <h4>Do this now</h4>
+                  <h3>Do this now</h3>
                   <ol>
-                    {alert.steps.map((step) => (
-                      <li key={step}>{step}</li>
+                    {active.steps.map((s) => (
+                      <li key={s}>{s}</li>
                     ))}
                   </ol>
                 </section>
-              ))}
-              <p>{ESCALATION_MODE_LABELS[model.report.escalationMode]}</p>
+                {active.kind === "sos" && (
+                  <section className="sos-recipients">
+                    <h3>SOS sent to</h3>
+                    <ul data-testid="sos-recipients">
+                      {(model.lastSos?.overrideId === active.id
+                        ? model.lastSos.recipients
+                        : recipients
+                      ).map((r) => (
+                        <li key={r.id}>
+                          {r.name}: arrives in {formatEta(r.etaSeconds)}
+                        </li>
+                      ))}
+                    </ul>
+                  </section>
+                )}
+                {model.overrides.slice(1).map((alert) => (
+                  <section
+                    className="additional-override"
+                    key={alert.id}
+                    aria-label={alert.title}
+                  >
+                    <h3>{alert.title}</h3>
+                    <h4>{alert.headline}</h4>
+                    {alert.details.map((detail) => (
+                      <p key={detail}>{detail}</p>
+                    ))}
+                    <h4>Do this now</h4>
+                    <ol>
+                      {alert.steps.map((step) => (
+                        <li key={step}>{step}</li>
+                      ))}
+                    </ol>
+                  </section>
+                ))}
+              </div>
+              <p className="override-escalation">
+                {ESCALATION_MODE_LABELS[model.report.escalationMode]}
+              </p>
               <div className="override-actions">
                 <Button
                   variant="outline"

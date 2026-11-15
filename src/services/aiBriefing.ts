@@ -302,7 +302,7 @@ export async function generateBriefing(input: BriefingInput, ai?: AIConfig): Pro
       sectionNotes: { checkin: str(reply.checkinNote, 300), last24h: str(reply.last24hNote, 300), sevenDay: str(reply.sevenDayNote, 300) },
     }
   } else {
-    out = { ...base, fallbackReason: info.error === 'server_unreachable' ? 'Python server not running' : info.error === 'no_api_key' ? 'No AI key on the server' : info.error === 'offline_mode' ? 'Offline mode' : info.error ? 'AI service busy or unavailable' : 'AI reply was unusable' }
+    out = { ...base, fallbackReason: info.error === 'server_unreachable' ? 'AI briefing unavailable' : info.error === 'no_api_key' ? 'AI briefing unavailable' : info.error === 'offline_mode' ? 'Offline mode' : info.error ? 'AI briefing busy, try later' : 'AI reply was unusable' }
   }
   await saveBriefing(out).catch(() => undefined)
   return out
