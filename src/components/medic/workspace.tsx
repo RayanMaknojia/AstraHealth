@@ -35,6 +35,7 @@ import { Brand, PageTitle } from "./primitives";
 import { formatTripBarLabel } from "@/services/missionTimeline";
 import { MissionClock } from "./mission-clock";
 import { Home, Briefing, TripBar } from "./home";
+import type { ExamGuideId } from "./exam-guidance";
 import { useMission, notify } from "./use-mission";
 import { DemoControls } from "./demo-controls";
 const Checkin = lazy(() =>
@@ -99,13 +100,18 @@ export function Workspace({
   const [page, setPage] = useState("Home"),
     [indicator, setIndicator] = useState("heart_rate"),
     [bodySystem, setBodySystem] = useState<BodySystem>("cardiovascular"),
+    [checkinOpened, setCheckinOpened] = useState(false),
+    [guidanceTarget, setGuidanceTarget] = useState<ExamGuideId | null>(null),
     [moreTab, setMoreTab] = useState("Cabin readings"),
     [briefingOpen, setBriefingOpen] = useState(false),
     [crewNotified, setCrewNotified] = useState(false);
   const active = model.overrides[0];
   const banner = getBanner(model.missionState, model.profile.id);
   const go = (target: string) => {
-    startTransition(() => setPage(target));
+    startTransition(() => {
+      if (target === "Check-in") setCheckinOpened(true);
+      setPage(target);
+    });
     window.scrollTo({ top: 0, behavior: "instant" });
   };
   const trend = (id: string) => {
@@ -243,17 +249,24 @@ export function Workspace({
                 }}
               />
             )}{" "}
-            {page === "Check-in" && (
-              <Checkin
-                key={model.profile.id}
-                model={model}
-                save={saveCheckin}
-                busy={busy}
-                onJournalHistory={() => {
-                  setMoreTab("Past journal entries");
-                  go("More");
-                }}
-              />
+            {checkinOpened && (
+              <div hidden={page !== "Check-in"}>
+                <Checkin
+                  key={model.profile.id}
+                  model={model}
+                  save={saveCheckin}
+                  busy={busy}
+                  onGuidance={(id) => {
+                    setGuidanceTarget(id);
+                    setMoreTab("Guidance & triage");
+                    go("More");
+                  }}
+                  onJournalHistory={() => {
+                    setMoreTab("Past journal entries");
+                    go("More");
+                  }}
+                />
+              </div>
             )}{" "}
             {page === "Body Map" && (
               <BodyMap
@@ -276,7 +289,16 @@ export function Workspace({
               />
             )}{" "}
             {page === "More" && (
-              <More model={model} onLogout={onLogout} initialTab={moreTab} />
+              <More
+                model={model}
+                onLogout={onLogout}
+                initialTab={moreTab}
+                focusGuide={guidanceTarget}
+                onCheckin={() => {
+                  setGuidanceTarget(null);
+                  go("Check-in");
+                }}
+              />
             )}
           </Suspense>
           <footer className="mission-footer">

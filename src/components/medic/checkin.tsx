@@ -27,6 +27,7 @@ import { ReactionTest } from "./reaction-test";
 import type { MissionModel } from "./use-mission";
 import { PhotoCheck } from "./photo-check";
 import { statusStyle } from "./status";
+import { EXAM_GUIDES, type ExamGuideId } from "./exam-guidance";
 import { notify } from "./use-mission";
 
 type SaveInput = {
@@ -35,22 +36,36 @@ type SaveInput = {
   extras?: CheckinExtras;
   symptoms?: string[];
 };
+function RequiredMark() {
+  return (
+    <span className="required-mark" aria-hidden="true">
+      {" "}
+      *
+    </span>
+  );
+}
 function Rating({
   label,
   value,
   onChange,
   help,
+  required = false,
 }: {
   label: string;
-  value: number;
+  value: number | undefined;
   onChange: (n: number) => void;
   help?: string;
+  required?: boolean;
 }) {
   const id = label.toLowerCase().replaceAll(/[^a-z0-9]/g, "-");
   return (
     <Field>
       <FieldLabel htmlFor={id}>
-        {label} <output>{value}/5</output>
+        {label}
+        {required && <RequiredMark />}{" "}
+        <output>
+          {value === undefined ? "Choose a rating" : `${value}/5`}
+        </output>
       </FieldLabel>
       <input
         id={id}
@@ -58,7 +73,14 @@ function Rating({
         min={1}
         max={5}
         step={1}
-        value={value}
+        value={value ?? 3}
+        required={required}
+        aria-required={required}
+        aria-label={label}
+        aria-valuetext={
+          value === undefined ? "Not yet provided" : `${value} out of 5`
+        }
+        onPointerUp={(e) => onChange(Number(e.currentTarget.value))}
         onChange={(e) => onChange(Number(e.target.value))}
       />
       {help && <small>{help}</small>}
@@ -70,25 +92,21 @@ export function Checkin({
   save,
   busy,
   onJournalHistory,
+  onGuidance,
 }: {
   model: MissionModel;
   save: (input: SaveInput) => Promise<boolean>;
   busy: boolean;
   onJournalHistory: () => void;
+  onGuidance: (id: ExamGuideId) => void;
 }) {
   const profile = model.profile;
   const suggested = nextScheduledCheckin(profile)?.slot ?? "morning";
   const [slot, setSlot] = useState<CheckinSlot>(suggested),
-    [values, setValues] = useState<VitalsInput>(() => {
-      const v = indicatorsToVitals(profile.indicators);
-      return { bodyTempC: v.bodyTempC, mood: v.mood, sleepHours: v.sleepHours };
-    }),
+    [values, setValues] = useState<VitalsInput>({}),
     [symptoms, setSymptoms] = useState<string[]>([]);
-  const [extras, setExtras] = useState<CheckinExtras>({
-      sleepQuality: 3,
-      fatigue: 3,
-    }),
-    [stress, setStress] = useState(3),
+  const [extras, setExtras] = useState<CheckinExtras>({}),
+    [stress, setStress] = useState<number | undefined>(undefined),
     [pain, setPain] = useState(0),
     [region, setRegion] = useState(""),
     [medications, setMedications] = useState<string[]>([]),
@@ -103,7 +121,8 @@ export function Checkin({
     >({});
   const [journal, setJournal] = useState(""),
     [entries, setEntries] = useState(() => listJournal(profile.id)),
-    [error, setError] = useState("");
+    [error, setError] = useState(""),
+    [draftRevision, setDraftRevision] = useState(0);
   const currentDay = profile.missionDay + model.onboardMinute / 1440;
   const wearableIds = ["heart_rate", "blood_pressure", "spo2", "sleep_hours"];
   const wearableReadings = wearableIds.map(
@@ -128,12 +147,18 @@ export function Checkin({
     keys.map((key) => {
       const spec = field(key);
       const value = values[spec.key];
+      const required =
+        key === "bodyTempC" || (weekly && key === "bloodSugarMgDl");
       return (
         <Field key={key}>
-          <FieldLabel htmlFor={`value-${key}`}>{spec.label}</FieldLabel>
+          <FieldLabel htmlFor={`value-${key}`}>
+            {spec.label}
+            {required && <RequiredMark />}
+          </FieldLabel>
           <div className="numeric-reading">
             <input
               id={`value-${key}`}
+              aria-label={spec.label}
               type="number"
               min={spec.min}
               max={spec.max}
@@ -146,9 +171,7 @@ export function Checkin({
                     e.target.value === "" ? undefined : Number(e.target.value),
                 }))
               }
-              required={
-                key === "bodyTempC" || (weekly && key === "bloodSugarMgDl")
-              }
+              required={required}
             />
             <span>{spec.unit}</span>
           </div>
@@ -166,6 +189,21 @@ export function Checkin({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
+    const requiredRatings = [
+      ["Mood", values.mood],
+      ["Sleep quality", extras.sleepQuality],
+      ["Energy / fatigue", extras.fatigue],
+      ["Stress", stress],
+    ] as const;
+    const missingRatings = requiredRatings
+      .filter(([, v]) => v === undefined || v < 1 || v > 5)
+      .map(([name]) => name);
+    if (values.bodyTempC === undefined || missingRatings.length) {
+      setError(
+        `Complete all required measurements: ${[...(values.bodyTempC === undefined ? ["Body temperature"] : []), ...missingRatings].join(", ")}.`,
+      );
+      return;
+    }
     if (
       weekly &&
       (!values.fasting || !extras.reactionMs || !food || !hydration)
@@ -213,6 +251,22 @@ export function Checkin({
     });
     if (ok) {
       if (journal.trim()) saveJournal();
+      setValues({});
+      setExtras({});
+      setSymptoms([]);
+      setStress(undefined);
+      setPain(0);
+      setRegion("");
+      setMedications([]);
+      setMedDetails({});
+      setFood("");
+      setHydration("");
+      setTeam(3);
+      setExamResults({});
+      setExamDone(false);
+      setPhotoOpen(false);
+      setJournal("");
+      setDraftRevision((n) => n + 1);
       setError("");
     }
   };
@@ -303,18 +357,24 @@ export function Checkin({
                 : "Your daily wellbeing and symptoms."}{" "}
             Measurements are evaluated by the shared health service.
           </p>
+          <p className="required-fields-note">
+            Fields marked <RequiredMark /> are required. Choose each daily
+            rating before submitting.
+          </p>
           <FieldGroup>
             <div className="checkin-fields">
               {inputs(["bodyTempC"])}
               <Rating
                 label="Mood"
-                value={values.mood ?? 3}
+                required
+                value={values.mood}
                 onChange={(n) => setValues((v) => ({ ...v, mood: n }))}
                 help="1 low · 5 great"
               />
               <Rating
                 label="Sleep quality"
-                value={extras.sleepQuality ?? 3}
+                required
+                value={extras.sleepQuality}
                 onChange={(n) =>
                   setExtras((x) => ({ ...x, sleepQuality: n as Rating5 }))
                 }
@@ -322,7 +382,8 @@ export function Checkin({
               />
               <Rating
                 label="Energy / fatigue"
-                value={extras.fatigue ?? 3}
+                required
+                value={extras.fatigue}
                 onChange={(n) =>
                   setExtras((x) => ({ ...x, fatigue: n as Rating5 }))
                 }
@@ -330,6 +391,7 @@ export function Checkin({
               />
               <Rating
                 label="Stress"
+                required
                 value={stress}
                 onChange={setStress}
                 help="1 low · 5 high"
@@ -391,7 +453,9 @@ export function Checkin({
                 <output>{pain}/10</output>
               </Field>
               <Field>
-                <FieldLabel htmlFor="pain-region">Pain body region</FieldLabel>
+                <FieldLabel htmlFor="pain-region">
+                  Pain body region{pain > 0 && <RequiredMark />}
+                </FieldLabel>
                 <input
                   id="pain-region"
                   value={region}
@@ -424,7 +488,7 @@ export function Checkin({
                     {medications.includes(m.name) && (
                       <div className="medication-dose-fields">
                         <label>
-                          Dose
+                          Dose <RequiredMark />
                           <input
                             aria-label={`${m.name} dose`}
                             required
@@ -442,7 +506,7 @@ export function Checkin({
                           />
                         </label>
                         <label>
-                          Time
+                          Time <RequiredMark />
                           <input
                             aria-label={`${m.name} time`}
                             required
@@ -471,7 +535,10 @@ export function Checkin({
                 <div className="checkin-fields">
                   {inputs(["bloodSugarMgDl"])}
                   <Field>
-                    <FieldLabel htmlFor="mass">Body mass (kg)</FieldLabel>
+                    <FieldLabel htmlFor="mass">
+                      Body mass (kg)
+                      <RequiredMark />
+                    </FieldLabel>
                     <input
                       id="mass"
                       type="number"
@@ -490,7 +557,7 @@ export function Checkin({
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="food">
-                      Food / nutrition questionnaire
+                      Food / nutrition questionnaire <RequiredMark />
                     </FieldLabel>
                     <select
                       id="food"
@@ -510,7 +577,7 @@ export function Checkin({
                   </Field>
                   <Field>
                     <FieldLabel htmlFor="hydration">
-                      Water / fluids yesterday (litres)
+                      Water / fluids yesterday (litres) <RequiredMark />
                     </FieldLabel>
                     <input
                       id="hydration"
@@ -527,12 +594,13 @@ export function Checkin({
                 <label className="check-label">
                   <input
                     type="checkbox"
+                    required
                     checked={values.fasting ?? false}
                     onChange={(e) =>
                       setValues((v) => ({ ...v, fasting: e.target.checked }))
                     }
                   />
-                  Fasting glucose measured before food
+                  Fasting glucose measured before food <RequiredMark />
                 </label>
               </section>
             )}
@@ -545,38 +613,45 @@ export function Checkin({
                   concerns using onboard guidance.
                 </p>
                 <ol className="monthly-exam-steps checkin-fields">
-                  {[
-                    "Circulation",
-                    "Breathing",
-                    "Skin",
-                    "Movement",
-                    "Sleep",
-                    "Crew wellbeing",
-                    "Eye Exam (SANS / visual acuity & ocular check)",
-                  ].map((item, n) => (
-                    <li key={item}>
-                      <label>
-                        {n + 1}. {item}
-                        <select
-                          aria-label={`Exam: ${item}`}
-                          required
-                          value={examResults[item] ?? ""}
-                          onChange={(e) =>
-                            setExamResults((x) => ({
-                              ...x,
-                              [item]: e.target.value,
-                            }))
-                          }
-                        >
-                          <option value="">Review with crewmate</option>
-                          <option value="no_concerns">No concerns noted</option>
-                          <option value="follow_up">
-                            Concern noted: follow onboard guidance
-                          </option>
-                        </select>
-                      </label>
-                    </li>
-                  ))}
+                  {EXAM_GUIDES.map((guide, n) => {
+                    const item = guide.label;
+                    return (
+                      <li key={item}>
+                        <label>
+                          {n + 1}. {item} <RequiredMark />
+                          <select
+                            aria-label={`Exam: ${item}`}
+                            required
+                            value={examResults[item] ?? ""}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setExamResults((x) => ({ ...x, [item]: value }));
+                              if (value === "follow_up") onGuidance(guide.id);
+                            }}
+                          >
+                            <option value="">Review with crewmate</option>
+                            <option value="no_concerns">
+                              No concerns noted
+                            </option>
+                            <option value="follow_up">
+                              Concern noted: follow onboard guidance
+                            </option>
+                          </select>
+                        </label>
+                        {examResults[item] === "follow_up" && (
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            className="exam-guidance-link"
+                            onClick={() => onGuidance(guide.id)}
+                          >
+                            Open guidance
+                            <ArrowUpRight data-icon="inline-end" />
+                          </Button>
+                        )}
+                      </li>
+                    );
+                  })}
                 </ol>
                 <Rating
                   label="Team cohesion"
@@ -588,17 +663,20 @@ export function Checkin({
                   <label className="check-label">
                     <input
                       type="checkbox"
+                      required
                       checked={examDone}
                       onChange={(e) => setExamDone(e.target.checked)}
                     />
                     Guided full health exam and sleep/team questionnaire
-                    completed with a crewmate
+                    completed with a crewmate <RequiredMark />
                   </label>
                 )}
               </section>
             )}
             <div className="checkin-bottom-columns">
               <ReactionTest
+                key={draftRevision}
+                required={weekly}
                 astronautId={profile.id}
                 onResult={(ms) =>
                   setExtras((x) => ({ ...x, reactionMs: ms ?? undefined }))
@@ -659,6 +737,7 @@ export function Checkin({
         </Panel>
       </form>
       <PhotoCheck
+        key={draftRevision}
         open={photoOpen}
         onClose={() => setPhotoOpen(false)}
         model={model}

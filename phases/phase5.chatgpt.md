@@ -3,6 +3,7 @@
 **Owner:** ChatGPT / Codex (frontend)
 **Branch:** `codex/space-medic-home-redesign`
 **Build:** 5
+**Implementation commit:** `3c8dbbc`
 **Starting checkpoint:** Build 4, `551e958`
 **Source:** The newest user-uploaded `ui_polish_bug_fix_implementation_spec.md`, plus the user's request for brighter, coordinated login orbits.
 **Status:** Implemented and verified.
@@ -75,4 +76,4 @@ Browser plugin was unavailable, so verification used Chromium through Playwright
 | 2 | `4216a4d` | Body removed from Home |
 | 3 | `7b21f9d` | Rotating SVG organ cards |
 | 4 | `551e958` | Home scan restored and GLB organ rows introduced |
-| 5 | Current phase implementation commit | This UI polish and bug-fix phase |
+| 5 | `3c8dbbc` | This UI polish and bug-fix phase |

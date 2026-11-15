@@ -233,3 +233,12 @@ Phase 5 ChatGPT UI polish (see phases/phase5.chatgpt.md):
 [x] Suppress empty-series SVG dots, increase Y padding, default to 7D and clarify the purple average legend/tooltip.
 [x] Brighten and coordinate the login orbital paths/glow points with the screen palette, including reduced-motion behavior.
 [x] Verify build/lint/TypeScript, functional navigation/saves, three demo-profile header layouts, 20 page/viewport combinations, and zero comprehensive-run console errors/warnings. Backend files remain unchanged.
+
+
+Phase 6 ChatGPT fixes (see phases/phase6.chatgpt.md):
+[x] Consolidate the critical briefing into one red cross / uppercase ALERT headline and remove repeated Alert labels.
+[x] Restore the exact Build 4 Home scan component and presentation; make vital measurements bold.
+[x] Require explicit core temperature, mood, sleep quality, energy/fatigue and stress, leaving resting heart rate optional; mark all required fields with asterisks.
+[x] Link the third physical-exam option to its matching More guidance and add all seven examination checklists with Back to Check-in controls.
+[x] Preserve the in-memory form draft across guidance navigation and reset it only after successful submission, including reaction/photo state.
+[x] Verify build/lint, required-field validation, seven guidance round trips, successful reset, private journal separation and 20 responsive page checks with no console errors/warnings. Backend files remain unchanged.
