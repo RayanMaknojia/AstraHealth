@@ -1,5 +1,17 @@
 import { useState } from "react";
-import { ArrowUpRight, ArrowLeft, LogOut } from "lucide-react";
+import {
+  ArrowUpRight,
+  ArrowLeft,
+  LogOut,
+  Cloud,
+  Wind,
+  Gauge,
+  Thermometer,
+  Droplets,
+  Volume2,
+  SunMoon,
+  Radiation,
+} from "lucide-react";
 import {
   SPACEFLIGHT_HAZARDS,
   SOURCES,
@@ -17,18 +29,21 @@ import {
 } from "@/services/guidanceService";
 import type { TriageNode, TriageSymptom } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
+import { JournalHistory } from "./journal-history";
+import { statusStyle } from "./status";
+import { statusOf } from "./status";
 import { Panel, Status } from "./primitives";
 import type { MissionModel } from "./use-mission";
 export function More({
   model,
   onLogout,
-  onBodyMap,
+  initialTab = "Cabin readings",
 }: {
   model: MissionModel;
   onLogout: () => void;
-  onBodyMap: () => void;
+  initialTab?: string;
 }) {
-  const [tab, setTab] = useState("Cabin readings");
+  const [tab, setTab] = useState(initialTab);
   const [symptom, setSymptom] = useState<TriageSymptom>("headache");
   const [node, setNode] = useState<TriageNode | null>(null);
   const cabin = summarizeCabin(model.cabinHistory);
@@ -45,7 +60,12 @@ export function More({
   return (
     <>
       <div className="scope-tabs" role="tablist" aria-label="More sections">
-        {["Cabin readings", "Guidance & triage", "References"].map((t) => (
+        {[
+          "Cabin readings",
+          "Past journal entries",
+          "Guidance & triage",
+          "References",
+        ].map((t) => (
           <button
             key={t}
             role="tab"
@@ -56,6 +76,11 @@ export function More({
           </button>
         ))}
       </div>
+      {tab === "Past journal entries" && (
+        <div role="tabpanel" aria-label="Past journal entries">
+          <JournalHistory astronautId={model.profile.id} />
+        </div>
+      )}
       {tab === "Cabin readings" && (
         <div role="tabpanel" aria-label="Cabin readings">
           <Panel
@@ -75,12 +100,22 @@ export function More({
             <div className="cabin-metric-grid">
               {model.environmentTick ? (
                 model.environmentTick.cabinEvaluation.params.map((p) => (
-                  <div key={p.param}>
+                  <div key={p.param} style={statusStyle(p.status)}>
                     <h3>
+                      {(() => {
+                        const Icon = {
+                          co2_mmhg: Cloud,
+                          temp_c: Thermometer,
+                          humidity_pct: Droplets,
+                          cabin_psia: Gauge,
+                          ppo2_mmhg: Wind,
+                        }[p.param];
+                        return Icon ? <Icon size={20} /> : null;
+                      })()}
                       {CABIN_LIMITS.find((c) => c.param === p.param)?.label ??
                         p.param}
                     </h3>
-                    <strong>
+                    <strong className="health-value">
                       {p.value}
                       <small>
                         {" "}
@@ -99,19 +134,39 @@ export function More({
               )}
               {cabin.latest && (
                 <>
-                  <div>
-                    <h3>O₂ concentration</h3>
-                    <strong>
+                  <div
+                    style={statusStyle(
+                      model.environmentTick?.cabinEvaluation.params.find(
+                        (p) => p.param === "ppo2_mmhg",
+                      )?.status ?? "no_data",
+                    )}
+                  >
+                    <h3>
+                      <Wind size={20} />
+                      O₂ concentration
+                    </h3>
+                    <strong className="health-value">
                       {cabin.latest.o2Pct}
                       <small> %</small>
                     </strong>
                     <p>Interpret alongside cabin pressure and inspired O₂.</p>
                   </div>
-                  <div>
-                    <h3>Radiation context</h3>
-                    <strong>
+                  <div
+                    style={statusStyle(
+                      statusOf(
+                        model.profile.indicators.find(
+                          (i) => i.id === "radiation_dose",
+                        )!,
+                      ),
+                    )}
+                  >
+                    <h3>
+                      <Radiation size={20} />
+                      Radiation context
+                    </h3>
+                    <strong className="health-value">
                       {model.environmentTick?.radiation.doseRateMSvPerDay ??
-                        "—"}
+                        "-"}
                       <small> mSv/day</small>
                     </strong>
                     <p>
@@ -119,16 +174,44 @@ export function More({
                         model.missionState.environment.label}
                     </p>
                   </div>
+                  <div>
+                    <h3>
+                      <Volume2 size={20} />
+                      Noise
+                    </h3>
+                    <strong
+                      style={statusStyle(
+                        cabin.noiseAdvice
+                          ? "caution"
+                          : cabin.latest.noiseDb === undefined
+                            ? "no_data"
+                            : "nominal",
+                      )}
+                      className="health-value"
+                    >
+                      {cabin.latest.noiseDb ?? "-"}
+                      <small> dB(A)</small>
+                    </strong>
+                    <p>{cabin.noiseAdvice ?? "Simulated cabin sound level"}</p>
+                  </div>
+                  <div>
+                    <h3>
+                      <SunMoon size={20} />
+                      Light phase
+                    </h3>
+                    <strong>{cabin.latest.lightPhase ?? "Not measured"}</strong>
+                    <p>Onboard lighting schedule</p>
+                  </div>
                 </>
               )}
             </div>
             <dl className="cabin-averages">
               <dt>CO₂ · 1 hour</dt>
-              <dd>{cabin.co2Avg1h ?? "—"} mmHg</dd>
+              <dd>{cabin.co2Avg1h ?? "-"} mmHg</dd>
               <dt>6 hours</dt>
-              <dd>{cabin.co2Avg6h ?? "—"} mmHg</dd>
+              <dd>{cabin.co2Avg6h ?? "-"} mmHg</dd>
               <dt>24 hours</dt>
-              <dd>{cabin.co2Avg24h ?? "—"} mmHg</dd>
+              <dd>{cabin.co2Avg24h ?? "-"} mmHg</dd>
             </dl>
             {cabin.noiseAdvice && <p>{cabin.noiseAdvice}</p>}
             {cabin.latest?.lightPhase && (
@@ -137,17 +220,17 @@ export function More({
           </Panel>
           <Panel title="Is it me or the air?">
             <p>{air.explanation}</p>
-            <ul>
+            <ol>
               {air.actions.map((s) => (
                 <li key={s}>{s}</li>
               ))}
-            </ul>
+            </ol>
           </Panel>
         </div>
       )}
       {tab === "Guidance & triage" && (
         <div role="tabpanel" aria-label="Guidance and triage">
-          <Panel title="Guidance & triage — NASA’s five hazards">
+          <Panel title="Guidance & triage - NASA’s five hazards">
             <div className="hazard-list">
               {SPACEFLIGHT_HAZARDS.map((h) => (
                 <details key={h.name}>
@@ -165,10 +248,6 @@ export function More({
                       <li key={c}>{c}</li>
                     ))}
                   </ul>
-                  <Button variant="outline" onClick={onBodyMap}>
-                    Open Body Map & Countermeasures
-                    <ArrowUpRight data-icon="inline-end" />
-                  </Button>
                 </details>
               ))}
             </div>
@@ -226,11 +305,11 @@ export function More({
               <section className="triage-outcome">
                 <Status status={outcome.status} />
                 <h3>{outcome.title}</h3>
-                <ul>
+                <ol>
                   {outcome.steps.map((s) => (
                     <li key={s}>{s}</li>
                   ))}
-                </ul>
+                </ol>
                 <p>{outcome.escalationText}</p>
                 <Button variant="ghost" onClick={() => setNode(null)}>
                   <ArrowLeft data-icon="inline-start" />

@@ -11,15 +11,20 @@ import {
   Radiation,
   Bone,
   Orbit,
+  Globe,
+  Satellite,
+  Circle,
+  Navigation2,
 } from "lucide-react";
-import type { HealthIndicator } from "@/types/astronaut";
+import type { BodySystem, HealthIndicator } from "@/types/astronaut";
 import { THRESHOLDS } from "@/data/nasaSpaceflightData";
 import { ESCALATION_MODE_LABELS } from "@/services/healthEvaluator";
 import { formatTripBarLabel } from "@/services/missionTimeline";
 import { Button } from "@/components/ui/button";
 import { Panel, Status, Meter } from "./primitives";
 import { statusOf, statusStyle } from "./status";
-import { nextScheduledCheckin } from "./checkin-schedule";
+import { getDueCheckins, listCheckins } from "@/services/checkinService";
+import { HomeScan } from "./home-scan";
 import type { MissionModel } from "./use-mission";
 const icons = {
   heart_rate: Heart,
@@ -42,12 +47,15 @@ const vitalIds = [
 ];
 export function TripBar({ model }: { model: MissionModel }) {
   const state = model.missionState;
-  const destination = {
-    EARTH_TRAINING: { emoji: "🌍", label: "Earth" },
-    ISS: { emoji: "🛰️", label: "International Space Station" },
-    MARS: { emoji: "🔴", label: "Mars" },
-    MOON: { emoji: "🌕", label: "Moon" },
-  }[state.plan.destination];
+  const destination =
+    state.plan.destination === "ISS"
+      ? { Icon: Satellite, label: "ISS" }
+      : state.plan.destination === "EARTH_TRAINING"
+        ? { Icon: Globe, label: "Earth" }
+        : {
+            Icon: Circle,
+            label: state.plan.destination === "MOON" ? "Moon" : "Mars",
+          };
   const progress = Math.max(0, Math.min(1, state.progress));
   return (
     <section
@@ -57,15 +65,12 @@ export function TripBar({ model }: { model: MissionModel }) {
       <div className="compact-journey-label">
         <strong>Day {state.missionDay}</strong>
         <span>
-          {formatTripBarLabel(state).split(" · ").slice(1).join(" — ")}
+          {formatTripBarLabel(state).split(" · ").slice(1).join(" · ")}
         </span>
-        <small>
-          {state.missionDay} / {state.plan.totalDays} days
-        </small>
       </div>
       <div className="trip-route">
         <span className="journey-endpoint" role="img" aria-label="Earth">
-          🌍
+          <Globe size={16} />
         </span>
         <div
           className="trip-track"
@@ -95,7 +100,7 @@ export function TripBar({ model }: { model: MissionModel }) {
             role="img"
             aria-label="Spacecraft"
           >
-            <span>🚀</span>
+            <Navigation2 size={14} />
           </span>
         </div>
         <span
@@ -103,7 +108,7 @@ export function TripBar({ model }: { model: MissionModel }) {
           role="img"
           aria-label={destination.label}
         >
-          {destination.emoji}
+          <destination.Icon size={16} />
         </span>
       </div>
     </section>
@@ -116,36 +121,57 @@ export function CheckinReminder({
   model: MissionModel;
   onCheckin: () => void;
 }) {
-  const task = nextScheduledCheckin(model.profile);
-  const details =
-    task?.slot === "weekly"
-      ? "Body mass, fasting glucose, reaction test"
-      : task?.slot === "eye_exam"
-        ? "Vision and eye ultrasound"
-        : task?.slot === "monthly"
-          ? "Guided exam and sleep/team questionnaire"
-          : task?.slot === "evening"
-            ? "Optional evening reflection"
-            : "Temperature, wellbeing and symptoms";
-  return (
-    <section className="compact-checkin" aria-label="Check-in reminder">
-      <p>
-        {task ? (
-          <>
-            <strong>Next: {task.title}</strong>{" "}
-            <span>
-              — {task.dueReason} ({details})
-            </span>
-          </>
-        ) : (
-          <>
-            <strong>All scheduled check-ins complete.</strong>{" "}
-            <span>
-              Morning check-in returns on day {model.profile.missionDay + 1}.
-            </span>
-          </>
-        )}
+  const tasks = getDueCheckins(model.profile);
+  const day = model.profile.missionDay;
+  const recent = listCheckins(model.profile.id, day, day + 1);
+  const reminders = (
+    [
+      { slot: "morning", label: "Daily", period: 1 },
+      { slot: "weekly", label: "Weekly", period: 7 },
+      { slot: "monthly", label: "Monthly", period: 30 },
+    ] as const
+  ).map(({ slot, label, period }) => {
+    const task = tasks.find((t) => t.slot === slot);
+    const previous = recent
+      .filter((r) => r.slot === slot && !r.excused && r.missionDay < day)
+      .sort((a, b) => b.missionDay - a.missionDay)[0];
+    const previousEnd =
+      period === 1 ? day - 1 : Math.floor(day / period) * period - 1;
+    const previousStart = period === 1 ? previousEnd : previousEnd - period + 1;
+    const overdue =
+      !task?.done &&
+      !task?.excused &&
+      previousEnd >= 0 &&
+      (period !== 30 || day >= 60) &&
+      (!previous || previous.missionDay < previousStart);
+    const daysLeft =
+      period === 30 && day < 30 ? 30 - day : period - 1 - (day % period);
+    const hours = Math.max(0, Math.ceil((1440 - model.onboardMinute) / 60));
+    const text = task?.done
+      ? "Done ✓"
+      : task?.excused
+        ? "Excused"
+        : overdue
+          ? `Overdue: due day ${previousEnd}`
+          : period === 1
+            ? `${hours} h left`
+            : `${daysLeft} days left`;
+    return (
+      <p
+        key={slot}
+        className={overdue ? "reminder-overdue" : "reminder-countdown"}
+      >
+        <strong>{label} check-in</strong>
+        <span>{text}</span>
       </p>
+    );
+  });
+  return (
+    <section
+      className="compact-checkin all-checkin-reminders"
+      aria-label="Check-in reminders"
+    >
+      <div>{reminders}</div>
       <Button onClick={onCheckin}>
         Open Check-in
         <ArrowRight data-icon="inline-end" />
@@ -153,6 +179,7 @@ export function CheckinReminder({
     </section>
   );
 }
+
 export function VitalTile({
   indicator,
   onClick,
@@ -180,8 +207,8 @@ export function VitalTile({
         <span>{indicator.name}</span>
         <Trend size={13} />
       </div>
-      <div className="vital-value">
-        {status === "no_data" ? "—" : indicator.value}
+      <div className="vital-value" style={{ color: `var(--status)` }}>
+        {status === "no_data" ? "-" : indicator.value}
         <small>{indicator.unit}</small>
       </div>
       <div className="vital-bottom">
@@ -268,11 +295,11 @@ export function Briefing({
       {full && (
         <div className="full-briefing">
           <h3>Recommended tool checks</h3>
-          <ul>
+          <ol>
             {b.recommendedToolChecks.map((s) => (
               <li key={s}>{s}</li>
             ))}
-          </ul>
+          </ol>
           {b.emergingRisks.map((r, n) => (
             <div
               className="risk"
@@ -293,36 +320,42 @@ export function Home({
   onTrend,
   onPage,
   onBriefing,
+  onBodySystem,
 }: {
   model: MissionModel;
   onTrend: (id: string) => void;
   onPage: (page: string) => void;
   onBriefing: () => void;
+  onBodySystem: (system: BodySystem) => void;
 }) {
   const state = model.missionState,
     exposure = state.exposure,
     limit = THRESHOLDS.radiation.careerLimitMSv;
   return (
     <div className="revised-home">
-      <TripBar model={model} />
       <CheckinReminder model={model} onCheckin={() => onPage("Check-in")} />
-      <section
-        aria-label="Primary vitals"
-        className="vital-grid revised-vitals"
-      >
-        {vitalIds.map((id) => (
-          <VitalTile
-            key={id}
-            indicator={model.profile.indicators.find((i) => i.id === id)!}
-            onClick={() => onTrend(id)}
+      <div className="home-health-columns">
+        <div className="home-health-content">
+          <section
+            aria-label="Primary vitals"
+            className="vital-grid revised-vitals"
+          >
+            {vitalIds.map((id) => (
+              <VitalTile
+                key={id}
+                indicator={model.profile.indicators.find((i) => i.id === id)!}
+                onClick={() => onTrend(id)}
+              />
+            ))}
+          </section>
+          <Briefing
+            model={model}
+            onOpen={onBriefing}
+            onBodyMap={() => onPage("Body Map")}
           />
-        ))}
-      </section>
-      <Briefing
-        model={model}
-        onOpen={onBriefing}
-        onBodyMap={() => onPage("Body Map")}
-      />
+        </div>
+        <HomeScan model={model} onSelect={onBodySystem} />
+      </div>
       <section
         className="exposure-grid compact-exposure"
         aria-label="Mission exposure"
@@ -331,7 +364,16 @@ export function Home({
           <Radiation />
           <section>
             <h3>Radiation exposure</h3>
-            <strong>
+            <strong
+              className="health-value"
+              style={statusStyle(
+                statusOf(
+                  model.profile.indicators.find(
+                    (i) => i.id === "radiation_dose",
+                  )!,
+                ),
+              )}
+            >
               {exposure.totalRadiationMSv.toFixed(1)} <small>mSv</small>
             </strong>
             <span>
@@ -349,7 +391,16 @@ export function Home({
           <Bone />
           <section>
             <h3>Estimated bone loss</h3>
-            <strong>
+            <strong
+              className="health-value"
+              style={statusStyle(
+                statusOf(
+                  model.profile.indicators.find(
+                    (i) => i.id === "bone_density",
+                  )!,
+                ),
+              )}
+            >
               {exposure.estBoneLossPct.toFixed(1)} <small>%</small>
             </strong>
             <span>Modeled estimate vs preflight</span>

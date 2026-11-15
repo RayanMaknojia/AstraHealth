@@ -1,4 +1,4 @@
-﻿Space Medic Engineer — NASA Space Apps 2026 Master Spec (v2.0)
+Space Medic Engineer - NASA Space Apps 2026 Master Spec (v2.0)
 Mission Objective
 Build an autonomous, movie-grade Astronaut Health Monitoring & Self-Assessment HUD addressing NASA's 5 Spaceflight Hazards (Space Radiation, Isolation & Confinement, Distance from Earth, Gravity Fields, Hostile Closed Environments) and Canadian Space Agency (CSA) radiation monitoring & biodosimetry principles (organ-specific exposure limits, neutron/ionizing dose tracking).
 
@@ -15,20 +15,20 @@ Frontend: Vite + React + TypeScript + Tailwind CSS + shadcn/ui + Recharts (Respo
 
 AI / Multimodal Pipeline: Gemini Flash (Gatekeeper + One-Time Media Extractor + Incremental Briefing Updater) with deterministic fallback rules in healthEvaluator.ts
 
-Shared Data Schema v2.2 (src/types/astronaut.ts — SOURCE OF TRUTH)
+Shared Data Schema v2.2 (src/types/astronaut.ts - SOURCE OF TRUTH)
 Status thresholds: health_rules.md (reconciled; the code implements exactly that file). Pages/UX: astronaut_health_monitor_pages.md.
 v2.1 = the v2.0 schema + astronaut_health_monitor_plan.md (team reference doc). Read the file itself for every field; key points:
 
 TypeScript
 export type StatusLevel = 'nominal' | 'caution' | 'critical';        // UI labels: Normal / Watch / Alert
-export type DisplayStatus = StatusLevel | 'no_data';                  // grey — missing data is NEVER green
+export type DisplayStatus = StatusLevel | 'no_data';                  // grey - missing data is NEVER green
 export type TrendDirection = 'stable' | 'improving' | 'drifting_caution' | 'rapid_decline';
 export type BodySystem = 'cardiovascular' | 'musculoskeletal' | 'radiation_immune' | 'metabolic' | 'behavioral';
 export type DataModality = 'wearable_auto' | 'manual_slider' | 'lab_document' | 'ultrasound_image' | 'voice_log' | 'environment_feed';
 export type IndicatorId = 'blood_sugar' | 'radiation_dose' | 'heart_rate' | 'blood_pressure' | 'bone_density'
                         | 'sleep_hours' | 'mood' | 'body_temp' | 'spo2';   // spo2 NEW (cardiovascular zone)
 export type ActionLevel = 'self_care' | 'crew_alert' | 'flight_surgeon';
-// v2.2: mood is a 1–5 scale (unit '/5'). Sleep and mood Alerts need 3 in a row (health_rules.md).
+// v2.2: mood is a 1-5 scale (unit '/5'). Sleep and mood Alerts need 3 in a row (health_rules.md).
 export type EscalationMode = 'contact_ground' | 'act_then_report';   // by Earth delay (ISS/Moon vs transit/Mars)
 
 // Environment = WHERE THE CREW IS ON A GIVEN MISSION DAY (replaces ISS_ORBIT/LUNAR_BASE/MARS_TRANSIT/SURFACE_ROVER)
@@ -42,13 +42,13 @@ export interface HealthIndicator {
   id: IndicatorId; system: BodySystem; name: string;
   value: number | string | null;               // null = missing
   unit: string; status: StatusLevel;
-  dataState: 'fresh' | 'stale' | 'missing';     // NEW — paint grey unless 'fresh'
+  dataState: 'fresh' | 'stale' | 'missing';     // NEW - paint grey unless 'fresh'
   lastMeasuredDay?: number;
   trend: TrendDirection; projectedDaysToThreshold?: number;
   hazardLink: string; howToMeasure: string; whyNeeded: string; spaceShiftNote?: string;
   actionPlan: { level: ActionLevel; steps: string[]; escalationMode?: EscalationMode };
   history: HistoryPoint[];
-  simulated: boolean;                           // NEW — show "Simulated" tag (real daily vitals not public)
+  simulated: boolean;                           // NEW - show "Simulated" tag (real daily vitals not public)
 }
 
 export interface IngestedArtifact { id; timestamp; fileName?; modality; accepted; rejectionReason?; extractedSummary; mappedIndicators: IndicatorId[]; severity: StatusLevel; }
@@ -58,25 +58,25 @@ export interface MissionHealthBriefing {
   emergingRisks: { indicatorId; severity; explanation; preventiveAction }[];
   recommendedToolChecks: string[];
   escalationMode: EscalationMode;               // NEW
-  environmentAlerts: string[];                  // NEW — shelter / CO2 / phase-transition alerts
+  environmentAlerts: string[];                  // NEW - shelter / CO2 / phase-transition alerts
 }
 
 export interface RoutineTask { id; title; xp; completed; frequency: 'daily' | 'weekly'; linkedSystem: BodySystem; refreshesIndicator?: IndicatorId; }
 
-// NEW — mission timeline ("what day of the mission is it?")
+// NEW - mission timeline ("what day of the mission is it?")
 MissionPhase { order, name, startDay, endDay, environment, habitat }
 MissionPlan { id, name, destination, launchDate, totalDays, phases[] }
 CumulativeExposure { missionDay, days0g, daysPartialG, totalRadiationMSv, estBoneLossPct }   // the body's "bank account"
 TransitionAlert { kind, severity, title, guidance[], activeFromDay, activeToDay }
 MissionState { plan, missionDay, phase, environment, earthDelaySeconds, escalationMode, exposure,
-               daysToNextPhase, nextPhase, progress (0–1 for trip bar), activeAlerts[] }
+               daysToNextPhase, nextPhase, progress (0-1 for trip bar), activeAlerts[] }
 
-// NEW — accounts & baselines
+// NEW - accounts & baselines
 CrewAccount / AuthSession (admin | astronaut, login + PIN; demo-grade only)
 PersonalBaseline { astronautId, source: 'earth_mode' | 'first_7_days' | 'population_default', values: { mean, sd, n } per indicator }
 AstronautProfile gains: crewRole, login, mission: MissionPlan, habitat, notes[], baseline
 
-// NEW — reference tables & environment feed
+// NEW - reference tables & environment feed
 ReferenceRange, CabinLimit, HazardRiskEntry, CabinReading, CabinEvaluation, RadiationEvent (DONKI SEP → shelter), EnvironmentTick
 
 System Pipeline Architecture
@@ -96,7 +96,7 @@ Evaluates static NASA/CSA clinical thresholds (nominal / caution / critical) and
 
 Stateful Incremental AI Briefing (briefingEngine.ts):
 
-Takes (currentBriefing + newNormalizedEvent + updatedIndicators) and incrementally rewrites MissionHealthBriefing in plain English—highlighting color-coded abnormalities, early trajectory warnings, and actionable prevention steps.
+Takes (currentBriefing + newNormalizedEvent + updatedIndicators) and incrementally rewrites MissionHealthBriefing in plain English-highlighting color-coded abnormalities, early trajectory warnings, and actionable prevention steps.
 
 Mission Timeline (missionTimeline.ts):
 
@@ -111,10 +111,10 @@ Accounts (accountService.ts):
 Admin (mission control) creates astronauts (name, role, PIN, destination, launch date, notes) and edits dates for delays; astronauts log in with name + PIN. Demo logins: admin, mars_crew, iss_crew, moon_crew. localStorage, offline-first, demo-grade auth.
 
 Task Board
-[x] STEP 1 — CONTRACT LOCKED v2.1 (Claude Code): src/types/astronaut.ts now covers PROJECT_PLAN v2.0 + astronaut_health_monitor_plan.md. Stubs with final signatures (bodies throw "not implemented" until Step 2): src/services/wearableStream.ts, ingestionEngine.ts, briefingEngine.ts, missionTimeline.ts, environmentFeed.ts, accountService.ts. Ready now (real, not stubs): src/data (ENVIRONMENTS ×6, MISSION_TEMPLATES, CREW_PROFILES iss_crew / mars_crew / moon_crew, INDICATOR_GUIDES incl. SpO2) and healthEvaluator (evaluateProfile, evaluateVitals, displayStatus, STATUS_COLORS / STATUS_LABELS / ESCALATION_MODE_LABELS, escalationModeFor). Parallel execution may start.
+[x] STEP 1 - CONTRACT LOCKED v2.1 (Claude Code): src/types/astronaut.ts now covers PROJECT_PLAN v2.0 + astronaut_health_monitor_plan.md. Stubs with final signatures (bodies throw "not implemented" until Step 2): src/services/wearableStream.ts, ingestionEngine.ts, briefingEngine.ts, missionTimeline.ts, environmentFeed.ts, accountService.ts. Ready now (real, not stubs): src/data (ENVIRONMENTS ×6, MISSION_TEMPLATES, CREW_PROFILES iss_crew / mars_crew / moon_crew, INDICATOR_GUIDES incl. SpO2) and healthEvaluator (evaluateProfile, evaluateVitals, displayStatus, STATUS_COLORS / STATUS_LABELS / ESCALATION_MODE_LABELS, escalationModeFor). Parallel execution may start.
 
 
-[x] STEP 2 — SERVICES LIVE (Claude Code): every function in src/services is implemented — no "not implemented" throws remain, so no try/catch fallbacks are needed. `npx tsc --noEmit`, `tsc -p tsconfig.app.json --noEmit`, eslint on src/services|types|data, and `npm run build` all pass. All services work fully offline; Gemini is used only if VITE_GEMINI_API_KEY (or AIConfig.apiKey) is set. Wiring cheat-sheet for Codex:
+[x] STEP 2 - SERVICES LIVE (Claude Code): every function in src/services is implemented - no "not implemented" throws remain, so no try/catch fallbacks are needed. `npx tsc --noEmit`, `tsc -p tsconfig.app.json --noEmit`, eslint on src/services|types|data, and `npm run build` all pass. All services work fully offline; Gemini is used only if VITE_GEMINI_API_KEY (or AIConfig.apiKey) is set. Wiring cheat-sheet for Codex:
 - Login: accountService.authenticate(login, pin) → getProfileForSession(session). Demo logins in DEMO_LOGINS (admin 0000, mars_crew 1111, iss_crew 2222, moon_crew 3333). Admin: listAccounts, createAstronaut, updateMissionDates.
 - Hydrate: healthEvaluator.evaluateProfile(profile) → { indicators, report, missionState }. Demo slider: evaluateProfile(profile, { missionState: getMissionState(profile.mission, day), ignoreStaleness: true }).
 - Trip bar: missionTimeline.getMissionState(plan, day?) + formatTripBarLabel(state); plan.phases for segments.
@@ -125,10 +125,10 @@ Task Board
 - Colors/labels: displayStatus(ind), STATUS_COLORS, STATUS_LABELS, ESCALATION_MODE_LABELS. Cabin panel: tick.cabinEvaluation; shelter banner: tick.activeEvent?.shelterAdvised.
 
 
-[x] STEP 2b — RULES RECONCILED (Claude Code): health_rules.md merges the plan doc, the pages doc and Phase 2. Mood is now 1–5. Sleep/mood Alerts need 3 in a row. Temperature, BP (low limits relax in flight, not after landing), glucose, bone, SpO2 and the heart-rate 15% baseline rule follow that file. New for the UI: CHECKIN_INPUTS (slider min/max/step/unit/normal text) and CHECKIN_SYMPTOMS in src/data.
+[x] STEP 2b - RULES RECONCILED (Claude Code): health_rules.md merges the plan doc, the pages doc and Phase 2. Mood is now 1-5. Sleep/mood Alerts need 3 in a row. Temperature, BP (low limits relax in flight, not after landing), glucose, bone, SpO2 and the heart-rate 15% baseline rule follow that file. New for the UI: CHECKIN_INPUTS (slider min/max/step/unit/normal text) and CHECKIN_SYMPTOMS in src/data.
 
 
-[x] PHASE 3 — BACKEND FOR ALL REMAINING PAGES (Claude Code). New services (all offline, localStorage-persisted, demo crew pre-seeded):
+[x] PHASE 3 - BACKEND FOR ALL REMAINING PAGES (Claude Code). New services (all offline, localStorage-persisted, demo crew pre-seeded):
 - checkinService: getDueCheckins(profile) · submitCheckin({ profile, slot, day, values, extras, symptoms }) → { record, ingestion, reaction, message } (apply ingestion.updates with applyIndicatorUpdates) · getStreak(id, day) · getBadges(profile, team) · getTeamGoal(profiles) · getLeaderboard(profiles) (consistency only) · excuseCheckin(...) (admin) · getCrewOverview(profiles) (admin).
 - exerciseService: logWorkout · getExerciseSummary(id, day) · logBodyMass / getBodyMassSummary(id, day) · projectBoneLoss(plan, id, day) (no exercise vs actual).
 - alertService: syncOverrides({ profile, report, missionState, environmentTick, cabinHistory }) → active full-screen overrides (O1 critical_health, O2 cabin_emergency, O3 radiation_storm, O4 sos) · confirmOverride(id, by) · raiseSos(...) · getBanner(missionState, id) (comms blackout / waiting) · getOverrideLog.
@@ -138,7 +138,7 @@ Task Board
 - guidanceService: listTriageSymptoms · startTriage / answerTriage / triageOutcomeForMission · listProcedures · getMedicationList.
 - environmentFeed (added): feed.cabinHistory() · summarizeCabin(history) · isItMeOrTheAir(symptoms, history); cabin readings now include noiseDb + lightPhase.
 
-UI implications of v2.1 (for Codex — your call how to render):
+UI implications of v2.1 (for Codex - your call how to render):
 - EnvironmentType values changed (see schema). The "Environment Switcher" becomes a mission/crew selector + trip bar ("Day 45 · Flying to Mars · 138 days to arrival"); in demo mode the trip bar is a slider that calls missionTimeline.getMissionState(plan, day).
 - Use displayStatus(indicator) for colors: 'no_data' = grey. Never show missing data as green.
 - 9 indicators now (spo2 added, cardiovascular zone). Show a "Simulated" tag when indicator.simulated.
@@ -155,7 +155,7 @@ Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental A
 
 [x] Create src/services/healthEvaluator.ts with real medical threshold rules (incl. SpO2, missing-data, delay-based escalation)
 
-[x] Add slope-based trajectory detection (trend & projectedDaysToThreshold), personal-baseline scoring, and phase-adjusted ranges (temp +1 °C after day 60 in 0 g, BP −8–10 mmHg in flight, sleep target 8.5 h / alert < 6 h, tighter SpO2 in 8.2 psia habitats) to healthEvaluator.ts
+[x] Add slope-based trajectory detection (trend & projectedDaysToThreshold), personal-baseline scoring, and phase-adjusted ranges (temp +1 °C after day 60 in 0 g, BP −8-10 mmHg in flight, sleep target 8.5 h / alert < 6 h, tighter SpO2 in 8.2 psia habitats) to healthEvaluator.ts
 
 [x] Create src/services/ingestionEngine.ts implementing the AI Biomedical Relevance Gatekeeper (accept/reject with reason) + One-Time Multimodal Normalizer (with offline mock parsers for demo reliability)
 
@@ -169,7 +169,7 @@ Claude Code Tasks (Data, Multimodal Gatekeeper, Trajectory Logic & Incremental A
 
 [x] Create src/services/accountService.ts (admin-created accounts, name + PIN login, launch-date edits, offline localStorage) + src/data reference tables (REFERENCE_RANGES, CABIN_LIMITS, HAZARD_RISK_MAP)
 
-[x] Reconcile thresholds with astronaut_health_monitor_pages.md → health_rules.md (mood 1–5, 3-in-a-row sleep/mood Alerts, CHECKIN_INPUTS)
+[x] Reconcile thresholds with astronaut_health_monitor_pages.md → health_rules.md (mood 1-5, 3-in-a-row sleep/mood Alerts, CHECKIN_INPUTS)
 
 [x] PHASE 3 backend: check-in schedule (morning / evening / weekly / monthly / eye exams) + streaks + badges + crew leaderboard (consistency only)
 
@@ -210,3 +210,14 @@ Final UI scope revision (Codex, integrated with Claude Phase 3 backend):
 Browser verification used the offline demo. External Google Fonts requests can fail in the cloud network; the bundled font remains available. Clinical reference rules and simulated readings are supplied by the existing backend. Image previews are local only and are not analyzed or uploaded.
 
 [x] Add five selectable organ cards on Body Map only, with slow horizontal rotation around the vertical axis, shared detail/figure selection, pause/resume, and reduced-motion support.
+
+
+Phase 4 ChatGPT UI implementation (see phases/phase4.chatgpt.md):
+[x] Move compact professional trip bar and Earth/local clocks into the shared header.
+[x] Restore Home's click-to-start body scan with staged region colors and Body Map navigation; use 2x3 desktop vitals and daily/weekly/monthly reminders.
+[x] Replace the Body Map standing figure with five vertical, selectable, rotating local GLB models; include generator, CC0 license, reduced motion and source documentation.
+[x] Simplify Check-in to daily/weekly/monthly, compact fields and medication dose/time, six-step monthly exam, 30-second reaction results and side-by-side private Journal.
+[x] Add More journal history, Photo Check assessment dialog, status-colored values, cabin icons, numbered procedures and compact emergency pop-ups.
+[x] Average multi-day chart readings per day and fix day-zero/rolling chart windows.
+[x] Normalize long dashes repo-wide; verify protected backend edits are punctuation-only.
+[x] Verify build, lint, real check-in/photo/journal flows, reaction boundaries, scan timing, responsive pages and zero final browser console errors/warnings. Document Mars-clock, model and demo limits.

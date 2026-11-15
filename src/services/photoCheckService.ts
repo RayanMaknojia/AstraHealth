@@ -1,13 +1,13 @@
 /**
  * Photo Check (pages doc §4).
  *
- * Tab 1 — Skin photo, AI FIRST LOOK ONLY (not a diagnosis):
+ * Tab 1 - Skin photo, AI FIRST LOOK ONLY (not a diagnosis):
  *   classes cut/laceration, burn, bruise, abrasion, normal skin, plus "unsure".
- *   Confidence < 70% → "Unsure. Sent to the flight surgeon for review." — never guess.
+ *   Confidence < 70% → "Unsure. Sent to the flight surgeon for review." - never guess.
  *   Gemini (image) when a key is set; otherwise an offline stand-in that reads the
  *   file name and the astronaut's notes. A real onboard image model (TensorFlow.js /
  *   ONNX) would replace the offline stand-in.
- * Tab 2 — Ultrasound, guided capture with NO AI diagnosis: step-by-step guide,
+ * Tab 2 - Ultrasound, guided capture with NO AI diagnosis: step-by-step guide,
  *   pixel-based quality check (too dark / too bright / blurry), auto-tagging.
  * Every photo and scan is queued for flight-surgeon review via syncService;
  * reviews coming back in the inbox mark the record "reviewed".
@@ -73,13 +73,13 @@ export function computeImageStats(image: { data: Uint8ClampedArray | number[]; w
 
 function qualityFrom(stats: ImageStats | undefined, file?: Blob): { quality: ScanQuality; message: string } {
   if (stats) {
-    if (stats.meanBrightness < Q.minBrightness) return { quality: 'too_dark', message: 'Too dark — add light or increase gain, then try again.' }
-    if (stats.meanBrightness > Q.maxBrightness) return { quality: 'too_bright', message: 'Too bright / washed out — lower the gain, then try again.' }
-    if (stats.sharpness < Q.minSharpness) return { quality: 'blurry', message: 'Blurry — hold the probe/camera still and try again.' }
+    if (stats.meanBrightness < Q.minBrightness) return { quality: 'too_dark', message: 'Too dark - add light or increase gain, then try again.' }
+    if (stats.meanBrightness > Q.maxBrightness) return { quality: 'too_bright', message: 'Too bright / washed out - lower the gain, then try again.' }
+    if (stats.sharpness < Q.minSharpness) return { quality: 'blurry', message: 'Blurry - hold the probe/camera still and try again.' }
     return { quality: 'ok', message: 'Image saved.' }
   }
-  if (file && file.size < Q.minBytes) return { quality: 'unreadable', message: 'The image file looks empty or too small — capture again.' }
-  return { quality: 'ok', message: 'Image saved (quality not measured — pass imageStats for a real check).' }
+  if (file && file.size < Q.minBytes) return { quality: 'unreadable', message: 'The image file looks empty or too small - capture again.' }
+  return { quality: 'ok', message: 'Image saved (quality not measured - pass imageStats for a real check).' }
 }
 
 const clampThumb = (s?: string) => (s && s.length <= MAX_THUMB_CHARS ? s : undefined)
@@ -187,8 +187,8 @@ export async function analyzeSkinPhoto(input: SkinPhotoInput, ai?: AIConfig): Pr
   enqueue({
     astronautId: input.astronautId,
     type: 'photo',
-    title: `Skin photo — ${input.bodyLocation}`,
-    summary: guess.label === 'unsure' ? 'Unsure — needs flight-surgeon review' : `${SKIN_LABELS[guess.label]} (${Math.round(guess.confidence * 100)}%)`,
+    title: `Skin photo - ${input.bodyLocation}`,
+    summary: guess.label === 'unsure' ? 'Unsure - needs flight-surgeon review' : `${SKIN_LABELS[guess.label]} (${Math.round(guess.confidence * 100)}%)`,
     missionDay: day,
     priority: guess.label === 'unsure' || status === 'critical' ? 'high' : 'normal',
     refId: record.id,
@@ -202,7 +202,7 @@ export function skinResultCard(r: PhotoRecord): { likelyType: string; confidence
   return {
     likelyType: unsure ? 'Unsure' : SKIN_LABELS[r.aiLabel ?? 'unsure'],
     confidenceText: unsure ? 'Unsure. Sent to the flight surgeon for review.' : `${Math.round((r.aiConfidence ?? 0) * 100)}%`,
-    otherPossibilities: (r.alternatives ?? []).map((a) => `${SKIN_LABELS[a.label]} ${Math.round(a.confidence * 100)}%`).join(', ') || '—',
+    otherPossibilities: (r.alternatives ?? []).map((a) => `${SKIN_LABELS[a.label]} ${Math.round(a.confidence * 100)}%`).join(', ') || '-',
     groundReview: r.reviewStatus === 'reviewed' ? `Reviewed: ${r.reviewNotes ?? 'see inbox'}` : 'Added to sync queue. Flight surgeon review pending.',
     disclaimer: FIRST_LOOK_DISCLAIMER,
   }
@@ -269,10 +269,10 @@ export function comparePhotos(idA: string, idB: string): PhotoComparison | null 
     : trend === 'healing'
       ? `Looks better after ${daysApart} days (${SKIN_LABELS[before.aiLabel!]} → ${SKIN_LABELS[after.aiLabel!]}).`
       : trend === 'worse'
-        ? `Looks worse after ${daysApart} days — tell the crew medical officer.`
+        ? `Looks worse after ${daysApart} days - tell the crew medical officer.`
         : trend === 'unchanged'
           ? `No clear change after ${daysApart} days. Keep it clean and re-check.`
-          : 'Can’t compare automatically — the flight surgeon will review both.'
+          : 'Can’t compare automatically - the flight surgeon will review both.'
   return { sameLocation, daysApart, before, after, trend, note }
 }
 

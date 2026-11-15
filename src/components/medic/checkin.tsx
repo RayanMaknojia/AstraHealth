@@ -1,21 +1,16 @@
-import { useEffect, useState } from "react";
-import { Check, Camera, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { Check, Camera, ArrowUpRight } from "lucide-react";
 import { CHECKIN_INPUTS, CHECKIN_SYMPTOMS } from "@/data/nasaSpaceflightData";
-import { CHECKIN_SCHEDULE, ULTRASOUND_GUIDES } from "@/data/phase3Data";
+import { CHECKIN_SCHEDULE } from "@/data/phase3Data";
 import { getDueCheckins } from "@/services/checkinService";
 import { indicatorsToVitals } from "@/services/healthEvaluator";
-import { getMedicationList, listProcedures } from "@/services/guidanceService";
-import {
-  addJournalEntry,
-  listJournal,
-  deleteJournalEntry,
-} from "@/services/wellbeingService";
+import { getMedicationList } from "@/services/guidanceService";
+import { addJournalEntry, listJournal } from "@/services/wellbeingService";
 import type {
   CheckinSlot,
   CheckinExtras,
   VitalsInput,
   Rating5,
-  UltrasoundScanType,
 } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
 import {
@@ -30,6 +25,8 @@ import { statusOf } from "./status";
 import { nextScheduledCheckin, visibleSchedule } from "./checkin-schedule";
 import { ReactionTest } from "./reaction-test";
 import type { MissionModel } from "./use-mission";
+import { PhotoCheck } from "./photo-check";
+import { statusStyle } from "./status";
 import { notify } from "./use-mission";
 
 type SaveInput = {
@@ -38,50 +35,6 @@ type SaveInput = {
   extras?: CheckinExtras;
   symptoms?: string[];
 };
-function LocalPreview({ label }: { label: string }) {
-  const [url, setUrl] = useState(""),
-    [error, setError] = useState("");
-  useEffect(
-    () => () => {
-      if (url) URL.revokeObjectURL(url);
-    },
-    [url],
-  );
-  return (
-    <section className="local-preview">
-      <label>
-        <Camera size={18} />
-        {label}
-        <input
-          type="file"
-          accept="image/*"
-          capture="environment"
-          onChange={(e) => {
-            const file = e.target.files?.[0];
-            if (!file) return;
-            if (!file.type.startsWith("image/")) {
-              setError("Choose an image file.");
-              return;
-            }
-            setError("");
-            setUrl(URL.createObjectURL(file));
-            e.target.value = "";
-          }}
-        />
-      </label>
-      <p>Preview only; image not retained after refresh</p>
-      {error && <p role="alert">{error}</p>}
-      {url && (
-        <>
-          <img src={url} alt={`${label} local preview`} />
-          <Button type="button" variant="outline" onClick={() => setUrl("")}>
-            Remove preview
-          </Button>
-        </>
-      )}
-    </section>
-  );
-}
 function Rating({
   label,
   value,
@@ -116,10 +69,12 @@ export function Checkin({
   model,
   save,
   busy,
+  onJournalHistory,
 }: {
   model: MissionModel;
   save: (input: SaveInput) => Promise<boolean>;
   busy: boolean;
+  onJournalHistory: () => void;
 }) {
   const profile = model.profile;
   const suggested = nextScheduledCheckin(profile)?.slot ?? "morning";
@@ -135,7 +90,6 @@ export function Checkin({
       sleepQuality: 3,
       fatigue: 3,
     }),
-    [energy, setEnergy] = useState(3),
     [stress, setStress] = useState(3),
     [pain, setPain] = useState(0),
     [region, setRegion] = useState(""),
@@ -143,9 +97,12 @@ export function Checkin({
     [food, setFood] = useState(""),
     [hydration, setHydration] = useState(""),
     [team, setTeam] = useState(3),
+    [examResults, setExamResults] = useState<Record<string, string>>({}),
     [examDone, setExamDone] = useState(false),
-    [visionDone, setVisionDone] = useState(false),
-    [scanType, setScanType] = useState<UltrasoundScanType>("eye");
+    [photoOpen, setPhotoOpen] = useState(false),
+    [medDetails, setMedDetails] = useState<
+      Record<string, { dose: string; time: string }>
+    >({});
   const [journal, setJournal] = useState(""),
     [entries, setEntries] = useState(() => listJournal(profile.id)),
     [error, setError] = useState("");
@@ -162,7 +119,7 @@ export function Checkin({
   );
   const manual = override || missing.length > 0;
   const weekly = slot === "weekly",
-    extended = slot === "monthly" || slot === "eye_exam";
+    extended = slot === "monthly";
   const available = visibleSchedule(profile);
   const tasks = getDueCheckins(profile);
   const source = indicatorsToVitals(profile.indicators);
@@ -222,11 +179,11 @@ export function Checkin({
       (!values.fasting || !extras.reactionMs || !food || !hydration)
     ) {
       setError(
-        "Complete fasting glucose confirmation, food/hydration answers, and the 60-second reaction test.",
+        "Complete fasting glucose confirmation, food/hydration answers, and the 30-second reaction test.",
       );
       return;
     }
-    if (extended && !(slot === "eye_exam" ? visionDone : examDone)) {
+    if (extended && !examDone) {
       setError("Confirm that you completed the guided exam before saving.");
       return;
     }
@@ -250,15 +207,15 @@ export function Checkin({
       extras: {
         ...extras,
         notes: JSON.stringify({
-          energy,
           stress,
           pain,
           painRegion: region,
-          medicationsTaken: medications,
+          medicationsTaken: medications.map((name) => ({
+            name,
+            ...medDetails[name],
+          })),
           ...(weekly ? { food, hydrationLitres: Number(hydration) } : {}),
-          ...(extended
-            ? { examDone, visionDone, teamCohesion: team, scanType }
-            : {}),
+          ...(extended ? { examDone, teamCohesion: team, examResults } : {}),
         }),
       },
     });
@@ -278,8 +235,8 @@ export function Checkin({
           {wearableReadings.map((i) => (
             <div key={i.id}>
               <h3>{i.name}</h3>
-              <strong>
-                {statusOf(i) === "no_data" ? "—" : i.value}
+              <strong style={statusStyle(statusOf(i))} className="health-value">
+                {statusOf(i) === "no_data" ? "-" : i.value}
                 <small> {i.unit}</small>
               </strong>
               <Status status={statusOf(i)} />
@@ -294,8 +251,8 @@ export function Checkin({
           ))}
           <div>
             <h3>Breathing</h3>
-            <strong>
-              —<small> breaths/min</small>
+            <strong className="health-value" style={statusStyle("no_data")}>
+              -<small> breaths/min</small>
             </strong>
             <Status status="no_data" />
             <small>No breathing sensor reading available</small>
@@ -347,15 +304,7 @@ export function Checkin({
         )}
       </Panel>
       <div className="scope-tabs" role="tablist" aria-label="Check-in cadence">
-        {(
-          [
-            "morning",
-            "weekly",
-            "monthly",
-            "eye_exam",
-            "evening",
-          ] as CheckinSlot[]
-        )
+        {(["morning", "weekly", "monthly"] as CheckinSlot[])
           .filter(
             (s) =>
               s !== "morning" || available.some((t) => t.slot === "morning"),
@@ -372,20 +321,18 @@ export function Checkin({
             >
               {s === "monthly"
                 ? "Monthly / Extended"
-                : s === "eye_exam"
-                  ? "Eye / vision exam"
-                  : s === "weekly"
-                    ? "Weekly"
-                    : s === "evening"
-                      ? "Evening (optional)"
-                      : "Morning"}
+                : s === "weekly"
+                  ? "Weekly"
+                  : "Daily"}
               {tasks.find((t) => t.slot === s)?.done ? " ✓" : ""}
             </button>
           ))}
       </div>
       <form onSubmit={submit}>
         <Panel
-          title={CHECKIN_SCHEDULE[slot].title}
+          title={
+            slot === "morning" ? "Daily check-in" : CHECKIN_SCHEDULE[slot].title
+          }
           accessory={
             <span className="meta">
               ~{CHECKIN_SCHEDULE[slot].estMinutes} min ·{" "}
@@ -403,7 +350,13 @@ export function Checkin({
           </p>
           <FieldGroup>
             <div className="checkin-fields">
-              {inputs(["bodyTempC", "mood"])}
+              {inputs(["bodyTempC"])}
+              <Rating
+                label="Mood"
+                value={values.mood ?? 3}
+                onChange={(n) => setValues((v) => ({ ...v, mood: n }))}
+                help="1 low · 5 great"
+              />
               <Rating
                 label="Sleep quality"
                 value={extras.sleepQuality ?? 3}
@@ -413,13 +366,7 @@ export function Checkin({
                 help="1 terrible · 5 great"
               />
               <Rating
-                label="Energy"
-                value={energy}
-                onChange={setEnergy}
-                help="1 low · 5 energetic"
-              />
-              <Rating
-                label="Fatigue"
+                label="Energy / fatigue"
                 value={extras.fatigue ?? 3}
                 onChange={(n) =>
                   setExtras((x) => ({ ...x, fatigue: n as Rating5 }))
@@ -465,11 +412,18 @@ export function Checkin({
               </div>
             </FieldSet>
             {symptoms.includes("skin problem") && (
-              <LocalPreview label="Skin image / camera" />
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setPhotoOpen(true)}
+              >
+                <Camera data-icon="inline-start" />
+                Add photo
+              </Button>
             )}
             <div className="checkin-fields">
               <Field>
-                <FieldLabel htmlFor="pain">Pain (0–10)</FieldLabel>
+                <FieldLabel htmlFor="pain">Pain (0-10)</FieldLabel>
                 <input
                   id="pain"
                   type="range"
@@ -496,21 +450,63 @@ export function Checkin({
               <FieldLegend>Medications taken</FieldLegend>
               <div className="meds-taken">
                 {getMedicationList().map((m) => (
-                  <label className="check-label" key={m.id}>
-                    <input
-                      type="checkbox"
-                      checked={medications.includes(m.name)}
-                      onChange={(e) =>
-                        setMedications((x) =>
-                          e.target.checked
-                            ? [...x, m.name]
-                            : x.filter((v) => v !== m.name),
-                        )
-                      }
-                    />
-                    {m.name}
-                    <Status status={m.status} />
-                  </label>
+                  <div className="medication-taken-card" key={m.id}>
+                    <label className="check-label">
+                      <input
+                        type="checkbox"
+                        checked={medications.includes(m.name)}
+                        onChange={(e) =>
+                          setMedications((x) =>
+                            e.target.checked
+                              ? [...x, m.name]
+                              : x.filter((v) => v !== m.name),
+                          )
+                        }
+                      />
+                      {m.name}
+                      <Status status={m.status} />
+                    </label>
+                    {medications.includes(m.name) && (
+                      <div className="medication-dose-fields">
+                        <label>
+                          Dose
+                          <input
+                            aria-label={`${m.name} dose`}
+                            required
+                            value={medDetails[m.name]?.dose ?? ""}
+                            placeholder="e.g. 500 mg"
+                            onChange={(e) =>
+                              setMedDetails((x) => ({
+                                ...x,
+                                [m.name]: {
+                                  ...x[m.name],
+                                  dose: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+                        <label>
+                          Time
+                          <input
+                            aria-label={`${m.name} time`}
+                            required
+                            type="time"
+                            value={medDetails[m.name]?.time ?? ""}
+                            onChange={(e) =>
+                              setMedDetails((x) => ({
+                                ...x,
+                                [m.name]: {
+                                  ...x[m.name],
+                                  time: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
                 ))}
               </div>
             </FieldSet>
@@ -583,11 +579,6 @@ export function Checkin({
                   />
                   Fasting glucose measured before food
                 </label>
-                <ReactionTest
-                  onResult={(ms) =>
-                    setExtras((x) => ({ ...x, reactionMs: ms ?? undefined }))
-                  }
-                />
               </section>
             )}
             {extended && (
@@ -595,9 +586,42 @@ export function Checkin({
                 <h3>Guided full health exam & questionnaires</h3>
                 <p>
                   Complete the exam with a crewmate. Review circulation,
-                  breathing, skin, movement, vision, sleep, and team wellbeing;
-                  escalate concerns using onboard guidance.
+                  breathing, skin, movement, sleep, and team wellbeing; escalate
+                  concerns using onboard guidance.
                 </p>
+                <ol className="monthly-exam-steps checkin-fields">
+                  {[
+                    "Circulation",
+                    "Breathing",
+                    "Skin",
+                    "Movement",
+                    "Sleep",
+                    "Crew wellbeing",
+                  ].map((item, n) => (
+                    <li key={item}>
+                      <label>
+                        {n + 1}. {item}
+                        <select
+                          aria-label={`Exam: ${item}`}
+                          required
+                          value={examResults[item] ?? ""}
+                          onChange={(e) =>
+                            setExamResults((x) => ({
+                              ...x,
+                              [item]: e.target.value,
+                            }))
+                          }
+                        >
+                          <option value="">Review with crewmate</option>
+                          <option value="no_concerns">No concerns noted</option>
+                          <option value="follow_up">
+                            Concern noted: follow onboard guidance
+                          </option>
+                        </select>
+                      </label>
+                    </li>
+                  ))}
+                </ol>
                 <Rating
                   label="Team cohesion"
                   value={team}
@@ -615,106 +639,52 @@ export function Checkin({
                     completed with a crewmate
                   </label>
                 )}
-                <details className="procedure">
-                  <summary>Vision / eye ultrasound procedure</summary>
-                  <ol>
-                    {listProcedures()
-                      .find((p) => p.id === "eye_ultrasound")
-                      ?.steps.map((s) => (
-                        <li key={s}>{s}</li>
-                      ))}
-                  </ol>
-                  <p>
-                    Amsler grid / on-screen vision assessment: follow the
-                    approved onboard vision protocol. This app does not replace
-                    calibrated examination equipment.
-                  </p>
-                </details>
-                <Field>
-                  <FieldLabel htmlFor="scan-type">
-                    Periodic scan type
-                  </FieldLabel>
-                  <select
-                    id="scan-type"
-                    value={scanType}
-                    onChange={(e) =>
-                      setScanType(e.target.value as UltrasoundScanType)
-                    }
-                  >
-                    {Object.entries(ULTRASOUND_GUIDES).map(([key, g]) => (
-                      <option key={key} value={key}>
-                        {g.label}
-                      </option>
-                    ))}
-                  </select>
-                </Field>
-                <ol>
-                  {ULTRASOUND_GUIDES[scanType].steps.map((s) => (
-                    <li key={s}>{s}</li>
-                  ))}
-                </ol>
-                <p>{ULTRASOUND_GUIDES[scanType].goodImage}</p>
-                <LocalPreview key={scanType} label="Ultrasound / exam image" />
-                {slot === "eye_exam" && (
-                  <label className="check-label">
-                    <input
-                      type="checkbox"
-                      checked={visionDone}
-                      onChange={(e) => setVisionDone(e.target.checked)}
-                    />
-                    Vision assessment and guided eye exam completed
-                  </label>
-                )}
               </section>
             )}
-            <section className="journal-section">
-              <h3>JOURNAL</h3>
-              <Field>
-                <FieldLabel htmlFor="journal">Private journal entry</FieldLabel>
-                <textarea
-                  id="journal"
-                  maxLength={10000}
-                  rows={5}
-                  value={journal}
-                  onChange={(e) => setJournal(e.target.value)}
-                  placeholder="Write freely about how you're feeling today—sleep quality, energy levels, mental focus, crew dynamics, workload stress, or anything unusual you noticed during EVA or daily tasks..."
-                />
-              </Field>
-              <p>
-                Stored on this device only. Never synced, shared with crew, or
-                sent to AI. Images are not saved with your journal.
-              </p>
-              <Button
-                type="button"
-                variant="outline"
-                disabled={!journal.trim()}
-                onClick={saveJournal}
-              >
-                Save journal entry
-              </Button>
-              {entries.length > 0 && (
-                <details>
-                  <summary>Journal history ({entries.length})</summary>
-                  {entries.map((entry) => (
-                    <article className="journal-entry" key={entry.id}>
-                      <strong>Day {entry.missionDay}</strong>
-                      <p>{entry.text}</p>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        onClick={() => {
-                          deleteJournalEntry(entry.id);
-                          setEntries(listJournal(profile.id));
-                        }}
-                      >
-                        <Trash2 data-icon="inline-start" />
-                        Delete entry
-                      </Button>
-                    </article>
-                  ))}
-                </details>
-              )}
-            </section>
+            <div className="checkin-bottom-columns">
+              <ReactionTest
+                astronautId={profile.id}
+                onResult={(ms) =>
+                  setExtras((x) => ({ ...x, reactionMs: ms ?? undefined }))
+                }
+              />
+              <section className="journal-section">
+                <h3>JOURNAL</h3>
+                <Field>
+                  <FieldLabel htmlFor="journal">
+                    Private journal entry
+                  </FieldLabel>
+                  <textarea
+                    id="journal"
+                    maxLength={10000}
+                    rows={5}
+                    value={journal}
+                    onChange={(e) => setJournal(e.target.value)}
+                    placeholder="Write freely about how you're feeling today: sleep quality, energy levels, mental focus, crew dynamics, workload stress, or anything unusual you noticed during EVA or daily tasks..."
+                  />
+                </Field>
+                <p>
+                  Stored on this device only. Never synced, shared with crew, or
+                  sent to AI. Images are not saved with your journal.
+                </p>
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={!journal.trim()}
+                  onClick={saveJournal}
+                >
+                  Save journal entry
+                </Button>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  onClick={onJournalHistory}
+                >
+                  View past journal entries ({entries.length})
+                  <ArrowUpRight data-icon="inline-end" />
+                </Button>
+              </section>
+            </div>
           </FieldGroup>
           {error && (
             <p role="alert" className="form-error">
@@ -732,6 +702,12 @@ export function Checkin({
           </Button>
         </Panel>
       </form>
+      <PhotoCheck
+        open={photoOpen}
+        onClose={() => setPhotoOpen(false)}
+        model={model}
+        bodyLocation={region}
+      />
     </div>
   );
 }

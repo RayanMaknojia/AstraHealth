@@ -289,7 +289,7 @@ export function Admin({ onLogout }: { onLogout: () => void }) {
               {[
                 ["name", "Full name", "text"],
                 ["login", "Crew login", "text"],
-                ["pin", "PIN (4–8 digits)", "password"],
+                ["pin", "PIN (4-8 digits)", "password"],
               ].map(([name, label, type]) => (
                 <Field key={name}>
                   <FieldLabel htmlFor={`new-${name}`}>{label}</FieldLabel>

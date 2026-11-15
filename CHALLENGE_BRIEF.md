@@ -1,4 +1,4 @@
-﻿# 2026 NASA Space Apps Challenge — Official Brief
+# 2026 NASA Space Apps Challenge - Official Brief
 **Difficulty:** Intermediate | **Subjects:** Human Exploration, Software, Space Exploration
 
 ## Summary

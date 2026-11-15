@@ -1,7 +1,7 @@
 /**
- * Shared data schema for the Space Medic HUD — the CONTRACT between the
- * backend logic (src/types, src/data, src/services — Claude Code) and the UI
- * (src/components, src/App.tsx, src/index.css — Codex).
+ * Shared data schema for the Space Medic HUD - the CONTRACT between the
+ * backend logic (src/types, src/data, src/services - Claude Code) and the UI
+ * (src/components, src/App.tsx, src/index.css - Codex).
  *
  * Version 2.1 = PROJECT_PLAN.md v2.0 schema + astronaut_health_monitor_plan.md
  * (mission timeline, personal baselines, SpO2, cabin/radiation feeds,
@@ -27,7 +27,7 @@
 /** Internal status. UI labels (reference doc wording): Normal / Watch / Alert. */
 export type StatusLevel = 'nominal' | 'caution' | 'critical'
 
-/** What the UI should paint. 'no_data' = grey — missing data is NEVER green. */
+/** What the UI should paint. 'no_data' = grey - missing data is NEVER green. */
 export type DisplayStatus = StatusLevel | 'no_data'
 
 export type TrendDirection = 'stable' | 'improving' | 'drifting_caution' | 'rapid_decline'
@@ -66,8 +66,8 @@ export type ActionLevel = 'self_care' | 'crew_alert' | 'flight_surgeon'
 
 /**
  * How to reach the ground, decided by one-way Earth delay.
- *  contact_ground  — short delay (ISS, Moon): call the flight surgeon.
- *  act_then_report — long delay (transit, Mars): act now on onboard guidance, then report.
+ *  contact_ground  - short delay (ISS, Moon): call the flight surgeon.
+ *  act_then_report - long delay (transit, Mars): act now on onboard guidance, then report.
  */
 export type EscalationMode = 'contact_ground' | 'act_then_report'
 
@@ -125,7 +125,7 @@ export interface HealthIndicator {
   spaceShiftNote?: string
   actionPlan: ActionPlan
   history: HistoryPoint[]
-  /** True for synthetic crew data — UI shows a "Simulated" tag (real daily vitals are not public). */
+  /** True for synthetic crew data - UI shows a "Simulated" tag (real daily vitals are not public). */
   simulated: boolean
 }
 
@@ -193,7 +193,7 @@ export interface SpaceflightHazard {
 
 // ════════════════════════════════════════════════════════════════════════════
 // §2 Environment & mission timeline
-//    "Don't ask where are you going — ask what day of the mission it is."
+//    "Don't ask where are you going - ask what day of the mission it is."
 // ════════════════════════════════════════════════════════════════════════════
 
 /** Environment the crew is in on a given mission day (reference doc §7 env_id). */
@@ -285,7 +285,7 @@ export interface TransitionAlert {
   activeToDay: number
 }
 
-/** Everything the HUD needs for "today" — produced by missionTimeline.getMissionState(). */
+/** Everything the HUD needs for "today" - produced by missionTimeline.getMissionState(). */
 export interface MissionState {
   plan: MissionPlan
   missionDay: number
@@ -297,7 +297,7 @@ export interface MissionState {
   exposure: CumulativeExposure
   daysToNextPhase: number | null
   nextPhase: MissionPhase | null
-  /** 0–1 progress for the trip bar. */
+  /** 0-1 progress for the trip bar. */
   progress: number
   activeAlerts: TransitionAlert[]
 }
@@ -310,7 +310,7 @@ export type UserRole = 'admin' | 'astronaut'
 
 export type CrewRole = 'commander' | 'pilot' | 'specialist' | 'flight_engineer' | 'medical_officer'
 
-/** Created only by admin (mission control). Demo-grade auth — not real security. */
+/** Created only by admin (mission control). Demo-grade auth - not real security. */
 export interface CrewAccount {
   id: string
   login: string
@@ -376,7 +376,7 @@ export interface ReferenceRange {
   unit: string
   earthLow: number | null
   earthHigh: number | null
-  /** Plain-English space shift, e.g. "24 h BP drops 8–10 mmHg". */
+  /** Plain-English space shift, e.g. "24 h BP drops 8-10 mmHg". */
   spaceShift: string
   /** App rule from the reference doc, e.g. "Target 8.5 h, alert below 6 h". */
   appRule: string
@@ -422,7 +422,7 @@ export interface VitalsInput {
   diastolicMmHg?: number
   bodyTempC?: number
   sleepHours?: number
-  /** Self-rated 1–5 (5 = best). See health_rules.md. */
+  /** Self-rated 1-5 (5 = best). See health_rules.md. */
   mood?: number
   spo2Pct?: number
   /** Dose recorded by personal dosimeter over the last 24 h, mSv. */
@@ -450,7 +450,7 @@ export interface EvaluationContext {
 export interface SpaceAdjustments {
   /** Top of Normal rises 37.5 → 37.9 °C after day 60 in 0 g (health_rules.md). Alert stays at 38.5. */
   bodyTempShiftC: number
-  /** In-flight BP runs 8–10 mmHg lower → the LOW limits relax by this much (negative). 0 for 14 days after landing. */
+  /** In-flight BP runs 8-10 mmHg lower → the LOW limits relax by this much (negative). 0 for 14 days after landing. */
   bpShiftSystolic: number
   bpShiftDiastolic: number
   /** Scheduled sleep target (8.5 h); alert below 6 h. */
@@ -488,11 +488,11 @@ export interface HealthReport {
   overallStatus: StatusLevel
   escalation: ActionLevel
   escalationMode: EscalationMode
-  /** 0–100, used by the Readiness Score gauge. */
+  /** 0-100, used by the Readiness Score gauge. */
   readinessScore: number
   indicators: IndicatorEvaluation[]
   systems: SystemStatus[]
-  /** Indicators with no fresh reading — render grey, exclude from "all clear". */
+  /** Indicators with no fresh reading - render grey, exclude from "all clear". */
   missingIndicators: IndicatorId[]
   /** Extra guidance tied to the environment (comm delay, gravity...). */
   environmentAdvisories: string[]
@@ -541,7 +541,7 @@ export interface WearableReadings {
   steps: number
   /** Rolling sleep total for the last sleep period; present on wake ticks. */
   sleepHours?: number
-  /** Heart-rate variability (RMSSD, ms) — stress proxy. */
+  /** Heart-rate variability (RMSSD, ms) - stress proxy. */
   hrvMs: number
 }
 
@@ -604,7 +604,7 @@ export interface CabinEvaluation {
   status: StatusLevel
   /** Per-parameter verdicts. */
   params: { param: CabinParam; value: number; status: StatusLevel; message: string }[]
-  /** e.g. "CO2 above 4.5 mmHg — expect fatigue, poor sleep, nausea." */
+  /** e.g. "CO2 above 4.5 mmHg - expect fatigue, poor sleep, nausea." */
   advisories: string[]
 }
 
@@ -693,7 +693,7 @@ export interface IngestionInput {
 export interface GatekeeperVerdict {
   accepted: boolean
   detectedModality: DataModality
-  /** 0–1 confidence the input is biomedical. */
+  /** 0-1 confidence the input is biomedical. */
   confidence: number
   /** Required when accepted === false. */
   rejectionReason?: string
@@ -752,10 +752,10 @@ export interface AIConfig {
 }
 
 // ════════════════════════════════════════════════════════════════════════════
-// §7 Phase 3 contracts (astronaut_health_monitor_pages.md pages 3–13, O1–O4)
+// §7 Phase 3 contracts (astronaut_health_monitor_pages.md pages 3-13, O1-O4)
 // ════════════════════════════════════════════════════════════════════════════
 
-/** A 1–5 self-rating. Which end is "good" depends on the field — see each field's doc. */
+/** A 1-5 self-rating. Which end is "good" depends on the field - see each field's doc. */
 export type Rating5 = 1 | 2 | 3 | 4 | 5
 
 // ── checkinService.ts ─────────────────────────────────────────────────────
@@ -791,7 +791,7 @@ export interface CheckinTaskDue extends CheckinScheduleItem {
   due: boolean
   done: boolean
   excused: boolean
-  /** e.g. "Due today", "Day 90 eye exam", "Weekly — due by day 49". */
+  /** e.g. "Due today", "Day 90 eye exam", "Weekly - due by day 49". */
   dueReason: string
 }
 
@@ -833,13 +833,13 @@ export interface Badge {
   description: string
   team: boolean
   earned: boolean
-  /** 0–1 progress toward the badge (1 when earned). */
+  /** 0-1 progress toward the badge (1 when earned). */
   progress: number
   /** e.g. "3 more days". */
   progressText: string
 }
 
-/** Consistency only — never health values (pages doc §7). */
+/** Consistency only - never health values (pages doc §7). */
 export interface LeaderboardRow {
   rank: number
   astronautId: string
@@ -887,7 +887,7 @@ export interface WorkoutLog {
 export interface ExerciseSummary {
   todayMinutes: number
   goalMinutes: number
-  /** Status from completed days (health_rules.md: Watch 60–119, Alert < 60 for 3 days). */
+  /** Status from completed days (health_rules.md: Watch 60-119, Alert < 60 for 3 days). */
   status: StatusLevel
   message: string
   /** Days in the last 7 that met the goal, out of exerciseDaysGoal. */
@@ -923,7 +923,7 @@ export interface BoneProjectionPoint {
 }
 
 export interface BoneProjection {
-  /** 0–1 share of days meeting the exercise goal over the last 30 days. */
+  /** 0-1 share of days meeting the exercise goal over the last 30 days. */
   compliance: number
   points: BoneProjectionPoint[]
   /** Projected loss at mission end, actual compliance. */
@@ -1039,9 +1039,9 @@ export type ScanQuality = 'ok' | 'too_dark' | 'too_bright' | 'blurry' | 'unreada
 export interface ImageStats {
   width: number
   height: number
-  /** 0–255 average luminance. */
+  /** 0-255 average luminance. */
   meanBrightness: number
-  /** Variance of the Laplacian — higher = sharper. */
+  /** Variance of the Laplacian - higher = sharper. */
   sharpness: number
 }
 
@@ -1060,7 +1060,7 @@ export interface PhotoRecord {
   painLevel?: Rating5
   // Skin first look
   aiLabel?: SkinLabel
-  /** 0–1. */
+  /** 0-1. */
   aiConfidence?: number
   alternatives?: { label: SkinLabel; confidence: number }[]
   status?: StatusLevel
@@ -1112,7 +1112,7 @@ export interface PhotoComparison {
 
 // ── wellbeingService.ts ───────────────────────────────────────────────────
 
-/** Private journal entry — stored on this device only, never synced or shared. */
+/** Private journal entry - stored on this device only, never synced or shared. */
 export interface JournalEntry {
   id: string
   astronautId: string

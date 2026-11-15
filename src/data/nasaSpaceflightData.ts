@@ -42,44 +42,44 @@ import type {
 // ── Sources ────────────────────────────────────────────────────────────────
 
 export const SOURCES = {
-  hazards: { label: 'NASA HRP — 5 Hazards of Human Spaceflight', url: 'https://www.nasa.gov/hrp/hazards/' },
-  risks: { label: 'NASA HRP — Risks of Human Spaceflight', url: 'https://www.nasa.gov/hrp/risks/' },
-  research: { label: 'NASA HRP — Ongoing Research', url: 'https://www.nasa.gov/hrp/ongoing-hrp-research/' },
+  hazards: { label: 'NASA HRP - 5 Hazards of Human Spaceflight', url: 'https://www.nasa.gov/hrp/hazards/' },
+  risks: { label: 'NASA HRP - Risks of Human Spaceflight', url: 'https://www.nasa.gov/hrp/risks/' },
+  research: { label: 'NASA HRP - Ongoing Research', url: 'https://www.nasa.gov/hrp/ongoing-hrp-research/' },
   csaRadiation: {
-    label: 'CSA — Monitoring radiation for astronaut health (2026-02-26)',
+    label: 'CSA - Monitoring radiation for astronaut health (2026-02-26)',
     url: 'https://www.asc-csa.gc.ca/eng/news/articles/2026/2026-02-26-monitoring-radiation-astronaut-health.asp',
   },
   csaScience: {
-    label: 'CSA — Why do we conduct science experiments in space?',
+    label: 'CSA - Why do we conduct science experiments in space?',
     url: 'https://www.asc-csa.gc.ca/eng/iss/science/why-do-we-conduct-science-experiments-in-space.asp',
   },
   nasaStd3001: {
-    label: 'NASA-STD-3001 Vol. 1 Rev. B — Crew Health (career radiation limit)',
+    label: 'NASA-STD-3001 Vol. 1 Rev. B - Crew Health (career radiation limit)',
     url: 'https://www.nasa.gov/ochmo/human-spaceflight-and-aviation-standards/',
   },
-  msLRad: { label: 'Zeitlin et al., Science 2013 — MSL/RAD cruise dose', url: 'https://doi.org/10.1126/science.1235989' },
-  lunarLnd: { label: "Zhang et al., Science Advances 2020 — Chang'e-4 LND lunar surface dose", url: 'https://doi.org/10.1126/sciadv.aaz1334' },
-  boneLoss: { label: 'LeBlanc et al., J Musculoskelet Neuronal Interact 2007 — ISS bone loss', url: 'https://pubmed.ncbi.nlm.nih.gov/17396002/' },
-  coreTemp: { label: 'Stahn et al., Scientific Reports 2017 — core temperature in space', url: 'https://doi.org/10.1038/s41598-017-15560-w' },
-  sleep: { label: 'Barger et al., Lancet Neurology 2014 — astronaut sleep', url: 'https://doi.org/10.1016/S1474-4422(14)70122-X' },
-  ada: { label: 'American Diabetes Association — Standards of Care (glycemic thresholds)', url: 'https://diabetesjournals.org/care' },
-  aha: { label: 'American Heart Association — Blood pressure categories', url: 'https://www.heart.org/en/health-topics/high-blood-pressure' },
+  msLRad: { label: 'Zeitlin et al., Science 2013 - MSL/RAD cruise dose', url: 'https://doi.org/10.1126/science.1235989' },
+  lunarLnd: { label: "Zhang et al., Science Advances 2020 - Chang'e-4 LND lunar surface dose", url: 'https://doi.org/10.1126/sciadv.aaz1334' },
+  boneLoss: { label: 'LeBlanc et al., J Musculoskelet Neuronal Interact 2007 - ISS bone loss', url: 'https://pubmed.ncbi.nlm.nih.gov/17396002/' },
+  coreTemp: { label: 'Stahn et al., Scientific Reports 2017 - core temperature in space', url: 'https://doi.org/10.1038/s41598-017-15560-w' },
+  sleep: { label: 'Barger et al., Lancet Neurology 2014 - astronaut sleep', url: 'https://doi.org/10.1016/S1474-4422(14)70122-X' },
+  ada: { label: 'American Diabetes Association - Standards of Care (glycemic thresholds)', url: 'https://diabetesjournals.org/care' },
+  aha: { label: 'American Heart Association - Blood pressure categories', url: 'https://www.heart.org/en/health-topics/high-blood-pressure' },
   // From astronaut_health_monitor_plan.md (team reference doc)
-  std3001Vol2: { label: 'NASA-STD-3001 Vol. 2 §6 — Natural and induced environments', url: 'https://www.nasa.gov/reference/6-0-natural-and-induced-environments-vol-2' },
-  ochmoCo2: { label: 'NASA OCHMO Technical Brief — Carbon dioxide', url: 'https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf' },
-  ochmoRadiation: { label: 'NASA OCHMO Technical Brief — Radiation protection', url: 'https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf' },
-  explorationAtmosphere: { label: 'NASA NTRS — Exploration atmosphere (8.2 psia / 34% O2)', url: 'https://ntrs.nasa.gov/citations/20230015380' },
-  partialGravity: { label: 'NASA NTRS — Partial gravity and human health', url: 'https://ntrs.nasa.gov/citations/20210019591' },
+  std3001Vol2: { label: 'NASA-STD-3001 Vol. 2 §6 - Natural and induced environments', url: 'https://www.nasa.gov/reference/6-0-natural-and-induced-environments-vol-2' },
+  ochmoCo2: { label: 'NASA OCHMO Technical Brief - Carbon dioxide', url: 'https://www.nasa.gov/wp-content/uploads/2023/12/ochmo-tb-004-carbon-dioxide.pdf' },
+  ochmoRadiation: { label: 'NASA OCHMO Technical Brief - Radiation protection', url: 'https://www.nasa.gov/wp-content/uploads/2023/03/radiation-protection-technical-brief-ochmo.pdf' },
+  explorationAtmosphere: { label: 'NASA NTRS - Exploration atmosphere (8.2 psia / 34% O2)', url: 'https://ntrs.nasa.gov/citations/20230015380' },
+  partialGravity: { label: 'NASA NTRS - Partial gravity and human health', url: 'https://ntrs.nasa.gov/citations/20210019591' },
   issRadiation: { label: 'ISS crew radiation exposure (PMC10919966)', url: 'https://pmc.ncbi.nlm.nih.gov/articles/PMC10919966' },
-  marsRad: { label: 'SwRI — Curiosity RAD Mars surface radiation', url: 'https://swri.org/node/9140' },
-  bpInSpace: { label: 'Norsk et al. 2015 — Blood pressure in space', url: 'https://pmc.ncbi.nlm.nih.gov/articles/4324706/' },
-  spaceFever: { label: 'ESA — Space fever', url: 'https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Research/Space_fever' },
-  lunarDust: { label: 'Stony Brook Medicine — Lunar dust health risk', url: 'https://news.stonybrookmedicine.edu/news/breathing-lunar-dust-could-pose-health-risk-to-future-astronauts/' },
-  marsFacts: { label: 'NASA NSSDC — Mars Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html' },
-  moonFacts: { label: 'NASA NSSDC — Moon Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html' },
+  marsRad: { label: 'SwRI - Curiosity RAD Mars surface radiation', url: 'https://swri.org/node/9140' },
+  bpInSpace: { label: 'Norsk et al. 2015 - Blood pressure in space', url: 'https://pmc.ncbi.nlm.nih.gov/articles/4324706/' },
+  spaceFever: { label: 'ESA - Space fever', url: 'https://www.esa.int/Science_Exploration/Human_and_Robotic_Exploration/Research/Space_fever' },
+  lunarDust: { label: 'Stony Brook Medicine - Lunar dust health risk', url: 'https://news.stonybrookmedicine.edu/news/breathing-lunar-dust-could-pose-health-risk-to-future-astronauts/' },
+  marsFacts: { label: 'NASA NSSDC - Mars Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/marsfact.html' },
+  moonFacts: { label: 'NASA NSSDC - Moon Fact Sheet', url: 'https://nssdc.gsfc.nasa.gov/planetary/factsheet/moonfact.html' },
   osdr: { label: 'NASA Open Science Data Repository (OSDR)', url: 'https://osdr.nasa.gov' },
   radlab: { label: 'NASA OSDR RadLab', url: 'https://visualization.osdr.nasa.gov/radlab/' },
-  donki: { label: 'NASA DONKI — Space weather (SEP events)', url: 'https://api.nasa.gov' },
+  donki: { label: 'NASA DONKI - Space weather (SEP events)', url: 'https://api.nasa.gov' },
 } as const satisfies Record<string, SourceRef>
 
 // ── NASA HRP: 5 Hazards ────────────────────────────────────────────────────
@@ -88,12 +88,12 @@ export const SPACEFLIGHT_HAZARDS: SpaceflightHazard[] = [
   {
     name: 'Space Radiation',
     summary:
-      'Invisible radiation beyond Earth’s protective atmosphere and magnetic field — considered one of the most hazardous aspects of spaceflight.',
+      'Invisible radiation beyond Earth’s protective atmosphere and magnetic field - considered one of the most hazardous aspects of spaceflight.',
     keyFacts: [
       'Radiation is invisible: you cannot feel it, so only dosimeters tell you your exposure.',
       'Neutron radiation makes up about 30% of total radiation on the ISS and is especially harmful biologically (CSA).',
       'NASA’s career limit is 600 mSv effective dose for every astronaut, regardless of age or sex (NASA-STD-3001).',
-      'Typical ISS dose: ~0.3–0.8 mSv/day. Mars transit: ~1.8 mSv/day. Lunar surface: ~1.4 mSv/day.',
+      'Typical ISS dose: ~0.3-0.8 mSv/day. Mars transit: ~1.8 mSv/day. Lunar surface: ~1.4 mSv/day.',
       'HRP tracks “Radiation-induced cancers” as its space-radiation risk; radiation also stresses the immune system.',
     ],
     affectedSystems: ['radiation_immune'],
@@ -124,10 +124,10 @@ export const SPACEFLIGHT_HAZARDS: SpaceflightHazard[] = [
   {
     name: 'Distance from Earth',
     summary:
-      'Mars is ~140 million miles away on average — a ~3-year round trip versus ~3 days to the Moon. Medical help, supplies, and instructions get harder to receive.',
+      'Mars is ~140 million miles away on average - a ~3-year round trip versus ~3 days to the Moon. Medical help, supplies, and instructions get harder to receive.',
     keyFacts: [
       '“Planning and self-sufficiency will be key to successful deep space missions.” (NASA HRP)',
-      'One-way communication delay: ~1.3 s to the Moon; ~4–24 minutes to Mars.',
+      'One-way communication delay: ~1.3 s to the Moon; ~4-24 minutes to Mars.',
       'Long missions mean less ability to rely on Earth for food, materials, and emergency medical help (CSA).',
     ],
     affectedSystems: ['cardiovascular', 'metabolic', 'behavioral'],
@@ -140,11 +140,11 @@ export const SPACEFLIGHT_HAZARDS: SpaceflightHazard[] = [
   {
     name: 'Gravity Fields',
     summary:
-      'Microgravity in transit, ~1/6 g on the Moon, and 3/8 g on Mars for up to two years — muscles, bones, inner ear, and organs must adapt, then re-adapt on return.',
+      'Microgravity in transit, ~1/6 g on the Moon, and 3/8 g on Mars for up to two years - muscles, bones, inner ear, and organs must adapt, then re-adapt on return.',
     keyFacts: [
       'Weightlessness produces effects similar to accelerated ageing and a sedentary lifestyle (CSA).',
-      'Weight-bearing bones (hip, spine) lose ~1–1.5% mineral density per month without countermeasures (LeBlanc 2007).',
-      'Fluids shift toward the head, linked to SANS — Spaceflight Associated Neuro-ocular Syndrome, identified in 2005 and described by NASA as its leading spaceflight-related health risk.',
+      'Weight-bearing bones (hip, spine) lose ~1-1.5% mineral density per month without countermeasures (LeBlanc 2007).',
+      'Fluids shift toward the head, linked to SANS - Spaceflight Associated Neuro-ocular Syndrome, identified in 2005 and described by NASA as its leading spaceflight-related health risk.',
       'HRP studies: Thigh Cuff (keeping fluid in the legs), B-Complex (vitamin B for eye/brain changes), Venous Haemostasis (clotting), Zero T2 (exercise without a treadmill).',
     ],
     affectedSystems: ['musculoskeletal', 'cardiovascular'],
@@ -160,14 +160,14 @@ export const SPACEFLIGHT_HAZARDS: SpaceflightHazard[] = [
     summary:
       'A spacecraft is both home and machine. Temperature, pressure, lighting, noise, and microbes must be controlled; immune responses are tracked.',
     keyFacts: [
-      'HRP risks: altered immune responses, host–microorganism interactions, hypoxia, decompression sickness, inadequate food & nutrition.',
+      'HRP risks: altered immune responses, host-microorganism interactions, hypoxia, decompression sickness, inadequate food & nutrition.',
       'Artemis II Immune Biomarkers study analysed blood and saliva to see how deep space changes immunity.',
       'Resting core body temperature rises ~1 °C during long-duration spaceflight (Stahn 2017).',
     ],
     affectedSystems: ['radiation_immune', 'metabolic'],
     countermeasures: [
       'Hand hygiene and surface cleaning schedule.',
-      'Report fever early — closed cabins spread infection quickly.',
+      'Report fever early - closed cabins spread infection quickly.',
       'Follow the menu plan; log food and water intake.',
     ],
     sources: [SOURCES.hazards, SOURCES.risks, SOURCES.research, SOURCES.coreTemp],
@@ -223,7 +223,7 @@ export const CSA_RADIATION_MONITORING = {
   summary:
     'Radiation is one of the key challenges for astronauts beyond Earth’s atmosphere. Neutrons contribute about 30% of total ISS radiation and can cause serious biological damage.',
   instruments: [
-    { name: 'CANS — Canadian Active Neutron Spectrometer', detail: 'Compact, autonomous neutron monitor that works continuously; CSA awarded Bubble Technology Industries a $5.5 M contract (2026).' },
+    { name: 'CANS - Canadian Active Neutron Spectrometer', detail: 'Compact, autonomous neutron monitor that works continuously; CSA awarded Bubble Technology Industries a $5.5 M contract (2026).' },
     { name: 'Bubble detectors', detail: 'Predecessor to CANS, used on the ISS (e.g. by CSA astronaut David Saint-Jacques).' },
     { name: 'Radi-N / Radi-N2', detail: 'Canadian ISS neutron-dosimetry experiments using bubble detectors.' },
     { name: 'MOSFET', detail: 'Canadian solid-state radiation dosimetry experiment on the ISS.' },
@@ -256,7 +256,7 @@ export const THRESHOLDS = {
   },
   heartRate: { criticalLow: 40, cautionLow: 50, cautionHigh: 100, criticalHigh: 120, baselineWatchFraction: 0.15 },
   bloodPressure: {
-    // AHA categories (pages doc). Low limits relax in flight — see SPACE_ADJUSTMENT_RULES.bloodPressure.
+    // AHA categories (pages doc). Low limits relax in flight - see SPACE_ADJUSTMENT_RULES.bloodPressure.
     systolicCriticalLow: 80,
     systolicCautionLow: 90,
     systolicCautionHigh: 130,
@@ -266,7 +266,7 @@ export const THRESHOLDS = {
     diastolicCriticalHigh: 100,
   },
   bodyTemp: {
-    // Normal 36.1–37.5; Watch 35.0–36.0 / 37.6–38.4; Alert ≥ 38.5 or < 35.0.
+    // Normal 36.1-37.5; Watch 35.0-36.0 / 37.6-38.4; Alert ≥ 38.5 or < 35.0.
     criticalLow: 35.0,
     cautionLow: 36.1,
     cautionHigh: 37.6,
@@ -282,7 +282,7 @@ export const THRESHOLDS = {
     cautionHigh: 10,
   },
   mood: {
-    // 1–5 scale. Normal 4–5; Watch 3 or a single day at 1–2; Alert = 1–2 for 3 days in a row.
+    // 1-5 scale. Normal 4-5; Watch 3 or a single day at 1-2; Alert = 1-2 for 3 days in a row.
     scaleMax: 5,
     cautionAtOrBelow: 3,
     criticalAtOrBelow: 2,
@@ -296,7 +296,7 @@ export const THRESHOLDS = {
     dailyCautionMSv: 2, // above any routine environment baseline
     dailyCriticalMSv: 10, // indicative of a solar particle event
   },
-  // A normal 6-month ISS stay loses ~6–9% at the hip, so Watch/Alert flag unusual loss.
+  // A normal 6-month ISS stay loses ~6-9% at the hip, so Watch/Alert flag unusual loss.
   boneDensity: { cautionAtOrBelowPct: -5, criticalAtOrBelowPct: -10 },
   spo2: {
     // Normal ≥ 95%; Alert < 90% everywhere. In the 8.2 psia / 34% O2 habitat (close to the 127 mmHg
@@ -326,13 +326,13 @@ export interface CheckinInputSpec {
 /** Use these for the Daily Check-in sliders so ranges/units always match the backend rules. */
 export const CHECKIN_INPUTS: CheckinInputSpec[] = [
   { key: 'sleepHours', indicator: 'sleep_hours', label: 'Sleep last night', unit: 'h', min: 0, max: 14, step: 0.1, normalText: '≥ 7 h (target 8.5 h)' },
-  { key: 'mood', indicator: 'mood', label: 'Mood', unit: '/5', min: 1, max: 5, step: 1, normalText: '4–5' },
-  { key: 'heartRateBpm', indicator: 'heart_rate', label: 'Resting heart rate', unit: 'bpm', min: 30, max: 180, step: 1, normalText: '50–100 bpm' },
-  { key: 'systolicMmHg', indicator: 'blood_pressure', label: 'Blood pressure (top)', unit: 'mmHg', min: 60, max: 200, step: 1, normalText: '90–129 mmHg' },
-  { key: 'diastolicMmHg', indicator: 'blood_pressure', label: 'Blood pressure (bottom)', unit: 'mmHg', min: 30, max: 130, step: 1, normalText: '60–84 mmHg' },
-  { key: 'bodyTempC', indicator: 'body_temp', label: 'Body temperature', unit: '°C', min: 34, max: 41, step: 0.1, normalText: '36.1–37.5 °C' },
+  { key: 'mood', indicator: 'mood', label: 'Mood', unit: '/5', min: 1, max: 5, step: 1, normalText: '4-5' },
+  { key: 'heartRateBpm', indicator: 'heart_rate', label: 'Resting heart rate', unit: 'bpm', min: 30, max: 180, step: 1, normalText: '50-100 bpm' },
+  { key: 'systolicMmHg', indicator: 'blood_pressure', label: 'Blood pressure (top)', unit: 'mmHg', min: 60, max: 200, step: 1, normalText: '90-129 mmHg' },
+  { key: 'diastolicMmHg', indicator: 'blood_pressure', label: 'Blood pressure (bottom)', unit: 'mmHg', min: 30, max: 130, step: 1, normalText: '60-84 mmHg' },
+  { key: 'bodyTempC', indicator: 'body_temp', label: 'Body temperature', unit: '°C', min: 34, max: 41, step: 0.1, normalText: '36.1-37.5 °C' },
   { key: 'spo2Pct', indicator: 'spo2', label: 'Blood oxygen (SpO2)', unit: '%', min: 80, max: 100, step: 1, normalText: '≥ 95%' },
-  { key: 'bloodSugarMgDl', indicator: 'blood_sugar', label: 'Blood sugar', unit: 'mg/dL', min: 40, max: 300, step: 1, normalText: '70–99 fasting, 70–140 after food' },
+  { key: 'bloodSugarMgDl', indicator: 'blood_sugar', label: 'Blood sugar', unit: 'mg/dL', min: 40, max: 300, step: 1, normalText: '70-99 fasting, 70-140 after food' },
   { key: 'radiationDailyMSv', indicator: 'radiation_dose', label: 'Dosimeter, last 24 h', unit: 'mSv', min: 0, max: 20, step: 0.01, normalText: 'depends on location' },
   { key: 'boneDensityChangePct', indicator: 'bone_density', label: 'Bone density change', unit: '%', min: -20, max: 5, step: 0.1, normalText: 'above −5%' },
 ]
@@ -359,7 +359,7 @@ export const SPACE_ADJUSTMENT_RULES = {
     shiftC: 0.4,
   },
   bloodPressure: {
-    /** 24 h BP runs 8–10 mmHg lower in flight (Norsk 2015) → the LOW limits relax by this much. */
+    /** 24 h BP runs 8-10 mmHg lower in flight (Norsk 2015) → the LOW limits relax by this much. */
     inFlightSystolicRelax: 8,
     inFlightDiastolicRelax: 5,
     /** Relaxation is switched off for this many days after landing (fainting risk on standing). */
@@ -398,22 +398,22 @@ export const STALE_AFTER_DAYS: Record<IndicatorId, number> = {
 // ── Reference tables (reference doc §5, §6, §9) ───────────────────────────
 
 export const REFERENCE_RANGES: ReferenceRange[] = [
-  { indicator: 'body_temp', unit: '°C', earthLow: 36.1, earthHigh: 37.2, spaceShift: 'Rises about 1 °C over ~2.5 months; faster during exercise.', appRule: 'Normal 36.1–37.5 °C; after day 60 in 0 g Normal goes up to 37.9 °C. Alert ≥ 38.5 °C.', sources: [SOURCES.coreTemp, SOURCES.spaceFever] },
-  { indicator: 'blood_pressure', unit: 'mmHg', earthLow: null, earthHigh: 120, spaceShift: '24 h BP drops 8–10 mmHg.', appRule: 'Lower BP is expected in flight, so low limits relax by 8/5 mmHg (not after landing).', sources: [SOURCES.bpInSpace, SOURCES.aha] },
+  { indicator: 'body_temp', unit: '°C', earthLow: 36.1, earthHigh: 37.2, spaceShift: 'Rises about 1 °C over ~2.5 months; faster during exercise.', appRule: 'Normal 36.1-37.5 °C; after day 60 in 0 g Normal goes up to 37.9 °C. Alert ≥ 38.5 °C.', sources: [SOURCES.coreTemp, SOURCES.spaceFever] },
+  { indicator: 'blood_pressure', unit: 'mmHg', earthLow: null, earthHigh: 120, spaceShift: '24 h BP drops 8-10 mmHg.', appRule: 'Lower BP is expected in flight, so low limits relax by 8/5 mmHg (not after landing).', sources: [SOURCES.bpInSpace, SOURCES.aha] },
   { indicator: 'heart_rate', unit: 'bpm', earthLow: 60, earthHigh: 100, spaceShift: 'Unchanged in long ISS stays.', appRule: 'Keep Earth range.', sources: [SOURCES.aha] },
   { indicator: 'sleep_hours', unit: 'hrs', earthLow: 7, earthHigh: 9, spaceShift: '~6 h average on ISS vs 8.5 h scheduled.', appRule: 'Target 8.5 h. One night < 6 h = Watch; Alert after 3 nights < 6 h in a row (or any night < 4 h).', sources: [SOURCES.sleep] },
   { indicator: 'blood_sugar', unit: 'mg/dL', earthLow: 70, earthHigh: 99, spaceShift: 'No clear shift.', appRule: 'Earth range (fasting), personal baseline from first readings.', sources: [SOURCES.ada, SOURCES.osdr] },
   { indicator: 'spo2', unit: '%', earthLow: 95, earthHigh: 100, spaceShift: 'Watch in 8.2 psi habitat (close to O2 floor).', appRule: 'Tighter alert on Moon / Mars.', sources: [SOURCES.explorationAtmosphere, SOURCES.std3001Vol2] },
-  { indicator: 'bone_density', unit: '%', earthLow: null, earthHigh: null, spaceShift: 'Loses 1–1.5% per month in 0 g.', appRule: 'Estimate by gravity: (1.25/30)·(1 − g) %/day; track exercise.', sources: [SOURCES.boneLoss, SOURCES.partialGravity] },
-  { indicator: 'mood', unit: '/5', earthLow: 4, earthHigh: 5, spaceShift: 'Isolation and distance from Earth.', appRule: 'Daily check-in on a 1–5 scale; Alert only after 3 low days in a row.', sources: [SOURCES.hazards] },
+  { indicator: 'bone_density', unit: '%', earthLow: null, earthHigh: null, spaceShift: 'Loses 1-1.5% per month in 0 g.', appRule: 'Estimate by gravity: (1.25/30)·(1 − g) %/day; track exercise.', sources: [SOURCES.boneLoss, SOURCES.partialGravity] },
+  { indicator: 'mood', unit: '/5', earthLow: 4, earthHigh: 5, spaceShift: 'Isolation and distance from Earth.', appRule: 'Daily check-in on a 1-5 scale; Alert only after 3 low days in a row.', sources: [SOURCES.hazards] },
   { indicator: 'radiation_dose', unit: 'mSv', earthLow: null, earthHigh: null, spaceShift: '~0.35 mSv/day ISS, ~1.84 transit, ~1.37 Moon, ~0.64 Mars surface.', appRule: 'Career limit 600 mSv; ≤ 250 mSv per solar storm.', sources: [SOURCES.nasaStd3001, SOURCES.ochmoRadiation] },
 ]
 
 export const CABIN_LIMITS: CabinLimit[] = [
-  { param: 'co2_mmhg', label: 'Cabin CO2', unit: 'mmHg', nominalHigh: 2.5, watch: 2.5, alert: 3.0, note: '1 h average ≤ 3 mmHg; 7-day average < 2.5 mmHg keeps headache risk < 1%. Headaches at 2.8–4.5 mmHg; fatigue, poor sleep, nausea above 4.5 mmHg.' },
+  { param: 'co2_mmhg', label: 'Cabin CO2', unit: 'mmHg', nominalHigh: 2.5, watch: 2.5, alert: 3.0, note: '1 h average ≤ 3 mmHg; 7-day average < 2.5 mmHg keeps headache risk < 1%. Headaches at 2.8-4.5 mmHg; fatigue, poor sleep, nausea above 4.5 mmHg.' },
   { param: 'temp_c', label: 'Cabin temperature', unit: '°C', nominalLow: 18, nominalHigh: 27, note: 'Comfort band 18 °C (at 75% humidity) to 27 °C (at 25% humidity).' },
-  { param: 'humidity_pct', label: 'Relative humidity', unit: '%', nominalLow: 25, nominalHigh: 75, note: 'Comfort band 25–75%.' },
-  { param: 'cabin_psia', label: 'Cabin pressure', unit: 'psia', nominalLow: 5, nominalHigh: 15, note: 'Allowed 5–15 psia (34.5–103 kPa). ISS 14.7; Moon/Mars habitats 8.2.' },
+  { param: 'humidity_pct', label: 'Relative humidity', unit: '%', nominalLow: 25, nominalHigh: 75, note: 'Comfort band 25-75%.' },
+  { param: 'cabin_psia', label: 'Cabin pressure', unit: 'psia', nominalLow: 5, nominalHigh: 15, note: 'Allowed 5-15 psia (34.5-103 kPa). ISS 14.7; Moon/Mars habitats 8.2.' },
   { param: 'ppo2_mmhg', label: 'Inspired oxygen (ppO2)', unit: 'mmHg', watch: 135, alert: 127, note: 'Minimum inspired O2 127 mmHg. The 8.2 psia / 34% O2 habitat sits just above it (~128 mmHg).' },
 ]
 
@@ -439,7 +439,7 @@ export const HAZARD_RISK_MAP: HazardRiskEntry[] = [
   { hazard: 'Isolation and Confinement', risk: 'Behavioral changes and psychiatric disorders', indicators: ['mood'], why: 'Months in a small space far from family can lower mood and cause conflict.', action: 'Daily mood check-in; talk to a crewmate; protect private time.', escalateToGround: true },
   { hazard: 'Isolation and Confinement', risk: 'Inadequate sleep and irregular schedules', indicators: ['sleep_hours', 'mood'], why: 'Noise, light and odd day lengths cut sleep, which harms mood, reaction time and immunity.', action: 'Fixed sleep window, eye mask, scheduled lighting; target 8.5 h.', escalateToGround: false },
   { hazard: 'Distance from Earth', risk: 'Inadequate systems operations support (medical autonomy)', indicators: ['heart_rate', 'blood_pressure', 'spo2'], why: 'With long signal delays the crew must act before Earth can answer.', action: 'Follow onboard action plans first, then report.', escalateToGround: true },
-  { hazard: 'Gravity Fields', risk: 'Spaceflight-induced bone changes', indicators: ['bone_density'], why: 'Without weight on the skeleton, hips and spine lose 1–1.5% of mineral per month.', action: '~2 h daily resistive + aerobic exercise; calcium, vitamin D, protein.', escalateToGround: false },
+  { hazard: 'Gravity Fields', risk: 'Spaceflight-induced bone changes', indicators: ['bone_density'], why: 'Without weight on the skeleton, hips and spine lose 1-1.5% of mineral per month.', action: '~2 h daily resistive + aerobic exercise; calcium, vitamin D, protein.', escalateToGround: false },
   { hazard: 'Gravity Fields', risk: 'Cardiovascular adaptations', indicators: ['heart_rate', 'blood_pressure'], why: 'Fluid shifts to the head; the heart de-conditions; standing up after landing can cause fainting.', action: 'Aerobic exercise; fluid loading and compression garments before landing.', escalateToGround: true },
   { hazard: 'Gravity Fields', risk: 'Spaceflight Associated Neuro-ocular Syndrome (SANS)', indicators: ['blood_pressure'], why: 'Head-ward fluid shift is linked to eye and brain changes.', action: 'Weekly vision check; report blurry vision.', escalateToGround: true },
   { hazard: 'Hostile Closed Environments', risk: 'Hypoxia', indicators: ['spo2'], why: 'Low-pressure habitats run close to the oxygen floor; a life-support fault can lower blood oxygen fast.', action: 'Daily SpO2 check; know the emergency O2 mask location.', escalateToGround: true },
@@ -464,7 +464,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, EnvironmentProfile> = {
     dustRisk: 'none',
     cabinPsia: 14.7,
     cabinO2Pct: 21,
-    notes: ['Collect normal readings here — they become your personal baseline.'],
+    notes: ['Collect normal readings here - they become your personal baseline.'],
     sources: [],
   },
   EARTH_ORBIT: {
@@ -490,7 +490,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, EnvironmentProfile> = {
   DEEP_SPACE: {
     id: 'DEEP_SPACE',
     label: 'Deep Space Transit',
-    description: 'Cruise outside Earth’s magnetosphere in microgravity — highest continuous radiation.',
+    description: 'Cruise outside Earth’s magnetosphere in microgravity - highest continuous radiation.',
     gravityG: 0,
     dayLengthHours: null,
     typicalDoseRateMSvPerDay: 1.84,
@@ -500,17 +500,17 @@ export const ENVIRONMENTS: Record<EnvironmentType, EnvironmentProfile> = {
     dustRisk: 'none',
     cabinPsia: 14.7,
     cabinO2Pct: 21,
-    notes: ['No natural day — keep a strict light/sleep schedule.', 'Crew must act on medical issues before Earth can respond.'],
+    notes: ['No natural day - keep a strict light/sleep schedule.', 'Crew must act on medical issues before Earth can respond.'],
     sources: [SOURCES.msLRad],
   },
   MARS_ORBIT: {
     id: 'MARS_ORBIT',
     label: 'Mars Orbit & Landing',
-    description: 'Arrival, orbit insertion and descent — microgravity until touchdown.',
+    description: 'Arrival, orbit insertion and descent - microgravity until touchdown.',
     gravityG: 0,
     dayLengthHours: null,
     typicalDoseRateMSvPerDay: 1.8,
-    commDelay: '4–24 min one-way',
+    commDelay: '4-24 min one-way',
     commDelaySecondsMin: 240,
     commDelaySecondsMax: 1440,
     dustRisk: 'none',
@@ -526,14 +526,14 @@ export const ENVIRONMENTS: Record<EnvironmentType, EnvironmentProfile> = {
     gravityG: 0.38,
     dayLengthHours: 24.65,
     typicalDoseRateMSvPerDay: 0.64,
-    commDelay: '4–24 min one-way (2–3 week blackout at solar conjunction)',
+    commDelay: '4-24 min one-way (2-3 week blackout at solar conjunction)',
     commDelaySecondsMin: 240,
     commDelaySecondsMax: 1440,
     dustRisk: 'moderate',
     cabinPsia: 8.2,
     cabinO2Pct: 34,
     notes: [
-      'Sol is ~40 min longer than an Earth day — sleep can drift.',
+      'Sol is ~40 min longer than an Earth day - sleep can drift.',
       '0.38 g is likely not enough to fully protect bone and muscle (estimate).',
       'Fine dust: keep airlock hygiene.',
     ],
@@ -553,7 +553,7 @@ export const ENVIRONMENTS: Record<EnvironmentType, EnvironmentProfile> = {
     cabinPsia: 8.2,
     cabinO2Pct: 34,
     notes: [
-      '~2 weeks of light then ~2 weeks of dark — use scheduled lighting.',
+      '~2 weeks of light then ~2 weeks of dark - use scheduled lighting.',
       '“Lunar hay fever”: dust causes sneezing, watery eyes, sore throat.',
     ],
     sources: [SOURCES.lunarLnd, SOURCES.moonFacts, SOURCES.lunarDust, SOURCES.explorationAtmosphere],
@@ -671,9 +671,9 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
     unit: 'mg/dL',
     hazardLink: 'Hostile Closed Environments',
     howToMeasure:
-      '1) Wash and dry hands. 2) Insert a test strip into the glucometer. 3) Prick the side of a fingertip with a lancet. 4) Touch the drop to the strip (in microgravity the drop clings to your finger — just touch it). 5) Log the number and whether you have eaten in the last 8 hours.',
+      '1) Wash and dry hands. 2) Insert a test strip into the glucometer. 3) Prick the side of a fingertip with a lancet. 4) Touch the drop to the strip (in microgravity the drop clings to your finger - just touch it). 5) Log the number and whether you have eaten in the last 8 hours.',
     whyNeeded:
-      'Weightlessness and less physical activity make the body use insulin less effectively — CSA notes effects similar to a sedentary lifestyle and Type-2 diabetes research. A packaged-food diet and stress also shift sugar levels.',
+      'Weightlessness and less physical activity make the body use insulin less effectively - CSA notes effects similar to a sedentary lifestyle and Type-2 diabetes research. A packaged-food diet and stress also shift sugar levels.',
     measurableInSpace: true,
   },
   radiation_dose: {
@@ -709,7 +709,7 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
     howToMeasure:
       '1) Rest 5 minutes, arm relaxed at heart level (use a foot restraint to stay still). 2) Wrap the automatic cuff 2 cm above the elbow crease. 3) Press start and stay silent. 4) Log both numbers: top (systolic) / bottom (diastolic).',
     whyNeeded:
-      'Fluid shift in microgravity changes blood pressure and is linked to eye and brain changes (SANS). After landing, pressure can drop when standing — fainting risk during gravity transitions.',
+      'Fluid shift in microgravity changes blood pressure and is linked to eye and brain changes (SANS). After landing, pressure can drop when standing - fainting risk during gravity transitions.',
     measurableInSpace: true,
   },
   bone_density: {
@@ -721,7 +721,7 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
     howToMeasure:
       '1) Weekly: complete the guided ultrasound scan of the heel/shin with the onboard probe (follow on-screen placement guide). 2) The software compares to your pre-flight scan and gives a % change. 3) Log that %.',
     whyNeeded:
-      'Bones need weight to stay strong. In weightlessness the hips and spine can lose ~1–1.5% of their mineral each month — like years of ageing on Earth — raising fracture and kidney-stone risk.',
+      'Bones need weight to stay strong. In weightlessness the hips and spine can lose ~1-1.5% of their mineral each month - like years of ageing on Earth - raising fracture and kidney-stone risk.',
     measurableInSpace: true,
   },
   sleep_hours: {
@@ -743,7 +743,7 @@ export const INDICATOR_GUIDES: Record<IndicatorId, IndicatorGuide> = {
     unit: '/5',
     hazardLink: 'Isolation and Confinement',
     howToMeasure:
-      '1) Find a quiet moment. 2) Ask yourself: “Overall, how am I feeling today?” 3) Tap 1 (very low) to 5 (great). Be honest — this is private unless it needs escalation.',
+      '1) Find a quiet moment. 2) Ask yourself: “Overall, how am I feeling today?” 3) Tap 1 (very low) to 5 (great). Be honest - this is private unless it needs escalation.',
     whyNeeded:
       'Months in a small, isolated space far from family can lead to low mood, irritability, and team conflict. Spotting changes early lets the crew and support team help before it affects safety.',
     measurableInSpace: true,
@@ -783,7 +783,7 @@ export const DEFAULT_ROUTINE: RoutineTask[] = [
   { id: 'glucose_check', title: 'Fasting blood sugar check', xp: 15, completed: false, frequency: 'daily', linkedSystem: 'metabolic', refreshesIndicator: 'blood_sugar' },
   { id: 'exercise_2h', title: 'Complete 2 h resistive + aerobic exercise', xp: 40, completed: false, frequency: 'daily', linkedSystem: 'musculoskeletal' },
   { id: 'sleep_log', title: 'Log sleep from actigraphy band (target 8.5 h)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'sleep_hours' },
-  { id: 'mood_checkin', title: 'Mood check-in (1–5)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'mood' },
+  { id: 'mood_checkin', title: 'Mood check-in (1-5)', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'behavioral', refreshesIndicator: 'mood' },
   { id: 'hydration', title: 'Drink ≥ 2 L water', xp: 10, completed: false, frequency: 'daily', linkedSystem: 'metabolic' },
   { id: 'bone_ultrasound', title: 'Guided bone ultrasound scan', xp: 50, completed: false, frequency: 'weekly', linkedSystem: 'musculoskeletal', refreshesIndicator: 'bone_density' },
   { id: 'eye_exam', title: 'Eye/vision check for SANS (OCT or Amsler grid)', xp: 40, completed: false, frequency: 'weekly', linkedSystem: 'cardiovascular' },
@@ -1034,7 +1034,7 @@ export function buildEmptyProfile(p: EmptyProfileSeed): AstronautProfile {
 }
 
 /**
- * Fictional, SIMULATED demo crew (real daily vitals are not public — NASA LSDA
+ * Fictional, SIMULATED demo crew (real daily vitals are not public - NASA LSDA
  * holds them by request only). Logins match the reference doc's demo accounts.
  */
 export const CREW_PROFILES: AstronautProfile[] = [
@@ -1053,7 +1053,7 @@ export const CREW_PROFILES: AstronautProfile[] = [
     notes: ['No known allergies.'],
     seed: 101,
     hr: { baseline: 62, drift: 0, noise: 3, decimals: 0 },
-    sys: { baseline: 110, drift: 0.1, noise: 4, decimals: 0 }, // in-flight BP runs ~8–10 mmHg lower
+    sys: { baseline: 110, drift: 0.1, noise: 4, decimals: 0 }, // in-flight BP runs ~8-10 mmHg lower
     dia: { baseline: 70, drift: 0, noise: 3, decimals: 0 },
     glucose: { baseline: 92, drift: 0, noise: 6, decimals: 0 },
     temp: { baseline: 37.4, drift: 0, noise: 0.2, decimals: 1 }, // past day 60 in 0 g: ~+1 °C core shift

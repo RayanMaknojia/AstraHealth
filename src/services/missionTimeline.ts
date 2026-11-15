@@ -1,5 +1,5 @@
 /**
- * Mission Timeline Model — "Don't ask where you are going; ask what day of the mission it is."
+ * Mission Timeline Model - "Don't ask where you are going; ask what day of the mission it is."
  *
  * Given a MissionPlan (phase schedule set by admin) and a mission day, returns
  * today's phase, environment rules, current Earth delay, delay-based
@@ -9,7 +9,7 @@
  * conjunction blackout). Solar-storm alerts come from environmentFeed.ts.
  *
  * Powers the trip bar and the judges' demo slider (drag launch → Mars).
- * Pure functions: no timers, no I/O — safe to call on every render.
+ * Pure functions: no timers, no I/O - safe to call on every render.
  */
 
 import {
@@ -158,8 +158,8 @@ export function getAllTransitionAlerts(plan: MissionPlan): TransitionAlert[] {
         severity: 'caution',
         title: 'Entering weightlessness',
         guidance: [
-          'Space motion sickness is common in the first 2–3 days: move your head slowly, use anti-nausea meds from the kit if needed.',
-          'Fluids shift to your head (puffy face, stuffy nose, headache) — drink to schedule even if not thirsty.',
+          'Space motion sickness is common in the first 2-3 days: move your head slowly, use anti-nausea meds from the kit if needed.',
+          'Fluids shift to your head (puffy face, stuffy nose, headache) - drink to schedule even if not thirsty.',
           'Report severe headache or vision changes.',
         ],
         activeFromDay: ph.startDay,
@@ -175,7 +175,7 @@ export function getAllTransitionAlerts(plan: MissionPlan): TransitionAlert[] {
           severity: 'caution',
           title: `Gravity re-adaptation after ${Math.round(zeroGBefore)} days in 0 g`,
           guidance: [
-            'Dizziness on standing, poor balance and fall risk are expected for 1–2 weeks.',
+            'Dizziness on standing, poor balance and fall risk are expected for 1-2 weeks.',
             'Do a daily standing blood-pressure check (lie 5 min, stand, measure at 1 and 3 min).',
             'Do a daily balance check; rise slowly; wear compression garments.',
           ],
@@ -195,7 +195,7 @@ export function getAllTransitionAlerts(plan: MissionPlan): TransitionAlert[] {
         guidance: [
           `After ${rule.after0gDays} days in weightlessness, resting body temperature runs about ${rule.shiftC} °C higher.`,
           'The app has moved your normal range up; a true fever is still flagged.',
-          'Exercise raises temperature faster in space — cool down and hydrate after sessions.',
+          'Exercise raises temperature faster in space - cool down and hydrate after sessions.',
         ],
         activeFromDay: d,
         activeToDay: d + 7,
@@ -214,7 +214,7 @@ export function getAllTransitionAlerts(plan: MissionPlan): TransitionAlert[] {
         severity: 'caution',
         title: `Back in Earth gravity after ${Math.round(zeroG)} days in 0 g`,
         guidance: [
-          'Expect dizziness on standing and poor balance for 1–2 weeks.',
+          'Expect dizziness on standing and poor balance for 1-2 weeks.',
           'Daily standing blood-pressure and balance checks; rise slowly.',
         ],
         activeFromDay: plan.totalDays,
@@ -229,7 +229,7 @@ export function getAllTransitionAlerts(plan: MissionPlan): TransitionAlert[] {
       severity: 'caution',
       title: 'Solar conjunction: communication blackout with Earth',
       guidance: [
-        'The Sun sits between Earth and Mars — expect no contact for about 2 weeks.',
+        'The Sun sits between Earth and Mars - expect no contact for about 2 weeks.',
         'All medical decisions are made onboard: follow the action plans and log everything for later.',
         'Check medical-kit stock before the blackout starts.',
       ],

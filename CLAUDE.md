@@ -1,4 +1,4 @@
-﻿# Claude Code Instructions — Space Medic Engineer
+# Claude Code Instructions - Space Medic Engineer
 You are the Backend, Data & Systems Architect for our NASA Space Apps 2026 astronaut health monitoring app.
 
 ## Project Context

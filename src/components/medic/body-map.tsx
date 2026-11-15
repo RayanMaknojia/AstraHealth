@@ -1,7 +1,7 @@
-import { useState } from "react";
 import { ArrowRight } from "lucide-react";
 import type { BodySystem, DisplayStatus, StatusLevel } from "@/types/astronaut";
 import {
+  STATUS_COLORS,
   boundsFor,
   getSpaceAdjustments,
   ESCALATION_MODE_LABELS,
@@ -9,8 +9,7 @@ import {
 } from "@/services/healthEvaluator";
 import { CHECKIN_INPUTS } from "@/data/nasaSpaceflightData";
 import { Button } from "@/components/ui/button";
-import { Panel, Status } from "./primitives";
-import { HumanScan } from "./human-scan";
+import { Panel, Status, NumberedInstructions } from "./primitives";
 import { OrganSystems } from "./organ-systems";
 import { statusOf } from "./status";
 import type { MissionModel } from "./use-mission";
@@ -45,12 +44,15 @@ export function BodyMap({
   model,
   toggle,
   onTrends,
+  selected,
+  onSelect,
 }: {
   model: MissionModel;
+  selected: BodySystem;
+  onSelect: (system: BodySystem) => void;
   toggle: (id: string) => void;
   onTrends: (system: BodySystem) => void;
 }) {
-  const [selected, setSelected] = useState<BodySystem>("cardiovascular");
   const indicators = model.profile.indicators.filter(
     (i) => i.system === selected,
   );
@@ -60,9 +62,8 @@ export function BodyMap({
   const status: DisplayStatus = states.length ? worstStatus(states) : "no_data";
   return (
     <div className="body-map-page">
-      <OrganSystems model={model} selected={selected} onSelect={setSelected} />
       <div className="body-layout revised-body-map">
-        <HumanScan model={model} selected={selected} onSelect={setSelected} />
+        <OrganSystems selected={selected} onSelect={onSelect} />
         <Panel
           title={labels[selected].name}
           accessory={<Status status={status} />}
@@ -79,13 +80,23 @@ export function BodyMap({
                 .map((s) => s.normalText)
                 .join(" / ");
               return (
-                <section key={i.id}>
+                <section
+                  key={i.id}
+                  style={
+                    {
+                      "--status": STATUS_COLORS[statusOf(i)],
+                    } as React.CSSProperties
+                  }
+                >
                   <div className="detail-kpi">
                     <h3>{i.name}</h3>
                     <Status status={statusOf(i)} />
                   </div>
-                  <div className="chart-value">
-                    {statusOf(i) === "no_data" ? "—" : i.value}
+                  <div
+                    className="chart-value"
+                    style={{ color: `var(--status)` }}
+                  >
+                    {statusOf(i) === "no_data" ? "-" : i.value}
                     <small> {i.unit}</small>
                   </div>
                   <p>
@@ -137,14 +148,14 @@ export function BodyMap({
                   </p>
                   {i.spaceShiftNote && <p>{i.spaceShiftNote}</p>}
                   <h4>Actionable countermeasures</h4>
-                  <ul>
+                  <ol>
                     {i.actionPlan.steps.map((s) => (
                       <li key={s}>{s}</li>
                     ))}
-                  </ul>
+                  </ol>
                   <details>
                     <summary>How to measure / Why needed</summary>
-                    <p>{i.howToMeasure}</p>
+                    <NumberedInstructions text={i.howToMeasure} />
                     <p>{i.whyNeeded}</p>
                   </details>
                 </section>

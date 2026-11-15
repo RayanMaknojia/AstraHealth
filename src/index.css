@@ -226,7 +226,7 @@ html {
   }
 }
 
-/* Space Medic — shared visual system. */
+/* Space Medic - shared visual system. */
 :root:has(.medic-app),
 .medic-app.dark {
   color-scheme: dark;
@@ -2840,7 +2840,7 @@ body:has(.medic-app) {
   grid-template-columns: 1fr;
 }
 
-/* Home redesign — readable onboard care. DM Sans is bundled locally under the OFL. */
+/* Home redesign - readable onboard care. DM Sans is bundled locally under the OFL. */
 @font-face {
   font-family: "Medic Sans";
   src: url("./components/medic/assets/dm-sans-latin-wght-normal.woff2")
@@ -4069,7 +4069,7 @@ body:has(.medic-app) {
   }
 }
 
-/* Final scope revision — one job per page, readable at arm's length. */
+/* Final scope revision - one job per page, readable at arm's length. */
 .medic-app {
   font-size: 15px;
 }
@@ -5358,4 +5358,710 @@ body:has(.medic-app) {
   .organ-spin {
     animation: none;
   }
+}
+
+/* Phase 4: compact mission header, status values, and separate scan/organ views. */
+:root {
+  --task-color: #c0a1fa;
+  --action-color: #8cb9f2;
+  --info-color: #83d3dc;
+}
+.health-status-text {
+  color: var(--status);
+  font-size: 13px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  border: 0;
+  background: none;
+  padding: 0;
+}
+.health-value,
+.reaction-result {
+  color: var(--status);
+}
+.workspace .vital-value {
+  color: var(--status);
+}
+.workspace .vital-label {
+  color: #afc2d0;
+}
+.workspace .vital-label svg {
+  color: #94b3d6;
+}
+.workspace .vital-value small {
+  color: inherit;
+}
+.workspace .vital-bottom {
+  justify-content: space-between;
+}
+.workspace .topbar {
+  display: flex;
+  gap: 16px;
+  padding: 12px 28px;
+  min-height: 84px;
+  height: auto;
+  align-items: center;
+  justify-content: flex-start;
+}
+.topbar .compact-journey {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  flex: 1 1 280px;
+  min-width: 160px;
+  max-width: 440px;
+}
+.topbar .compact-journey-label {
+  gap: 8px;
+  margin-bottom: 3px;
+}
+.topbar .compact-journey-label strong {
+  font-size: 17px;
+  white-space: nowrap;
+}
+.topbar .compact-journey-label > span {
+  font-size: 11px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.topbar .trip-route {
+  gap: 8px;
+  min-height: 20px;
+}
+.topbar .journey-endpoint {
+  font-size: 14px;
+  width: 18px;
+  height: 18px;
+  flex: 0 0 18px;
+}
+.topbar .trip-track {
+  height: 2px;
+}
+.topbar .journey-progress-fill {
+  background: #9bb8de;
+}
+.topbar .journey-spacecraft {
+  width: 16px;
+  height: 16px;
+  color: #c6dbf5;
+  background: #0b141d;
+  display: grid;
+  place-items: center;
+}
+.topbar .journey-spacecraft svg {
+  transform: rotate(90deg);
+}
+.mission-clocks {
+  display: grid;
+  gap: 3px;
+  color: #8fa6b9;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.mission-clocks b {
+  color: #d6e2ee;
+  font-weight: 500;
+}
+.workspace .earth-delay {
+  margin-left: 0;
+  font-size: 11px;
+  white-space: nowrap;
+}
+.workspace .demo-toggle {
+  font-size: 12px;
+  white-space: nowrap;
+  gap: 8px;
+}
+.workspace .topbar > button {
+  flex-shrink: 0;
+}
+.all-checkin-reminders {
+  background: #181525;
+  border-color: #4b3b68;
+}
+.all-checkin-reminders > div {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  flex: 1;
+}
+.all-checkin-reminders p {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+}
+.all-checkin-reminders p strong {
+  color: #dce1eb;
+  font-size: 14px;
+}
+.all-checkin-reminders p span {
+  font-size: 13px;
+}
+.reminder-countdown {
+  color: var(--task-color);
+}
+.reminder-overdue {
+  color: #ff7887;
+}
+.home-health-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(280px, 0.48fr);
+  align-items: start;
+  gap: 20px;
+}
+.home-health-content {
+  display: grid;
+  gap: 16px;
+  min-width: 0;
+}
+.workspace .revised-vitals {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+.workspace .revised-vitals .vital-tile {
+  padding: 15px;
+  min-height: 148px;
+}
+.workspace .revised-vitals .vital-value {
+  font-size: 29px;
+  margin: 10px 0;
+}
+.workspace .vital-label {
+  min-height: 26px;
+}
+.workspace .revised-home .briefing-compact {
+  padding: 16px;
+}
+.workspace .briefing-compact .panel-heading {
+  margin-bottom: 10px;
+}
+.workspace .briefing-compact .briefing-heading {
+  margin-bottom: 8px;
+  gap: 8px;
+}
+.workspace .briefing-compact .briefing-heading h3 {
+  font-size: 15px;
+}
+.workspace .briefing-compact .briefing-summary {
+  font-size: 14px;
+  line-height: 1.6;
+}
+.workspace .briefing-compact .briefing-alerts {
+  padding-top: 10px;
+  margin-top: 10px;
+}
+.workspace .briefing-compact .briefing-alerts li {
+  font-size: 13px;
+  line-height: 1.5;
+  margin-bottom: 5px;
+}
+.home-scan {
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 18px;
+  min-width: 0;
+}
+.home-scan-heading {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.home-scan-heading h2 {
+  font-size: 18px;
+  font-weight: 600;
+}
+.home-scan-heading span {
+  color: #92a8ba;
+  font-size: 12px;
+}
+.home-scan .home-scan-stage {
+  height: 490px;
+  width: 100%;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.home-scan .home-scan-stage img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  margin: 0;
+  filter: grayscale(1) brightness(0.7);
+  opacity: 0.65;
+}
+.home-scan .anatomy-hotspots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.home-scan .anatomy-hotspots g[aria-disabled="false"] {
+  cursor: pointer;
+}
+.home-scan .anatomy-hotspots g:focus-visible path {
+  stroke: #eff5ff;
+  stroke-width: 3px;
+}
+.home-scan-line {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #bde9f0;
+  box-shadow: 0 0 18px 5px #8ad7e855;
+  pointer-events: none;
+}
+.home-scan-footer {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+  justify-items: center;
+}
+.home-scan-footer p {
+  color: #c5d7e5;
+  font-size: 13px;
+}
+.home-scan-footer small {
+  font-size: 11px;
+  color: #8a9eaf;
+}
+.body-map-page .revised-body-map {
+  display: grid;
+  grid-template-columns: 220px minmax(0, 1fr);
+  align-items: start;
+  gap: 24px;
+}
+.organ-rows {
+  min-width: 0;
+  display: grid;
+  gap: 12px;
+}
+.organ-rows > button {
+  justify-self: stretch;
+}
+.organ-rows .organ-cards {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 12px;
+}
+.organ-rows .organ-card {
+  padding: 8px 10px 12px;
+  gap: 2px;
+  background: #0e1822;
+  border: 1px solid #273a4a;
+  box-shadow: none;
+}
+.organ-rows .organ-card[aria-pressed="true"] {
+  border-color: #8db9ef;
+  box-shadow: inset 3px 0 #8db9ef;
+  background: #132233;
+}
+.organ-rows .organ-card:hover {
+  background: #152331;
+}
+.organ-rows .organ-card:focus-visible {
+  outline-color: #b8d5fa;
+}
+.organ-rows .organ-card-name {
+  font-size: 12px;
+  font-weight: 500;
+  min-height: 0;
+  color: #bbccdb;
+}
+.organ-model {
+  width: 100%;
+  height: 145px;
+  position: relative;
+}
+.organ-model canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.model-error {
+  font-size: 12px;
+  color: #9bb4c9;
+  display: block;
+  padding: 24px 8px;
+}
+.system-countermeasure-tasks h3,
+.system-detail h4,
+.hazard-list h3 {
+  color: var(--action-color);
+}
+.system-detail ol {
+  padding-left: 24px;
+  list-style: decimal;
+}
+.system-detail li {
+  padding-left: 3px;
+}
+.workspace .checkin-fields {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.checkin-fields > [data-slot="field"] {
+  padding: 14px;
+  border: 1px solid #293a4b;
+  border-radius: 6px;
+  background: #101c27;
+}
+.checkin-bottom-columns {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+.checkin-bottom-columns > section {
+  margin: 0;
+  padding: 18px;
+  border: 1px solid #293c4f;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.checkin-bottom-columns textarea {
+  min-height: 180px;
+  flex: 1;
+}
+.checkin-bottom-columns .journal-section [data-slot="field"] {
+  flex: 1;
+}
+.workspace .reaction-target {
+  background: #14263e;
+  border-color: #6089bb;
+  color: #cce1fa;
+}
+.workspace .reaction-target.ready {
+  background: #3b2e64;
+  border-color: #c0a1fa;
+  color: #f0e9ff;
+}
+.workspace .reaction-status {
+  color: #b8cce0;
+}
+.reaction-result {
+  font-size: 15px;
+  line-height: 1.6;
+}
+.workspace .meds-taken {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 14px;
+}
+.medication-taken-card {
+  padding: 12px;
+  border: 1px solid #293a4b;
+  border-radius: 6px;
+}
+.medication-taken-card .check-label {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.medication-dose-fields {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 12px;
+}
+.medication-dose-fields label {
+  display: grid;
+  gap: 6px;
+  font-size: 12px;
+}
+.medication-dose-fields input {
+  min-width: 0;
+  width: 100%;
+}
+.cadence-section > p {
+  line-height: 1.6;
+}
+.workspace .cabin-metric-grid h3 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.workspace .cabin-metric-grid h3 svg {
+  color: #9fb8d0;
+}
+.workspace .cabin-metric-grid strong small {
+  color: inherit;
+}
+[data-slot="dialog-content"] {
+  width: calc(100vw - 32px);
+  max-width: 480px;
+  padding: 24px;
+  text-align: left;
+  max-height: calc(100dvh - 32px);
+  overflow-y: auto;
+  gap: 12px;
+}
+.critical-dialog {
+  width: calc(100vw - 32px);
+  max-width: 480px;
+  padding: 24px;
+  min-height: 0;
+}
+.critical-dialog [data-slot="dialog-title"],
+.critical-dialog [data-slot="dialog-description"],
+.critical-dialog h3,
+.critical-dialog p {
+  text-align: left;
+}
+.critical-dialog .override-icon {
+  width: 28px;
+  height: 28px;
+  margin: 0;
+}
+.critical-dialog .override-actions {
+  justify-content: flex-start;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.critical-dialog > ol {
+  padding-left: 22px;
+  margin: 0;
+  list-style: decimal;
+}
+.critical-dialog > ol li {
+  margin: 6px 0;
+}
+[data-slot="toast-content"] {
+  max-width: 480px;
+  padding: 20px;
+  text-align: left;
+}
+.workspace ol,
+[data-slot="dialog-content"] ol {
+  list-style: decimal;
+  padding-left: 24px;
+}
+.workspace ol li,
+[data-slot="dialog-content"] ol li {
+  margin-bottom: 8px;
+}
+.photo-check-dialog label {
+  display: grid;
+  gap: 6px;
+}
+.photo-check-dialog input,
+.photo-check-dialog textarea {
+  width: 100%;
+  padding: 10px;
+  background: #111e2a;
+  border: 1px solid #34495d;
+  border-radius: 5px;
+}
+.photo-check-preview {
+  width: 100%;
+  height: 160px;
+  object-fit: contain;
+}
+@media (max-width: 1200px) {
+  .workspace .topbar {
+    gap: 10px;
+    padding: 12px 20px;
+  }
+  .topbar .compact-journey-label > span {
+    display: none;
+  }
+  .home-health-columns {
+    grid-template-columns: minmax(0, 1fr) 275px;
+    gap: 14px;
+  }
+  .workspace .revised-vitals .vital-tile {
+    padding: 12px;
+  }
+  .workspace .revised-vitals .vital-value {
+    font-size: 24px;
+  }
+}
+@media (max-width: 1000px) {
+  .home-health-columns {
+    grid-template-columns: 1fr;
+  }
+  .home-scan .home-scan-stage {
+    height: 420px;
+  }
+  .home-scan {
+    max-width: 100%;
+  }
+  .workspace .topbar {
+    flex-wrap: wrap;
+  }
+  .topbar .compact-journey {
+    flex-basis: 200px;
+  }
+  .workspace .meds-taken {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .workspace .checkin-fields {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+@media (max-width: 650px) {
+  .workspace .topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+    gap: 10px;
+    padding: 12px 16px;
+  }
+  .topbar .compact-journey {
+    grid-column: 1 / -1;
+    width: 100%;
+    max-width: none;
+  }
+  .topbar .compact-journey-label > span {
+    display: inline;
+  }
+  .mission-clocks {
+    grid-column: 1 / -1;
+    grid-row: 3;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+  }
+  .workspace .topbar .earth-delay {
+    display: flex;
+    font-size: 10px;
+  }
+  .workspace .topbar .earth-delay svg {
+    display: none;
+  }
+  .workspace .topbar > .demo-toggle {
+    display: flex;
+    font-size: 10px;
+  }
+  .all-checkin-reminders {
+    display: grid;
+    gap: 14px;
+  }
+  .all-checkin-reminders > div {
+    gap: 12px;
+  }
+  .all-checkin-reminders p strong,
+  .all-checkin-reminders p span {
+    font-size: 12px;
+  }
+  .all-checkin-reminders > button {
+    justify-self: start;
+  }
+  .workspace .revised-vitals {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .body-map-page .revised-body-map {
+    grid-template-columns: 118px minmax(0, 1fr);
+    gap: 12px;
+  }
+  .organ-rows .organ-model {
+    height: 110px;
+  }
+  .organ-rows .organ-card {
+    padding: 6px;
+  }
+  .organ-rows .organ-card-name {
+    font-size: 11px;
+  }
+  .organ-rows > button {
+    font-size: 10px;
+    padding: 6px;
+    white-space: normal;
+  }
+  .body-map-page .med-panel {
+    padding: 12px;
+  }
+  .body-map-page .panel-heading {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .body-map-page .panel-heading h2 {
+    font-size: 17px;
+  }
+  .body-map-page .system-function,
+  .body-map-page .system-detail p,
+  .body-map-page .system-detail li {
+    font-size: 13px;
+    overflow-wrap: anywhere;
+  }
+  .body-map-page .reference-ranges {
+    grid-template-columns: 1fr;
+  }
+  .body-map-page .chart-value {
+    font-size: 24px;
+    overflow-wrap: anywhere;
+  }
+  .body-map-page button[data-slot="button"] {
+    white-space: normal;
+    height: auto;
+    min-height: 36px;
+  }
+  .workspace .checkin-fields,
+  .workspace .meds-taken {
+    grid-template-columns: 1fr;
+  }
+  .checkin-bottom-columns {
+    grid-template-columns: 1fr;
+  }
+  .workspace .scope-tabs {
+    flex-wrap: wrap;
+  }
+  .workspace .scope-tabs button {
+    flex: 1 1 130px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-scan-line {
+    display: none;
+  }
+}
+.topbar .compact-journey {
+  min-height: 0;
+  height: auto;
+  padding: 0 !important;
+  background: transparent !important;
+  justify-content: center;
+  cursor: default;
+}
+[data-slot="dialog-content"].critical-dialog {
+  min-width: 0;
+  min-height: 0;
+  width: calc(100vw - 32px);
+  max-width: 480px;
+  padding: 24px;
+  justify-content: flex-start;
+}
+.medic-app.dark {
+  --primary: #8bb9ee;
+  --ring: #8bb9ee;
+}
+.workspace .monthly-exam-steps {
+  display: grid;
+  list-style: none;
+  padding: 0;
+  margin: 16px 0;
+}
+.monthly-exam-steps li {
+  background: #101c27;
+  border: 1px solid #293a4b;
+  border-radius: 6px;
+  padding: 14px;
+  min-width: 0;
+}
+.monthly-exam-steps label {
+  display: grid;
+  gap: 10px;
+  font-size: 14px;
+}
+.monthly-exam-steps select {
+  width: 100%;
+  min-width: 0;
 }

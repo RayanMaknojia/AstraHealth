@@ -5,12 +5,12 @@
  * rewrites the MissionHealthBriefing in plain English: color-coded overall
  * status, early trajectory warnings (EmergingRisk[]), preventive actions and
  * the next onboard tool checks. Only the prior briefing, the normalized event
- * and a compact indicator summary are sent to the LLM — never raw media or
+ * and a compact indicator summary are sent to the LLM - never raw media or
  * full history.
  *
  * The deterministic layer always runs and owns every safety decision
- * (overall status, severities, escalation mode, alerts). Gemini — when a key
- * is configured and something meaningful changed — only rewrites the wording.
+ * (overall status, severities, escalation mode, alerts). Gemini - when a key
+ * is configured and something meaningful changed - only rewrites the wording.
  */
 
 import { HAZARD_RISK_MAP } from '@/data/nasaSpaceflightData'
@@ -110,7 +110,7 @@ function emergingRisks(ctx: BriefingContext): EmergingRisk[] {
     risks.push({
       indicatorId: 'bone_density',
       severity: ex.estBoneLossPct <= -5 ? 'critical' : 'caution',
-      explanation: `Estimated bone loss so far this mission is about ${Math.abs(ex.estBoneLossPct).toFixed(1)}% (${Math.round(ex.days0g)} days in 0 g${ex.daysPartialG ? `, ${Math.round(ex.daysPartialG)} in partial gravity` : ''}). This is an estimate — confirm with the weekly ultrasound.`,
+      explanation: `Estimated bone loss so far this mission is about ${Math.abs(ex.estBoneLossPct).toFixed(1)}% (${Math.round(ex.days0g)} days in 0 g${ex.daysPartialG ? `, ${Math.round(ex.daysPartialG)} in partial gravity` : ''}). This is an estimate - confirm with the weekly ultrasound.`,
       preventiveAction: PREVENTION.bone_density,
     })
   return risks.sort((a, b) => RANK[b.severity] - RANK[a.severity]).slice(0, 5)
@@ -147,7 +147,7 @@ function buildBriefing(ctx: BriefingContext, mem: BriefingMemory, lastUpdated: s
   const list = (xs: string[]) => (xs.length <= 1 ? xs.join('') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`)
   const crit = abnormal.filter((i) => i.status === 'critical')
   const headline = mem.shelter
-    ? 'ALERT: Solar storm — go to the storm shelter now'
+    ? 'ALERT: Solar storm - go to the storm shelter now'
     : crit.length
       ? `ALERT: ${list(names(crit))} need${crit.length === 1 ? 's' : ''} attention now`
       : overallStatus === 'critical' && logActive
@@ -155,8 +155,8 @@ function buildBriefing(ctx: BriefingContext, mem: BriefingMemory, lastUpdated: s
         : abnormal.length
           ? `WATCH: ${list(names(abnormal))} ${abnormal.length === 1 ? 'is' : 'are'} outside your normal range`
           : risks.length
-            ? `NORMAL for now — ${risks.length} reading${risks.length === 1 ? ' is' : 's are'} drifting`
-            : `All systems normal — Day ${s.missionDay}, ${s.phase.name}`
+            ? `NORMAL for now - ${risks.length} reading${risks.length === 1 ? ' is' : 's are'} drifting`
+            : `All systems normal - Day ${s.missionDay}, ${s.phase.name}`
 
   const paras: string[] = []
   paras.push(
@@ -166,9 +166,9 @@ function buildBriefing(ctx: BriefingContext, mem: BriefingMemory, lastUpdated: s
   for (const i of abnormal.slice(0, 4))
     paras.push(`${i.name} is ${valueText(i)} (${STATUS_LABELS[i.status]}). ${firstSentence(i.whyNeeded)} What to do: ${i.actionPlan.steps[0] ?? PREVENTION[i.id]}`)
   if (risks.length)
-    paras.push(`Early warning: ${list(risks.map((r) => ctx.indicators.find((i) => i.id === r.indicatorId)?.name.toLowerCase() ?? r.indicatorId))} ${risks.length === 1 ? 'is' : 'are'} heading the wrong way — see the trajectory warnings.`)
+    paras.push(`Early warning: ${list(risks.map((r) => ctx.indicators.find((i) => i.id === r.indicatorId)?.name.toLowerCase() ?? r.indicatorId))} ${risks.length === 1 ? 'is' : 'are'} heading the wrong way - see the trajectory warnings.`)
   if (notFresh.length && notFresh.length < ctx.indicators.length)
-    paras.push(`No recent reading for ${list(names(notFresh))} — shown in grey until you measure (missing data is never shown as normal).`)
+    paras.push(`No recent reading for ${list(names(notFresh))} - shown in grey until you measure (missing data is never shown as normal).`)
   if (logActive) paras.push(logActive.text)
   if (overallStatus !== 'nominal')
     paras.push(
@@ -307,7 +307,7 @@ export async function updateBriefing(
     const t = event.tick
     const alerts = [...t.cabinEvaluation.advisories]
     const ev = t.activeEvent
-    if (ev) alerts.unshift(ev.shelterAdvised ? `Radiation: GO TO SHELTER — ${ev.summary}` : `Radiation: ${ev.summary}`)
+    if (ev) alerts.unshift(ev.shelterAdvised ? `Radiation: GO TO SHELTER - ${ev.summary}` : `Radiation: ${ev.summary}`)
     mem.feedAlerts = alerts
     mem.shelter = Boolean(ev?.shelterAdvised)
     mem.feedSeverity = worstStatus([t.cabinEvaluation.status, ev ? 'caution' : 'nominal'])
