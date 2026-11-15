@@ -18,6 +18,14 @@ export interface Finding {
 }
 
 /** Collect console errors, uncaught errors and failed requests for a page. */
+/**
+ * Answer AI requests with "offline" so test runs never spend the team's Gemini quota
+ * (hundreds of logins per run hit the rate limit). The app's offline path is what we test.
+ */
+export async function offlineAi(page: Page) {
+  await page.route("**/api/ai/**", (route) => route.fulfill({ json: { ok: false, error: "offline_mode" } }));
+}
+
 export function watchHealth(page: Page) {
   const issues: Finding[] = [];
   page.on("console", (m) => {

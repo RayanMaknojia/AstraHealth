@@ -429,9 +429,16 @@ export function useMission(initialProfile: AstronautProfile) {
     const id = current.current.profile.id;
     void latestBriefing(id).then((b) => {
       if (!live || current.current.profile.id !== id) return;
-      if (b && b.missionDay === Math.floor(current.current.profile.missionDay))
-        commit({ ...current.current, aiBriefing: b });
-      else void refreshBriefing("Start of shift");
+      const today =
+        b && b.missionDay === Math.floor(current.current.profile.missionDay);
+      if (b && today) commit({ ...current.current, aiBriefing: b });
+      // Re-write when there is none for today, or today's was written by the offline
+      // rules more than 10 minutes ago (the AI may be reachable now, e.g. a key was added).
+      const staleOffline =
+        today &&
+        b.engine !== "gemini" &&
+        Date.now() - new Date(b.createdAt).getTime() > 10 * 60_000;
+      if (!today || staleOffline) void refreshBriefing("Start of shift");
     });
     return () => {
       live = false;

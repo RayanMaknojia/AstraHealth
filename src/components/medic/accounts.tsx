@@ -49,22 +49,22 @@ export function Login({ onLogin }: { onLogin: (s: AuthSession) => void }) {
   };
   return (
     <main className="login-screen">
-      <div className="login-orbit" aria-hidden="true">
-        <span className="login-orbit-core" />
-        <span className="login-orbit-ring orbit-ring-one">
-          <i />
-        </span>
-        <span className="login-orbit-ring orbit-ring-two">
-          <i />
-        </span>
-        <span className="login-orbit-ring orbit-ring-three">
-          <i />
-        </span>
-      </div>
       <div className="login-copy">
+        <div className="login-orbit" aria-hidden="true">
+          <span className="login-orbit-core" />
+          <span className="login-orbit-ring orbit-ring-one">
+            <i />
+          </span>
+          <span className="login-orbit-ring orbit-ring-two">
+            <i />
+          </span>
+          <span className="login-orbit-ring orbit-ring-three">
+            <i />
+          </span>
+        </div>
         <Brand />
         <h1>
-          A little closer
+          {"A little closer "}
           <br />
           to home.
         </h1>

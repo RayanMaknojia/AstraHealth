@@ -4,7 +4,11 @@
  * The test only fails on JavaScript exceptions; layout findings are reported, not asserted.
  */
 import { expect, test } from "@playwright/test";
-import { audit, dismissAlerts, goTo, login, watchHealth } from "./helpers";
+import { audit, dismissAlerts, goTo, login, offlineAi, watchHealth } from "./helpers";
+
+test.beforeEach(async ({ page }) => {
+  await offlineAi(page);
+});
 
 const AXE_PROJECTS = ["phone-390", "laptop-1440"];
 
