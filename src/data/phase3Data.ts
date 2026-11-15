@@ -27,14 +27,14 @@ export const CHECKIN_SCHEDULE: Record<CheckinSlot, CheckinScheduleItem> = {
     title: 'Morning check-in',
     required: true,
     estMinutes: 2,
-    fields: ['Sleep hours', 'Sleep quality (1–5)', 'Mood (1–5)', 'Resting heart rate', 'Blood pressure', 'Temperature', 'SpO2', 'Symptoms checklist'],
+    fields: ['Sleep hours', 'Sleep quality (1-5)', 'Mood (1-5)', 'Resting heart rate', 'Blood pressure', 'Temperature', 'SpO2', 'Symptoms checklist'],
   },
   evening: {
     slot: 'evening',
     title: 'Evening check-in',
     required: false,
     estMinutes: 1,
-    fields: ['Fatigue (1–5)', 'Nausea / appetite (1–5)', 'Exercise minutes and type', 'Headache (yes / no)', 'Notes'],
+    fields: ['Fatigue (1-5)', 'Nausea / appetite (1-5)', 'Exercise minutes and type', 'Headache (yes / no)', 'Notes'],
   },
   weekly: {
     slot: 'weekly',
@@ -96,7 +96,7 @@ export const EXERCISE_RULES = {
 } as const
 
 export const BODY_MASS_RULES = {
-  /** % change from preflight: Normal within 3%, Watch 3–5% loss, Alert > 5% loss. */
+  /** % change from preflight: Normal within 3%, Watch 3-5% loss, Alert > 5% loss. */
   watchLossPct: 3,
   alertLossPct: 5,
   /** Large gain is also worth a look (fluid, diet). */
@@ -104,7 +104,7 @@ export const BODY_MASS_RULES = {
 } as const
 
 export const REACTION_RULES = {
-  /** Slower than baseline: Normal ≤ 10%, Watch 10–20%, Alert > 20%. */
+  /** Slower than baseline: Normal ≤ 10%, Watch 10-20%, Alert > 20%. */
   watchSlowerPct: 10,
   alertSlowerPct: 20,
   /** Tests used to set the baseline (Earth mode / first tests). */
@@ -113,7 +113,7 @@ export const REACTION_RULES = {
 
 /**
  * No-exercise bone loss is estimated at 1.5× the countermeasure rate in the reference doc formula
- * (bed-rest / early-ISS data). Estimate — label it as such in the UI.
+ * (bed-rest / early-ISS data). Estimate - label it as such in the UI.
  */
 export const BONE_NO_EXERCISE_MULTIPLIER = 1.5
 
@@ -174,8 +174,8 @@ export const SKIN_GUIDANCE: Record<SkinLabel, { status: StatusLevel; firstAid: s
   },
   unsure: {
     status: 'caution',
-    firstAid: ['Keep the area clean and covered.', 'Take another photo in good light, 15–20 cm away, without flash glare.'],
-    escalateWhen: ['Sent to the flight surgeon for review — escalate sooner if it gets worse.'],
+    firstAid: ['Keep the area clean and covered.', 'Take another photo in good light, 15-20 cm away, without flash glare.'],
+    escalateWhen: ['Sent to the flight surgeon for review - escalate sooner if it gets worse.'],
   },
 }
 
@@ -183,7 +183,7 @@ export const ULTRASOUND_GUIDES: Record<UltrasoundScanType, { label: string; body
   eye: {
     label: 'Eye (optic nerve sheath)',
     bodyLocation: 'Eye',
-    steps: ['Close the eye; put a thick layer of gel on the closed eyelid.', 'Hold the probe lightly across the lid — no pressure on the eye.', 'Tilt slowly until the dark optic nerve appears behind the eyeball.', 'Hold still and capture.'],
+    steps: ['Close the eye; put a thick layer of gel on the closed eyelid.', 'Hold the probe lightly across the lid - no pressure on the eye.', 'Tilt slowly until the dark optic nerve appears behind the eyeball.', 'Hold still and capture.'],
     goodImage: 'Round dark eyeball with a dark stripe (optic nerve) straight behind it.',
   },
   neck_vein: {
@@ -195,7 +195,7 @@ export const ULTRASOUND_GUIDES: Record<UltrasoundScanType, { label: string; body
   heart: {
     label: 'Heart (parasternal view)',
     bodyLocation: 'Chest',
-    steps: ['Lie or strap in on your back.', 'Place the probe left of the breastbone, 3rd–4th rib space, marker toward the right shoulder.', 'Angle until all four chambers or the long axis appear.', 'Capture a still image at the end of breathing out.'],
+    steps: ['Lie or strap in on your back.', 'Place the probe left of the breastbone, 3rd-4th rib space, marker toward the right shoulder.', 'Angle until all four chambers or the long axis appear.', 'Capture a still image at the end of breathing out.'],
     goodImage: 'Moving heart walls and valves clearly visible, chambers dark.',
   },
   bladder: {
@@ -337,7 +337,7 @@ export const PROCEDURES: GuidedProcedure[] = [
 export const MEDICATIONS: Medication[] = [
   { id: 'med-acet', name: 'Acetaminophen 500 mg', use: 'Pain, fever', qtyLeft: 40, unit: 'tablets', expiryDate: isoDaysAgo(-400), spaceNote: 'Some medicines may be absorbed differently in space and degrade faster with radiation.' },
   { id: 'med-ibu', name: 'Ibuprofen 200 mg', use: 'Pain, inflammation', qtyLeft: 8, unit: 'tablets', expiryDate: isoDaysAgo(-220) },
-  { id: 'med-prom', name: 'Promethazine 25 mg', use: 'Motion sickness, nausea', qtyLeft: 12, unit: 'tablets', expiryDate: isoDaysAgo(-20), spaceNote: 'Can cause drowsiness — no piloting or EVA after taking.' },
+  { id: 'med-prom', name: 'Promethazine 25 mg', use: 'Motion sickness, nausea', qtyLeft: 12, unit: 'tablets', expiryDate: isoDaysAgo(-20), spaceNote: 'Can cause drowsiness - no piloting or EVA after taking.' },
   { id: 'med-zolp', name: 'Zolpidem 5 mg', use: 'Sleep aid (as advised by flight surgeon)', qtyLeft: 15, unit: 'tablets', expiryDate: isoDaysAgo(-180) },
   { id: 'med-abx', name: 'Antibiotic ointment', use: 'Cuts, scrapes', qtyLeft: 2, unit: 'tubes', expiryDate: isoDaysAgo(3) },
   { id: 'med-saline', name: 'Sterile saline', use: 'Wound and eye rinse', qtyLeft: 10, unit: 'pouches', expiryDate: isoDaysAgo(-600) },

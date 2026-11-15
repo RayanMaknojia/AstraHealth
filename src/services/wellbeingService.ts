@@ -4,7 +4,7 @@
  *  - Private journal: stored on THIS DEVICE ONLY. Never synced, never shown on
  *    Streaks, never sent to an AI. There is deliberately no export function.
  *  - 60-second reaction test scoring + status vs personal baseline
- *    (Normal ≤ 10% slower, Watch 10–20%, Alert > 20% — health_rules.md).
+ *    (Normal ≤ 10% slower, Watch 10-20%, Alert > 20% - health_rules.md).
  *  - Sleep / mood averages, mood calendar, circadian note (Mars sol = 24 h 39 min).
  *  - "Request private talk with ground" (queued with no content).
  */
@@ -68,10 +68,10 @@ export function evaluateReaction(ms: number, baselineMs: number | null): Reactio
     return { ms, baselineMs, slowerPct: null, status: 'no_data', message: `Recorded ${ms} ms. Do ${RR.baselineTests} tests to set your baseline.` }
   const slowerPct = round(((ms - baselineMs) / baselineMs) * 100)
   if (slowerPct > RR.alertSlowerPct)
-    return { ms, baselineMs, slowerPct, status: 'critical', message: `${ms} ms — ${slowerPct}% slower than your ${baselineMs} ms baseline. Avoid EVA, robotics and piloting; check sleep, CO2 and medicines.` }
+    return { ms, baselineMs, slowerPct, status: 'critical', message: `${ms} ms - ${slowerPct}% slower than your ${baselineMs} ms baseline. Avoid EVA, robotics and piloting; check sleep, CO2 and medicines.` }
   if (slowerPct > RR.watchSlowerPct)
-    return { ms, baselineMs, slowerPct, status: 'caution', message: `${ms} ms — ${slowerPct}% slower than your baseline. Often from short sleep or fatigue; re-test after rest.` }
-  return { ms, baselineMs, slowerPct, status: 'nominal', message: `${ms} ms — ${slowerPct > 0 ? `${slowerPct}% slower than` : 'as fast as or faster than'} your ${baselineMs} ms baseline.` }
+    return { ms, baselineMs, slowerPct, status: 'caution', message: `${ms} ms - ${slowerPct}% slower than your baseline. Often from short sleep or fatigue; re-test after rest.` }
+  return { ms, baselineMs, slowerPct, status: 'nominal', message: `${ms} ms - ${slowerPct > 0 ? `${slowerPct}% slower than` : 'as fast as or faster than'} your ${baselineMs} ms baseline.` }
 }
 
 export function recordReaction(astronautId: string, day: number, ms: number): ReactionResult {
@@ -108,9 +108,9 @@ export function getSleepMoodSummary(profile: AstronautProfile, missionState: Mis
   const noDay = dayLength === null || dayLength > 48 || dayLength < 6
   const circadian: SleepMoodSummary['circadian'] = sol || noDay ? 'shifted' : 'on_schedule'
   const circadianNote = sol
-    ? `A local day here is ${dayLength} h — your sleep window shifts about ${Math.round((dayLength! - 24) * 60)} min later each day. Use scheduled lighting.`
+    ? `A local day here is ${dayLength} h - your sleep window shifts about ${Math.round((dayLength! - 24) * 60)} min later each day. Use scheduled lighting.`
     : noDay
-      ? 'No natural 24 h day here — keep a fixed sleep window with scheduled cabin lighting.'
+      ? 'No natural 24 h day here - keep a fixed sleep window with scheduled cabin lighting.'
       : 'On a 24 h schedule. Keep the same sleep window every day.'
 
   const sleep7 = avg(last(sleepByDay, 7))

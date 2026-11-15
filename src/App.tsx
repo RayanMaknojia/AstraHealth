@@ -1,46 +1,50 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom"
-import { ThemeProvider } from "@/components/theme-provider"
-import { SidebarConfigProvider } from "@/contexts/sidebar-context"
-import { Toaster } from "@/components/ui/toast"
-import { RootFallback, RootLayout } from "@/components/router/root-layout"
-import { routes } from "@/config/routes"
-import { useEffect } from "react"
-import { initGTM } from "@/utils/analytics"
+import { useState } from "react";
+import {
+  getCurrentSession,
+  getProfileForSession,
+  logout,
+  authenticate,
+  DEMO_LOGINS,
+} from "@/services/accountService";
+import type { AuthSession } from "@/types/astronaut";
+import { Toaster } from "@/components/ui/toast";
+import { Login, Admin } from "@/components/medic/accounts";
+import { Workspace } from "@/components/medic/workspace";
 
-// Get basename from environment (for deployment) or use empty string for development
-const basename = import.meta.env.VITE_BASENAME || ""
-
-const router = createBrowserRouter(
-  [
-    {
-      element: <RootLayout />,
-      HydrateFallback: RootFallback,
-      children: routes,
-    },
-  ],
-  { basename }
-)
-
-function App() {
-  // Initialize GTM on app load
-  useEffect(() => {
-    initGTM()
-  }, [])
-
+export default function App() {
+  const [session, setSession] = useState<AuthSession | null>(getCurrentSession);
+  const leave = () => {
+    logout();
+    setSession(null);
+  };
+  const profile = session ? getProfileForSession(session) : null;
   return (
-    <div
-      className="font-sans antialiased"
-      style={{ fontFamily: "var(--font-inter)" }}
-    >
-      <ThemeProvider defaultTheme="system" storageKey="vite-ui-theme">
-        <SidebarConfigProvider>
-          <Toaster>
-            <RouterProvider router={router} />
-          </Toaster>
-        </SidebarConfigProvider>
-      </ThemeProvider>
+    <div className="medic-app dark">
+      <Toaster>
+        {!session ? (
+          <Login onLogin={setSession} />
+        ) : session.account.userRole === "admin" ? (
+          <Admin onLogout={leave} />
+        ) : profile ? (
+          <Workspace
+            key={`${profile.id}:${profile.mission.launchDate}`}
+            initialProfile={profile}
+            onLogout={leave}
+            onSwitchCrew={(login) => {
+              const demo = DEMO_LOGINS.find((d) => d.login === login);
+              if (demo) {
+                const next = authenticate(demo.login, demo.pin);
+                if (next) setSession(next);
+              }
+            }}
+          />
+        ) : (
+          <div className="login-screen">
+            <p>Profile unavailable.</p>
+            <button onClick={leave}>Return to login</button>
+          </div>
+        )}
+      </Toaster>
     </div>
-  )
+  );
 }
-
-export default App

@@ -3,7 +3,7 @@
  *
  * Simulates a wrist/chest wearable (Bio-Monitor-style smart shirt + pulse
  * oximeter + actigraphy band) pushing heart rate, core/skin temperature,
- * SpO2, steps, HRV and — once per wake-up — last night's sleep, every 15
+ * SpO2, steps, HRV and - once per wake-up - last night's sleep, every 15
  * mission minutes (default: every 15 s real time). Each tick yields
  * IndicatorUpdate[] ready for healthEvaluator.applyIndicatorUpdates().
  *

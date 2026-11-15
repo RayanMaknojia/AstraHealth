@@ -73,7 +73,7 @@ Mission control (admin) creates astronaut accounts; astronauts log in with name 
 
 ## Things to know
 - **Health evaluator checkbox was corrected.** Trend detection and the doc's space adjustments (temperature +1 °C after day 60, lower blood pressure in flight, sleep target 8.5 h with alert under 6 h) aren't built yet. That part is unticked and listed as a Phase 2 task.
-- **Mood stays on a 1–10 scale.** The doc says 1–5; switching would affect the evaluator and UI sliders.
+- **Mood stays on a 1-10 scale.** The doc says 1-5; switching would affect the evaluator and UI sliders.
 - **Branch history has a merge commit.** The branch was rebased onto the new `main`, a force-push was blocked, so the pushed version was merged back in and pushed normally. Nothing was lost.
 
 ## Next (Phase 2, Claude Code)
