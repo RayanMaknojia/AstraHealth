@@ -6540,3 +6540,95 @@ body:has(.medic-app) {
 .chart-key span:nth-child(6)::before {
   background: #c6d9ea;
 }
+/* Build 6: restore the Build 4 Home scan presentation and emphasize measurements. */
+.home-health-columns .home-scan {
+  display: block;
+  padding: 18px;
+}
+.home-scan .home-scan-stage {
+  height: 490px;
+  width: 100%;
+  min-height: 0;
+  position: relative;
+  overflow: hidden;
+}
+.home-scan .home-scan-stage img {
+  height: 100%;
+  width: 100%;
+  object-fit: contain;
+  margin: 0;
+  filter: grayscale(1) brightness(0.7);
+  opacity: 0.65;
+}
+.home-scan .anatomy-hotspots {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+}
+.home-scan .home-scan-footer {
+  display: grid;
+  gap: 10px;
+  text-align: center;
+  justify-items: center;
+}
+.home-scan .home-scan-footer p {
+  color: #c5d7e5;
+  font-size: 13px;
+}
+.home-scan .home-scan-footer small {
+  font-size: 11px;
+  color: #8a9eaf;
+}
+.home-scan-line {
+  position: absolute;
+  left: 10%;
+  right: 10%;
+  height: 2px;
+  background: #bde9f0;
+  box-shadow: 0 0 18px 5px #8ad7e855;
+  pointer-events: none;
+}
+.workspace .vital-value {
+  font-weight: 750;
+  font-variation-settings: "wght" 750;
+}
+.workspace .vital-value small {
+  font-weight: 500;
+}
+.vital-critical-symbol {
+  font-size: 0.52em;
+  vertical-align: middle;
+}
+.briefing-headline-status {
+  font: inherit;
+}
+.required-mark {
+  color: #bccfe5;
+  font-weight: 700;
+}
+.required-fields-note {
+  color: #a7bbcf;
+  font-size: 13px;
+  margin-bottom: 18px;
+}
+.exam-guide {
+  scroll-margin-top: 24px;
+}
+.exam-guide > [data-slot="button"] {
+  margin-top: 14px;
+}
+.exam-guide:focus-within {
+  outline: 1px solid #6383a5;
+  outline-offset: 6px;
+}
+@media (max-width: 1000px) {
+  .home-scan .home-scan-stage {
+    height: 420px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .home-scan-line {
+    display: none;
+  }
+}

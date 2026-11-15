@@ -11,9 +11,11 @@ import { Button } from "@/components/ui/button";
 export function ReactionTest({
   onResult,
   astronautId,
+  required = false,
 }: {
   onResult: (ms: number | null) => void;
   astronautId: string;
+  required?: boolean;
 }) {
   const [running, setRunning] = useState(false),
     [ready, setReady] = useState(false),
@@ -114,7 +116,15 @@ export function ReactionTest({
   };
   return (
     <section className="reaction-test">
-      <h3>30-second reaction test</h3>
+      <h3>
+        30-second reaction test
+        {required && (
+          <span className="required-mark" aria-hidden="true">
+            {" "}
+            *
+          </span>
+        )}
+      </h3>
       <p>
         Wait for “Tap now”, then click or press Space on the target. Early taps
         and long lapses are excluded by the health service.

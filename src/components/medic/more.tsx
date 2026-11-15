@@ -29,6 +29,8 @@ import {
 } from "@/services/guidanceService";
 import type { TriageNode, TriageSymptom } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
+import { ExamGuidance } from "./exam-guidance-view";
+import type { ExamGuideId } from "./exam-guidance";
 import { JournalHistory } from "./journal-history";
 import { statusStyle } from "./status";
 import { statusOf } from "./status";
@@ -38,10 +40,14 @@ export function More({
   model,
   onLogout,
   initialTab = "Cabin readings",
+  focusGuide,
+  onCheckin,
 }: {
   model: MissionModel;
   onLogout: () => void;
   initialTab?: string;
+  focusGuide?: ExamGuideId | null;
+  onCheckin: () => void;
 }) {
   const [tab, setTab] = useState(initialTab);
   const [symptom, setSymptom] = useState<TriageSymptom>("headache");
@@ -318,6 +324,13 @@ export function More({
               </section>
             )}
           </Panel>
+          <Panel title="Physical examination guidance">
+            <p>
+              Follow the approved onboard protocol. Your check-in draft stays
+              available while you read.
+            </p>
+            <ExamGuidance focusGuide={focusGuide} onCheckin={onCheckin} />
+          </Panel>
           <Panel title="Guided procedures">
             {listProcedures().map((p) => (
               <details key={p.id} className="procedure">
@@ -332,6 +345,10 @@ export function More({
                     <li key={s}>{s}</li>
                   ))}
                 </ul>
+                <Button variant="outline" onClick={onCheckin}>
+                  <ArrowLeft data-icon="inline-start" />
+                  Back to Check-in
+                </Button>
               </details>
             ))}
           </Panel>

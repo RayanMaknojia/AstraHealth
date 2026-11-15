@@ -11,7 +11,7 @@ npm run dev
 
 Open the localhost address printed by Vite. Demo logins: `iss_crew` / `2222`, `moon_crew` / `3333`, `mars_crew` / `1111`, and admin `admin` / `0000`.
 
-The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase5.chatgpt.md`.
+The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase6.chatgpt.md`.
 
 ## Anatomical 3D assets
 

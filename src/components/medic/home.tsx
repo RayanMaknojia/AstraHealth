@@ -203,11 +203,16 @@ export function VitalTile({
         <Trend size={13} />
       </div>
       <div className="vital-value" style={{ color: `var(--status)` }}>
+        {status === "critical" && (
+          <span className="vital-critical-symbol" aria-label="Alert">
+            ✕{" "}
+          </span>
+        )}
         {status === "no_data" ? "-" : indicator.value}
         <small>{indicator.unit}</small>
       </div>
       <div className="vital-bottom">
-        <Status status={status} />
+        {status !== "critical" && <Status status={status} />}
         {indicator.simulated && <span>Simulated</span>}
       </div>
       <small className="last-reading">
@@ -228,7 +233,17 @@ function shortSummary(text: string) {
   }
   return out || text;
 }
-function BriefingText({ text }: { text: string }) {
+function BriefingText({
+  text,
+  omitCriticalLabel = false,
+}: {
+  text: string;
+  omitCriticalLabel?: boolean;
+}) {
+  if (omitCriticalLabel)
+    text = text
+      .replace(/Overall status: Alert\.\s*/g, "")
+      .replace(/\s*\(Alert\)/g, "");
   const words: Record<
     string,
     { label: string; status: "nominal" | "caution" | "critical" }
@@ -281,11 +296,33 @@ export function Briefing({
       accessory={<span className="meta">Updated {b.lastUpdated}</span>}
     >
       <div className="briefing-heading">
-        <Status status={allMissing ? "no_data" : b.overallStatus} />
-        <h3>{b.headline}</h3>
+        <h3 style={allMissing ? { color: STATUS_COLORS.no_data } : undefined}>
+          {/^(ALERT|WATCH|NORMAL|OPTIMAL|BORDERLINE):/i.test(b.headline) ? (
+            <>
+              <span
+                className="briefing-headline-status"
+                style={{
+                  color:
+                    STATUS_COLORS[allMissing ? "no_data" : b.overallStatus],
+                }}
+              >
+                {b.overallStatus === "critical"
+                  ? "✕ "
+                  : b.overallStatus === "caution"
+                    ? "! "
+                    : "✓ "}
+                {b.headline.match(/^[^:]+:/)?.[0]}
+              </span>
+              {b.headline.replace(/^[^:]+:/, "")}
+            </>
+          ) : (
+            b.headline
+          )}
+        </h3>
       </div>
       <p className="briefing-summary">
         <BriefingText
+          omitCriticalLabel={b.overallStatus === "critical"}
           text={
             full ? b.plainEnglishSummary : shortSummary(b.plainEnglishSummary)
           }
