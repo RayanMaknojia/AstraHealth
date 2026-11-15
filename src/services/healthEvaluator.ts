@@ -549,14 +549,15 @@ export function evaluateRadiation(dailyMSv: number | undefined, missionMSv: numb
   const daily = dailyMSv ?? 0
   const notes = `career ${Math.round(career)} / ${r.careerLimitMSv} mSv (${pct}%)` + (dailyMSv !== undefined ? `, today ${daily} mSv` : '')
 
-  if (daily >= r.dailyCriticalMSv || fraction >= r.criticalCareerFraction)
+  // health_rules.md: Watch 50-80% of the career limit, Alert above 80%.
+  if (daily >= r.dailyCriticalMSv || fraction > r.criticalCareerFraction)
     return {
       status: 'critical',
       message:
         daily >= r.dailyCriticalMSv
           ? `Radiation spike: ${daily} mSv today - possible solar particle event.`
           : `Career radiation dose at ${pct}% of NASA’s 600 mSv limit.`,
-      thresholdNote: `≥ ${r.dailyCriticalMSv} mSv/day or ≥ ${r.criticalCareerFraction * 100}% career limit - ${notes}`,
+      thresholdNote: `≥ ${r.dailyCriticalMSv} mSv/day or > ${r.criticalCareerFraction * 100}% career limit - ${notes}`,
       steps: [
         'Move to the storm shelter / most shielded module now.',
         'Cancel or postpone EVAs and rover traverses.',
