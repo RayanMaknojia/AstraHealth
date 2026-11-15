@@ -1,8 +1,8 @@
 /**
  * Phase 3 reference data: check-in schedule, gamification, exercise / body mass /
  * reaction rules, Photo Check guidance, triage trees, procedures and the demo
- * medical kit. Rules match health_rules.md ("Coming in Phase 3" table) and
- * astronaut_health_monitor_pages.md. Demo crew data is fictional and SIMULATED.
+ * medical kit. Rules match docs/health_rules.md ("Coming in Phase 3" table) and
+ * docs/astronaut_health_monitor_pages.md. Demo crew data is fictional and SIMULATED.
  */
 
 import { isoDaysAgo } from '@/data/nasaSpaceflightData'
@@ -83,7 +83,7 @@ export const BADGE_DEFS: Record<BadgeId, { label: string; description: string; t
 
 export const TEAM_GOAL_PCT = 90
 
-// ── Exercise, body mass, reaction (health_rules.md Phase 3 table) ──────────
+// ── Exercise, body mass, reaction (docs/health_rules.md Phase 3 table) ──────────
 
 export const EXERCISE_RULES = {
   /** ISS crews: ~2 h per day. */

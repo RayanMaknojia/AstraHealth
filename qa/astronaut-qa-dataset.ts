@@ -1,9 +1,9 @@
 /**
  * QA dataset: one realistic (fictional) astronaut whose mission log walks
- * every limit in health_rules.md - just inside, exactly on, and just outside
+ * every limit in docs/health_rules.md - just inside, exactly on, and just outside
  * each boundary - in the mission phase where that rule applies.
  *
- * EXPECTED values come from health_rules.md (the team's single source of
+ * EXPECTED values come from docs/health_rules.md (the team's single source of
  * truth), NOT from the code, so a mismatch means doc and code disagree.
  *
  * Astronaut: Cdr. Lena Ortiz (fictional), Mars conjunction-class mission.

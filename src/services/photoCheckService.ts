@@ -232,7 +232,7 @@ const ORDER: Record<StatusLevel, number> = { nominal: 0, caution: 1, critical: 2
 const raise = (a: StatusLevel, b: StatusLevel): StatusLevel => (ORDER[b] > ORDER[a] ? b : a)
 
 /**
- * Context-aware severity (deterministic; health_rules.md "Photo check severity").
+ * Context-aware severity (deterministic; docs/health_rules.md "Photo check severity").
  * The result is never greener than the label's default or than Gemini's view.
  */
 export function judgeSkinSeverity(

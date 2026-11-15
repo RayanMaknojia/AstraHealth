@@ -104,7 +104,7 @@ export const NO_ADJUSTMENTS: SpaceAdjustments = {
  *  - in-flight BP 8-10 mmHg lower (scaled by (1 − g) in partial gravity - estimate)
  *  - sleep target 8.5 h, Alert after 3 nights < 6 h
  *  - tighter SpO2 Watch in ≤ 10.3 psia habitats
- * Values: health_rules.md.
+ * Values: docs/health_rules.md.
  */
 export function getSpaceAdjustments(state?: MissionState): SpaceAdjustments {
   if (!state) return NO_ADJUSTMENTS
@@ -438,7 +438,7 @@ function streak(values: number[] | undefined, pred: (v: number) => boolean): num
 }
 
 /**
- * Sleep (health_rules.md): Normal ≥ 7 h (target 8.5). Watch 6-6.9 h or a single night < 6 h.
+ * Sleep (docs/health_rules.md): Normal ≥ 7 h (target 8.5). Watch 6-6.9 h or a single night < 6 h.
  * Alert: < 6 h for 3 nights in a row, or any night < 4 h. Pass recent nights for the pattern rule.
  */
 export function evaluateSleep(hours: number, adj: SpaceAdjustments = NO_ADJUSTMENTS, recentNights?: number[]): Verdict {
@@ -498,7 +498,7 @@ export function evaluateSleep(hours: number, adj: SpaceAdjustments = NO_ADJUSTME
 }
 
 /**
- * Mood, 1-5 (health_rules.md): Normal 4-5. Watch 3, or a single day at 1-2.
+ * Mood, 1-5 (docs/health_rules.md): Normal 4-5. Watch 3, or a single day at 1-2.
  * Alert: 1-2 for 3 days in a row. (Self-harm mentions are an immediate Alert in ingestionEngine.)
  */
 export function evaluateMood(score: number, recentDays?: number[]): Verdict {
@@ -549,7 +549,7 @@ export function evaluateRadiation(dailyMSv: number | undefined, missionMSv: numb
   const daily = dailyMSv ?? 0
   const notes = `career ${Math.round(career)} / ${r.careerLimitMSv} mSv (${pct}%)` + (dailyMSv !== undefined ? `, today ${daily} mSv` : '')
 
-  // health_rules.md: Watch 50-80% of the career limit, Alert above 80%.
+  // docs/health_rules.md: Watch 50-80% of the career limit, Alert above 80%.
   if (daily >= r.dailyCriticalMSv || fraction > r.criticalCareerFraction)
     return {
       status: 'critical',

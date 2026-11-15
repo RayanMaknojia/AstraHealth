@@ -4,7 +4,7 @@
  *  - Private journal: stored on THIS DEVICE ONLY. Never synced, never shown on
  *    Streaks, never sent to an AI. There is deliberately no export function.
  *  - 60-second reaction test scoring + status vs personal baseline
- *    (Normal ≤ 10% slower, Watch 10-20%, Alert > 20% - health_rules.md).
+ *    (Normal ≤ 10% slower, Watch 10-20%, Alert > 20% - docs/health_rules.md).
  *  - Sleep / mood averages, mood calendar, circadian note (Mars sol = 24 h 39 min).
  *  - "Request private talk with ground" (queued with no content).
  */

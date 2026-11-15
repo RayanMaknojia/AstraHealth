@@ -198,7 +198,7 @@ export function Workspace({
     go("Trends");
   };
   useEffect(() => {
-    document.title = `Space Medic · ${page}`;
+    document.title = `AstraHealth · ${page}`;
   }, [page]);
   useEffect(() => {
     const timer = window.setInterval(refresh, 30000);
@@ -391,9 +391,10 @@ export function Workspace({
               Onboard support · Offline first
             </span>
             <span>
-              Simulated mission data · Decision support, not diagnosis
+              Simulated mission data · Decision support, not diagnosis · Built
+              with SI assistance; SI-generated imagery is marked
             </span>
-            <span>SPACE MEDIC / 2026</span>
+            <span>ASTRAHEALTH / 2026</span>
           </footer>
         </main>
       </div>

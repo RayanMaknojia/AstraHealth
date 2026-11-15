@@ -87,7 +87,12 @@ test("audit every screen", async ({ page }, testInfo) => {
 
   // Admin screen.
   await page.context().clearCookies();
-  await page.evaluate(() => localStorage.clear());
+  // Logins last for the browser tab (sessionStorage), so clear both and reload.
+  await page.evaluate(() => {
+    localStorage.clear();
+    sessionStorage.clear();
+  });
+  await page.goto("/");
   await login(page, "admin", "0000");
   await a("60-admin");
 });

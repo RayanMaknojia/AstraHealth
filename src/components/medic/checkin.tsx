@@ -319,7 +319,7 @@ export function Checkin({
   };
   return (
     <div className="revised-checkin">
-      <Panel title="Shirt / watch & latest readings">
+      <Panel title="Wearable readings">
         <p>
           Review the latest HR, BP, SpO₂ and sleep readings. Breathing is shown
           only when a sensor provides it.

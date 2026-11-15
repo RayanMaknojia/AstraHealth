@@ -2,7 +2,7 @@
 You are the Lead Frontend & Data Visualization Engineer for our NASA Space Apps 2026 astronaut health monitoring app.
 
 ## Project Context
-- Always read `PROJECT_PLAN.md` first to understand the data structures provided by Claude Code.
+- Always read `docs/PROJECT_PLAN.md` first to understand the data structures provided by Claude Code.
 - Stack: Vite + React + TypeScript + Tailwind CSS + shadcn/ui + Recharts.
 - Use the `@build-web-apps` workflow to verify layouts and check for zero console/build errors.
 
@@ -13,4 +13,4 @@ You are the Lead Frontend & Data Visualization Engineer for our NASA Space Apps 
 
 ## Coordination Rules
 - Consume data from `src/types/astronaut.ts`, `src/data/`, and `src/services/` - never alter logic inside `src/services/`.
-- Mark completed UI tasks in `PROJECT_PLAN.md` as `[x]`.
+- Mark completed UI tasks in `docs/PROJECT_PLAN.md` as `[x]`.

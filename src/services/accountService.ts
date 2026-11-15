@@ -130,16 +130,52 @@ export function authenticate(login: string, pin: string): AuthSession | null {
   const account = store.accounts.find((a) => a.login.toLowerCase() === key || a.displayName.toLowerCase() === key)
   if (!account || account.pinHash !== hashPin(account.login, pin.trim())) return null
   const session: AuthSession = { account: publicAccount(account), startedAt: new Date().toISOString() }
-  save({ ...store, session })
+  writeSession(session)
   return session
 }
 
 export function logout(): void {
-  save({ ...load(), session: null })
+  writeSession(null)
+}
+
+/**
+ * The login lasts for this browser tab only (sessionStorage): a reload keeps you signed
+ * in, but opening the app in a new tab or window always starts at the login page.
+ */
+const SESSION_KEY = 'space-medic:session:v1'
+let tabSession: AuthSession | null = null
+
+function tabStorage(): Storage | null {
+  try {
+    return typeof sessionStorage !== 'undefined' ? sessionStorage : null
+  } catch {
+    return null
+  }
+}
+
+function writeSession(session: AuthSession | null): void {
+  tabSession = session
+  try {
+    if (session) tabStorage()?.setItem(SESSION_KEY, JSON.stringify(session))
+    else tabStorage()?.removeItem(SESSION_KEY)
+  } catch {
+    /* private mode: memory only */
+  }
 }
 
 export function getCurrentSession(): AuthSession | null {
-  return load().session
+  // Older versions kept the session in localStorage (it reopened straight into a
+  // workspace); clear that so the app always opens on the login page.
+  const store = load()
+  if (store.session) save({ ...store, session: null })
+  if (tabSession) return tabSession
+  try {
+    const raw = tabStorage()?.getItem(SESSION_KEY)
+    tabSession = raw ? (JSON.parse(raw) as AuthSession) : null
+  } catch {
+    tabSession = null
+  }
+  return tabSession
 }
 
 // ── Profiles ───────────────────────────────────────────────────────────────

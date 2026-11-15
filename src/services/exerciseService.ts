@@ -3,7 +3,7 @@
  * goal days, body mass vs preflight and a bone-loss projection (no exercise vs
  * your actual compliance).
  *
- * Rules (health_rules.md, Phase 3 table):
+ * Rules (docs/health_rules.md, Phase 3 table):
  *  - Exercise: Normal ≥ 120 min/day, Watch 60-119, Alert < 60 for 3 days in a row
  *  - Body mass: Normal within 3% of preflight, Watch 3-5% loss, Alert > 5% loss
  * Demo crew get a simulated history the first time they are looked up.
