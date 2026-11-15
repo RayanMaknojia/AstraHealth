@@ -3,11 +3,12 @@ import { Pause, Play } from "lucide-react";
 import type { BodySystem } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
 import { OrganModel } from "./organ-model";
-import brain from "./assets/organs/reference-brain.glb?url";
-import heart from "./assets/organs/reference-heart.glb?url";
-import liver from "./assets/organs/reference-liver.glb?url";
-import dna from "./assets/organs/reference-dna.glb?url";
-import musculoskeletal from "./assets/organs/reference-leg.glb?url";
+// 3D models built from the five reference images (assets/organs/image-to-3d.py).
+import brain from "./assets/organs/image-brain.glb?url";
+import heart from "./assets/organs/image-heart.glb?url";
+import liver from "./assets/organs/image-liver.glb?url";
+import dna from "./assets/organs/image-dna.glb?url";
+import musculoskeletal from "./assets/organs/image-leg.glb?url";
 const systems: { id: BodySystem; label: string; url: string }[] = [
   { id: "behavioral", label: "Brain and wellbeing", url: brain },
   { id: "cardiovascular", label: "Heart and circulation", url: heart },
