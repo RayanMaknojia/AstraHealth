@@ -259,3 +259,8 @@ Phase 5 Claude: Gemini, health database, body scan, auto-SOS (see phases/phase5C
 [x] "Something wrong?" panel on Check-in: free text, photo or file → gatekeeper + emergency check + briefing.
 [x] Emergency assessor + 30 s cancellable auto-SOS to AstraHealth Station (Earth) and the ISS with signal delays; manual SOS shows recipients; events stored.
 [x] Round 2: no model name in the UI; photos and files stored + More → My records with export; one automatic SOS per issue (with counts); scan lines removed; exact check-in validation; blood sugar weekly only (not scanned); warning toasts ≤ 1 per 10 min, full-screen alerts ≥ 10 min apart and re-shown only on a later day or if worse; precise care steps.
+
+Phase 8 ChatGPT emergency-dialog acknowledgment fix (see phases/phase8.chatgpt.md):
+[x] Reproduce the loop caused by confirming an escalated SOS while its original critical alert stays open.
+[x] Display all pending alerts and acknowledge exactly those displayed before reevaluation; use Confirm all for grouped alerts.
+[x] Verify dashboard access after confirmation, automatic reevaluation/reload, new SOS, retained readings and mobile confirmation. No backend or Home-layout changes.
