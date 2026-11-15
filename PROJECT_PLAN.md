@@ -208,3 +208,5 @@ Final UI scope revision (Codex, integrated with Claude Phase 3 backend):
 [x] Verify TypeScript, ESLint, production build, persisted check-ins, journal/image privacy boundaries, timed reaction test, extended exams, and all five pages at 1440/834/390/320px without horizontal overflow.
 
 Browser verification used the offline demo. External Google Fonts requests can fail in the cloud network; the bundled font remains available. Clinical reference rules and simulated readings are supplied by the existing backend. Image previews are local only and are not analyzed or uploaded.
+
+[x] Add five selectable organ cards on Body Map only, with slow horizontal rotation around the vertical axis, shared detail/figure selection, pause/resume, and reduced-motion support.
