@@ -5,7 +5,7 @@ import { cn } from "@/lib/utils"
 /**
  * Brand icons. lucide-react 1.x dropped every brand mark, so these keep the
  * exact paths the template used from lucide 0.x and render the same way
- * (24px grid, 2px stroke, currentColor) — size them with className as before.
+ * (24px grid, 2px stroke, currentColor) - size them with className as before.
  */
 type BrandIconProps = React.SVGProps<SVGSVGElement>
 
