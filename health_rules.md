@@ -95,3 +95,41 @@ A reading can be 🟢 and still be **drifting**. The app fits a line through the
 8. **Bone:** Watch −5%, Alert −10% (was −3% / −6%).
 9. **Heart rate:** personal baseline rule is now "15% away from your average".
 10. **SpO2 in habitat:** Alert < 90 (was < 92); the tighter limit is the Watch at 96.
+
+## Phase 5 rules (emergencyService / photoCheckService / aiBriefing)
+
+### When is it an SOS? (checked after every new input)
+An ordinary Alert (e.g. 3 short nights) shows the full-screen Critical Health alert but is **not** an SOS. An SOS countdown (30 s, "I'm OK, cancel" or "Send SOS now") opens only when one of these is true:
+
+| Trigger | Rule |
+|---|---|
+| Red-flag words (report text, check-in notes, symptoms, photo notes, uploaded text) | chest pain / pressure · trouble breathing · severe allergic reaction (tongue, lips, face swelling) · fainting, seizure, not responding · stroke signs (face droop, slurred speech, one side weak) · bleeding that won't stop · thoughts of self-harm |
+| One life-threatening vital (fresh reading) | SpO2 < 85 % · resting HR > 150 or < 35 · temperature ≥ 40 or < 35 °C · BP ≥ 180 / ≥ 120 or systolic < 80 · glucose < 54 or > 300 mg/dL |
+| Two or more vital signs at Alert at the same time | HR, BP, temperature, SpO2, glucose |
+| Skin photo judged an emergency | see the photo table below |
+| Gemini says SOS | only counts when the rules already say Alert (Gemini can escalate, never calm things down) |
+
+**One automatic SOS per issue.** Each issue (e.g. chest pain, SpO2, a given photo, an AI-flagged fever) is remembered on the device with a count of how often it was detected. Once its automatic SOS was sent or cancelled ("I'm OK"), it is never raised automatically again; rescans only increase the count (shown in More → My records). A *new* issue still opens a countdown. The SOS button always sends immediately. Recipients: **AstraHealth Station (Earth medical lab)** and the **ISS** (or "ISS crewmates" when you are on the ISS), plus your crewmates, each with the one-way signal delay. Dispatch is simulated (queued in Mission Control Sync).
+
+### Skin photo severity (context-aware)
+| Label | Default | Becomes 🔴 Alert | Also recommends SOS |
+|---|---|---|---|
+| Possible infection (or bite / cut / scab with pus, red streaks, warmth) | 🟡 | temperature ≥ 37.6 °C | fever ≥ 38.5 °C or HR > 110 (sepsis risk) |
+| Bite or sting, rash | 🟡 | breathing / throat / face-swelling words, or SpO2 < 92 % | same (anaphylaxis) |
+| Laceration | 🟡 | deep, gaping, bone/tendon, bleeding > 10 min | bleeding that won't stop / spurting |
+| Burn | 🟡 | blistered, large, white/leathery, face/hands/chest | face, airway or smoke |
+| Bruise, scab, scar, normal | 🟢 | pain ≥ 4/5 → 🟡 | - |
+| Unsure (< 70 % confident) | 🟡 | - | - (sent to the flight surgeon) |
+The same spot flagged earlier raises the colour by one step. Gemini's view can only make it more serious.
+
+### Pop-ups (presentation-friendly)
+- **Toasts** for automatic warnings (status change, trajectory, cabin) appear at most **once every 10 minutes**. Results of something you just did (readings logged, file added/rejected) always show.
+- **Full-screen alerts** (Critical Health, Cabin Emergency) are spaced at least **10 minutes** apart; Radiation Storm (shelter) and SOS are never delayed.
+- **After Confirm**, the same alert is shown again only if it happens again on a **later mission day**, or it gets **worse** (at least 5% further from normal than when confirmed).
+
+### Measurement sources
+- The body scan measures heart rate, temperature, SpO2 and blood pressure only.
+- **Blood sugar** comes only from the **weekly fasting check-in** (or a lab report): one reading every 7 days in the seeded history, and it stays valid for 8 days.
+
+### Full briefing
+Colours of every data line (last check-in, last 24 h, past 7 days) come from this file. Gemini writes the words; its overall status is never greener than the rules.

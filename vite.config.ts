@@ -11,6 +11,9 @@ export default defineConfig({
       "@": path.resolve(import.meta.dirname, "./src"),
     },
   },
+  // Python server (server/app.py): scan generator + Gemini proxy. The key stays in the server.
+  server: { proxy: { "/api": { target: process.env.API_TARGET || "http://127.0.0.1:8787", changeOrigin: true } } },
+  preview: { proxy: { "/api": { target: process.env.API_TARGET || "http://127.0.0.1:8787", changeOrigin: true } } },
   define: {
     'import.meta.env.VITE_BASENAME': JSON.stringify(process.env.VITE_BASENAME || ''),
   }

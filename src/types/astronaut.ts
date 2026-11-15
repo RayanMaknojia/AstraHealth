@@ -48,6 +48,8 @@ export type DataModality =
   | 'ultrasound_image'
   | 'voice_log'
   | 'environment_feed'
+  /** Home "Start scan" (Python server generator or its browser fallback). */
+  | 'body_scan'
 
 export type IndicatorId =
   | 'blood_sugar'
@@ -98,6 +100,8 @@ export interface HistoryPoint {
   source: DataModality
   /** Numeric mission day (fractional for intra-day ticks). Use for slope math / numeric X axis. */
   day: number
+  /** Blood pressure only: the bottom number (value carries the top number). */
+  diastolic?: number
 }
 
 export interface HealthIndicator {
@@ -956,6 +960,8 @@ export interface OverrideAlert {
   confirmedAt?: string
   /** Outbox item created for the ground. */
   outboxItemId?: string
+  /** How far from normal it was when raised (bigger = worse); decides re-showing after Confirm. */
+  severity?: number
 }
 
 export interface BannerAlert {
@@ -1031,7 +1037,18 @@ export interface SyncRunResult {
 // ── photoCheckService.ts ──────────────────────────────────────────────────
 
 export type PhotoMode = 'skin' | 'ultrasound'
-export type SkinLabel = 'laceration' | 'burn' | 'bruise' | 'abrasion' | 'normal' | 'unsure'
+export type SkinLabel =
+  | 'laceration'
+  | 'burn'
+  | 'bruise'
+  | 'abrasion'
+  | 'bite'
+  | 'scab'
+  | 'scar'
+  | 'infection'
+  | 'rash'
+  | 'normal'
+  | 'unsure'
 export type UltrasoundScanType = 'eye' | 'neck_vein' | 'heart' | 'bladder' | 'other'
 export type ScanQuality = 'ok' | 'too_dark' | 'too_bright' | 'blurry' | 'unreadable'
 
@@ -1043,6 +1060,12 @@ export interface ImageStats {
   meanBrightness: number
   /** Variance of the Laplacian - higher = sharper. */
   sharpness: number
+  /** % of pixels that are clearly red/inflamed (skin photos; optional). */
+  rednessPct?: number
+  /** % of very dark pixels (scab / eschar / bruise; optional). */
+  darkPct?: number
+  /** % of yellow-green pixels (possible pus / old bruise; optional). */
+  yellowPct?: number
 }
 
 export interface PhotoRecord {
@@ -1074,6 +1097,18 @@ export interface PhotoRecord {
   reviewStatus: 'pending' | 'reviewed'
   reviewNotes?: string
   engine: 'gemini' | 'offline_mock'
+  // Phase 5: processed image data + context-aware severity
+  /** What the image analysis saw, in plain words ("redness spreading ~3 cm", "clean edges"). */
+  findings?: string[]
+  /** Why the status is what it is (photo + vitals + history). */
+  severityReasons?: string[]
+  /** One-line AI (or rules) summary. */
+  aiSummary?: string
+  /** Do these now, before help arrives. */
+  interimSteps?: string[]
+  /** True when the situation is judged too severe for onboard care alone. */
+  sosRecommended?: boolean
+  imageStats?: ImageStats
 }
 
 export interface SkinPhotoInput {
@@ -1087,6 +1122,24 @@ export interface SkinPhotoInput {
   painLevel?: Rating5
   imageStats?: ImageStats
   thumbnailDataUrl?: string
+  /** Phase 5: the astronaut's current data, so severity is judged in context. */
+  context?: PhotoContext
+}
+
+/** Current state sent with a skin photo (vitals, symptoms, history). */
+export interface PhotoContext {
+  missionDay: number
+  location: string
+  escalationMode: EscalationMode
+  tempC?: number
+  heartRate?: number
+  spo2?: number
+  bloodPressure?: string
+  symptoms: string[]
+  /** Allergies / medical notes ("Penicillin allergy."). */
+  medicalNotes: string[]
+  /** Short lines describing earlier photos ("Day 40 left hand: Laceration, Watch"). */
+  priorPhotos: string[]
 }
 
 export interface UltrasoundCaptureInput {
@@ -1195,3 +1248,128 @@ export interface MedicationStatus extends Medication {
   statusText: string
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// §8 Phase 5: health database, body scan, AI briefing, emergency / SOS
+// ══════════════════════════════════════════════════════════════════════════
+
+/** One stored reading (IndexedDB "readings" table). Every source appends here. */
+export interface DbReading {
+  id: string
+  astronautId: string
+  indicatorId: IndicatorId
+  /** As displayed: number, or "120/80" for blood pressure. */
+  value: number | string
+  /** Chart / maths value (BP: systolic). */
+  numeric: number
+  diastolic?: number
+  unit: string
+  source: DataModality
+  /** Mission day, fractional for intra-day readings. */
+  day: number
+  timestamp: string
+  /** Colour at the time it was stored (health_rules.md). */
+  status: StatusLevel
+  /** Part of the generated 21-day demo history. */
+  seeded?: boolean
+}
+
+/** Blood sugar is not scanned: it comes from the weekly fasting check-in. */
+export type ScanKpi = 'heart_rate' | 'body_temp' | 'spo2' | 'systolic' | 'diastolic'
+
+export interface ScanResult {
+  id: string
+  astronautId: string
+  day: number
+  timestamp: string
+  readings: Record<ScanKpi, number>
+  extras: { respiratory_rate: number; hrv_ms: number }
+  anomaly: { kpi: ScanKpi; level: StatusLevel; note: string } | null
+  generator: 'python' | 'browser_fallback'
+  /** Ready for applyIndicatorUpdates / the database. */
+  updates: IndicatorUpdate[]
+}
+
+/** One coloured line in the full briefing. */
+export interface BriefingLine {
+  label: string
+  status: DisplayStatus
+  text: string
+  indicatorId?: IndicatorId
+}
+
+export interface BriefingConcern {
+  title: string
+  status: StatusLevel
+  detail: string
+  action: string
+}
+
+/** Full medical briefing written by Gemini (or the offline rules when Gemini is unavailable). */
+export interface AiBriefing {
+  id: string
+  astronautId: string
+  /** ISO time it was written. */
+  createdAt: string
+  missionDay: number
+  engine: 'gemini' | 'offline_rules'
+  model?: string
+  /** Why it was written: "Body scan", "Check-in saved", "Photo check", "Refresh"... */
+  trigger: string
+  /** Never greener than the rules-based status (code owns the colours). */
+  overallStatus: StatusLevel
+  headline: string
+  summary: string
+  lastCheckin: { when: string; lines: BriefingLine[] } | null
+  last24h: BriefingLine[]
+  sevenDay: BriefingLine[]
+  concerns: BriefingConcern[]
+  recommendations: string[]
+  interimSteps: string[]
+  sosRecommended: boolean
+  sosReason?: string
+  basedOn: { readings: number; checkins: number; uploads: number }
+  /** Gemini's one-line take on each section (absent offline). */
+  sectionNotes?: { checkin?: string; last24h?: string; sevenDay?: string }
+  /** Why Gemini was not used (offline fallback). */
+  fallbackReason?: string
+  /** Rules-based overall status when written (to spot an out-of-date briefing). */
+  rulesStatusAtCreation: StatusLevel
+}
+
+/** "Is this too severe for onboard care?" - run after every new input. */
+export interface EmergencyAssessment {
+  level: StatusLevel
+  sos: boolean
+  reasons: string[]
+  interimSteps: string[]
+  source: 'rules' | 'rules+gemini'
+  /** Stable key so a cancelled countdown is not re-raised for the same reasons. */
+  key: string
+}
+
+export type SosRecipientId = 'astrahealth_earth' | 'iss' | 'crew'
+
+export interface SosRecipient {
+  id: SosRecipientId
+  name: string
+  /** One-way signal time. */
+  etaSeconds: number
+  status: 'queued' | 'sent'
+}
+
+export interface SosEvent {
+  id: string
+  astronautId: string
+  name: string
+  createdAt: string
+  missionDay: number
+  location: string
+  trigger: 'manual' | 'auto'
+  reasons: string[]
+  interimSteps: string[]
+  recipients: SosRecipient[]
+  /** Latest vitals sent with the SOS. */
+  vitalsSnapshot: string[]
+  overrideId?: string
+}

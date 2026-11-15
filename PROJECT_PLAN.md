@@ -250,6 +250,16 @@ Phase 7 ChatGPT presentation updates (see phases/phase7.chatgpt.md):
 [x] Record implementation scope, prototype approval, verification and commit references in the phases folder. This phase-note commit changes documentation only.
 
 
+Phase 5 Claude: Gemini, health database, body scan, auto-SOS (see phases/phase5Claude.md):
+[x] Python server (`server/app.py`, stdlib only): `/api/scan` trend-following KPI generator (~12% Watch/Alert anomalies) and `/api/ai/json` Gemini proxy (key in `server/.env`, model fallback chain). Browser never holds the key.
+[x] IndexedDB health database (`src/services/healthDb.ts`): readings, scans, briefings, photos, uploads, SOS. 21 days of seeded history per astronaut (realistic mix of Normal / Watch / Alert days), every new reading appended and coloured by health_rules.md; profile rebuilt from the database at login.
+[x] Home "Start scan" → new readings (Python, browser fallback) → database → emergency check → new briefing.
+[x] Full medical briefing (`aiBriefing.ts`): last check-in, last 24 h, past 7 days, concerns, next checks, interim steps; Gemini writes it, offline rules otherwise; never greener than the rules.
+[x] Skin / injury photo first look: 11 classes (adds bite, scab, scar, infection, rash), processed pixel data (red / dark / yellow %), Gemini with the astronaut's vitals, symptoms and earlier photos; context-aware severity.
+[x] "Something wrong?" panel on Check-in: free text, photo or file → gatekeeper + emergency check + briefing.
+[x] Emergency assessor + 30 s cancellable auto-SOS to AstraHealth Station (Earth) and the ISS with signal delays; manual SOS shows recipients; events stored.
+[x] Round 2: no model name in the UI; photos and files stored + More → My records with export; one automatic SOS per issue (with counts); scan lines removed; exact check-in validation; blood sugar weekly only (not scanned); warning toasts ≤ 1 per 10 min, full-screen alerts ≥ 10 min apart and re-shown only on a later day or if worse; precise care steps.
+
 Phase 8 ChatGPT emergency-dialog acknowledgment fix (see phases/phase8.chatgpt.md):
 [x] Reproduce the loop caused by confirming an escalated SOS while its original critical alert stays open.
 [x] Display all pending alerts and acknowledge exactly those displayed before reevaluation; use Confirm all for grouped alerts.

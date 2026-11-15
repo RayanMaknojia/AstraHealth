@@ -911,7 +911,7 @@ export function computeTrajectory(id: IndicatorId, history: HistoryPoint[], ctx:
 
 // ── Profile-level evaluation ───────────────────────────────────────────────
 
-function parseBloodPressure(v: number | string): [number, number] | null {
+export function parseBloodPressure(v: number | string): [number, number] | null {
   const m = /^\s*(\d+(?:\.\d+)?)\s*\/\s*(\d+(?:\.\d+)?)\s*$/.exec(String(v))
   return m ? [Number(m[1]), Number(m[2])] : null
 }
@@ -1071,7 +1071,8 @@ export function applyIndicatorUpdates(
       const n = numericValue(u)
       if (n === null) continue
       const baseline = profile.baseline.values[ind.id]?.mean ?? history[history.length - 1]?.baseline ?? n
-      history.push({ timestamp: u.timestamp, value: n, baseline, source: u.source, day: u.day })
+      const dia = ind.id === 'blood_pressure' && typeof u.value === 'string' ? parseBloodPressure(u.value)?.[1] : undefined
+      history.push({ timestamp: u.timestamp, value: n, baseline, source: u.source, day: u.day, ...(dia !== undefined ? { diastolic: dia } : {}) })
       value = u.value
       maxDay = Math.max(maxDay, Math.floor(u.day))
     }
