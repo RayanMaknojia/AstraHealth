@@ -77,7 +77,8 @@ Browser (React)                                   Python server (server/app.py, 
 | `npx tsc -p tsconfig.app.json --noEmit`, `npm run lint`, `npm run build` | Pass (existing Three.js chunk-size warning) |
 | `python -m unittest discover -s server` | 10/10 pass |
 | Node backend script: seeding (189 readings per crew, with Watch/Alert days), hydrate keeps every crew's overall status, scan append, emergency rules, skin severity, offline briefing | All pass |
-| Playwright with the real Gemini key through the Python server (see the run summary in the final report) | See below |
+| Playwright, real Gemini through the Python server (ISS + Mars crew) | 26/26 pass: seed 189 readings on first login; Gemini start-of-shift briefing; Python scan appends 5 readings; Gemini full briefing for the scan with check-in / 24 h / 7-day sections; data and briefing survive reload; chest-pain text opens the SOS countdown with AstraHealth + ISS and interim steps; cancel works and the same reasons are snoozed; text reports stored; bite photo → Gemini "Possible infection 85%", Watch (no fever), with findings and steps; manual SOS lists recipients and is stored; 0 console errors |
+| Playwright, Python server stopped | Browser scanner used; briefing "Offline rules (Python server not running)" with all sections; 0 page errors |
 
 ## Limits
 
