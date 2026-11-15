@@ -12,7 +12,7 @@ export function Status({ status }: { status: DisplayStatus }) {
       style={statusStyle(status)}
     >
       <span className="status-dot" />
-      {STATUS_LABELS[status]}
+      {status === "no_data" ? "Unknown" : STATUS_LABELS[status]}
     </Badge>
   );
 }

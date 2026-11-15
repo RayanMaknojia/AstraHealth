@@ -8,6 +8,11 @@ import type {
   IndicatorUpdate,
   WearableStreamController,
   EnvironmentFeedController,
+  CheckinSlot,
+  CheckinExtras,
+  VitalsInput,
+  IndicatorId,
+  CabinReading,
 } from "@/types/astronaut";
 import {
   applyIndicatorUpdates,
@@ -17,7 +22,14 @@ import {
   createInitialBriefing,
   updateBriefing,
 } from "@/services/briefingEngine";
-import { getCheckinReminder, type CheckinStamp } from "./checkin-schedule";
+import { CHECKIN_INPUTS } from "@/data/nasaSpaceflightData";
+import {
+  listCheckins,
+  submitCheckin as saveScheduledCheckin,
+  getDueCheckins,
+} from "@/services/checkinService";
+import { syncOverrides } from "@/services/alertService";
+import { formatOnboardTime } from "./checkin-schedule";
 import {
   createWearableStream,
   STREAM_START_MINUTE_OF_DAY,
@@ -30,7 +42,59 @@ import { toast } from "@/components/ui/toast";
 export function notify(title: string, description?: string) {
   toast.add({ title, description, timeout: 4500 });
 }
-function hydrate(profile: AstronautProfile) {
+function restoredProfile(profile: AstronautProfile) {
+  const updates: IndicatorUpdate[] = [];
+  for (const record of listCheckins(
+    profile.id,
+    profile.missionDay,
+    Math.max(30, profile.missionDay + 1),
+  )
+    .filter((r) => r.missionDay <= profile.missionDay && !r.excused)
+    .reverse()) {
+    if (!record.values) continue;
+    let minute = 0;
+    try {
+      minute = JSON.parse(record.extras?.notes ?? "{}").onboardMinute ?? 0;
+    } catch {
+      /* Legacy plain-text notes have no onboard timestamp. */
+    }
+    const day = record.missionDay + minute / 1440;
+    const add = (id: IndicatorId, value: number | string, unit: string) =>
+      updates.push({
+        id,
+        value,
+        unit,
+        source: "manual_slider",
+        timestamp: `Day ${record.missionDay} ${formatOnboardTime(minute)}`,
+        day,
+      });
+    for (const spec of CHECKIN_INPUTS) {
+      const v = record.values[spec.key];
+      if (
+        typeof v === "number" &&
+        spec.indicator !== "blood_pressure" &&
+        spec.key !== "radiationDailyMSv"
+      )
+        add(spec.indicator, v, spec.unit);
+    }
+    if (
+      record.values.systolicMmHg !== undefined &&
+      record.values.diastolicMmHg !== undefined
+    )
+      add(
+        "blood_pressure",
+        `${record.values.systolicMmHg}/${record.values.diastolicMmHg}`,
+        "mmHg",
+      );
+  }
+  return updates.length
+    ? applyIndicatorUpdates(profile, updates, {
+        missionState: getMissionState(profile.mission, profile.missionDay),
+      }).profile
+    : profile;
+}
+function hydrate(inputProfile: AstronautProfile) {
+  const profile = restoredProfile(inputProfile);
   const evaluated = evaluateProfile(profile);
   const next = { ...profile, indicators: evaluated.indicators };
   return {
@@ -45,8 +109,12 @@ function hydrate(profile: AstronautProfile) {
     environmentTick: null as EnvironmentTick | null,
     lastEvent: "Awaiting wearable sync",
     onboardMinute: STREAM_START_MINUTE_OF_DAY,
-    scheduleStartedDay: profile.missionDay,
-    checkins: [] as CheckinStamp[],
+    cabinHistory: [] as CabinReading[],
+    overrides: syncOverrides({
+      profile: next,
+      report: evaluated.report,
+      missionState: evaluated.missionState,
+    }),
   };
 }
 export type MissionModel = ReturnType<typeof hydrate>;
@@ -62,8 +130,18 @@ export function useMission(initialProfile: AstronautProfile) {
   const wearable = useRef<WearableStreamController | null>(null);
   const feed = useRef<EnvironmentFeedController | null>(null);
   const commit = useCallback((next: MissionModel) => {
-    current.current = next;
-    setModel(next);
+    const evaluated = {
+      ...next,
+      overrides: syncOverrides({
+        profile: next.profile,
+        report: next.report,
+        missionState: next.missionState,
+        environmentTick: next.environmentTick ?? undefined,
+        cabinHistory: next.cabinHistory,
+      }),
+    };
+    current.current = evaluated;
+    setModel(evaluated);
   }, []);
   const event = useCallback(
     (
@@ -104,6 +182,9 @@ export function useMission(initialProfile: AstronautProfile) {
                   })()
                 : old.onboardMinute,
             environmentTick: environmentTick ?? old.environmentTick,
+            cabinHistory: environmentTick
+              ? (feed.current?.cabinHistory() ?? old.cabinHistory)
+              : old.cabinHistory,
             lastEvent:
               change.kind === "wearable_tick" ||
               change.kind === "environment_tick"
@@ -197,7 +278,7 @@ export function useMission(initialProfile: AstronautProfile) {
         environmentTick: null,
         lastEvent: `Mission day ${day}`,
         onboardMinute: STREAM_START_MINUTE_OF_DAY,
-        scheduleStartedDay: day,
+        cabinHistory: [],
       });
       setStreamDay(day);
       revised.changes.forEach((message) => notify(message));
@@ -227,32 +308,6 @@ export function useMission(initialProfile: AstronautProfile) {
           artifact: response.artifact,
         });
         if (applied !== true || ticket !== generation.current) return;
-        if (input.manualValues) {
-          const latest = current.current;
-          const due = getCheckinReminder(
-            latest.missionState.missionDay,
-            latest.onboardMinute,
-            latest.checkins,
-            latest.scheduleStartedDay,
-          );
-          // An early manual check-in completes the currently offered slot; uploaded files never dismiss reminders.
-          const stamp: CheckinStamp = {
-            day: due.day,
-            slot: due.slot,
-            completedDay: latest.missionState.missionDay,
-            completedMinute: latest.onboardMinute,
-          };
-          if (stamp.day <= latest.missionState.missionDay)
-            commit({
-              ...latest,
-              checkins: [
-                ...latest.checkins.filter(
-                  (r) => r.day !== stamp.day || r.slot !== stamp.slot,
-                ),
-                stamp,
-              ],
-            });
-        }
         notify("Accepted & Normalized", response.artifact.extractedSummary);
       } else
         notify(
@@ -264,6 +319,96 @@ export function useMission(initialProfile: AstronautProfile) {
         "Unable to read input",
         error instanceof Error ? error.message : "Try again.",
       );
+    } finally {
+      setBusy(false);
+    }
+  };
+  const refresh = useCallback(() => commit({ ...current.current }), [commit]);
+  const saveCheckin = async (input: {
+    slot: CheckinSlot;
+    values?: VitalsInput;
+    extras?: CheckinExtras;
+    symptoms?: string[];
+  }) => {
+    const ticket = generation.current;
+    setBusy(true);
+    try {
+      const snapshot = current.current;
+      const day = snapshot.missionState.missionDay;
+      let form: unknown = input.extras?.notes ?? "";
+      try {
+        form = JSON.parse(String(form));
+      } catch {
+        /* Preserve legacy notes. */
+      }
+      const response = await saveScheduledCheckin({
+        ...input,
+        profile: snapshot.profile,
+        day,
+        extras: {
+          ...input.extras,
+          notes: JSON.stringify({
+            form,
+            onboardMinute: snapshot.onboardMinute,
+          }),
+        },
+      });
+      if (ticket !== generation.current) return false;
+      if (response.ingestion && !response.ingestion.verdict.accepted) {
+        setResult(response.ingestion);
+        notify(
+          "Check-in saved; readings need review",
+          response.ingestion.verdict.rejectionReason,
+        );
+        refresh();
+        return false;
+      }
+      if (response.ingestion) {
+        setResult(response.ingestion);
+        const updates = response.ingestion.updates.map((u) => ({
+          ...u,
+          day: day + snapshot.onboardMinute / 1440,
+          timestamp: `Day ${day} ${formatOnboardTime(snapshot.onboardMinute)}`,
+        }));
+        if (
+          (await event(updates, {
+            kind: "artifact",
+            artifact: response.ingestion.artifact,
+          })) !== true
+        )
+          return false;
+      }
+      if (
+        input.slot !== "morning" &&
+        input.slot !== "evening" &&
+        getDueCheckins(current.current.profile).some(
+          (t) => t.slot === "morning" && !t.done && !t.excused,
+        )
+      ) {
+        // Extended and weekly forms include the daily basics; register that completion for the backend's consistency tracking.
+        await saveScheduledCheckin({
+          profile: current.current.profile,
+          slot: "morning",
+          day,
+          values: input.values,
+          symptoms: input.symptoms,
+          extras: {
+            notes: JSON.stringify({
+              includedIn: input.slot,
+              onboardMinute: snapshot.onboardMinute,
+            }),
+          },
+        });
+      }
+      refresh();
+      notify(response.message);
+      return true;
+    } catch (error) {
+      notify(
+        "Unable to save check-in",
+        error instanceof Error ? error.message : "Please try again.",
+      );
+      return false;
     } finally {
       setBusy(false);
     }
@@ -291,5 +436,7 @@ export function useMission(initialProfile: AstronautProfile) {
     wearable,
     feed,
     toggleTask,
+    saveCheckin,
+    refresh,
   };
 }

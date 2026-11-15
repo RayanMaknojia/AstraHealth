@@ -16,6 +16,7 @@ import type {
   HealthIndicator,
   MissionState,
   AstronautProfile,
+  BodySystem,
 } from "@/types/astronaut";
 import {
   boundsFor,
@@ -57,7 +58,11 @@ export function VitalChart({
 }) {
   const points = useMemo(() => {
     const latest = indicator.history.at(-1)?.day ?? state.missionDay;
-    return indicator.history.filter((p) => p.day >= latest - range);
+    return indicator.history.filter((p) =>
+      range === 1
+        ? p.day >= Math.floor(latest) && p.day < Math.floor(latest) + 1
+        : p.day >= latest - range,
+    );
   }, [indicator.history, range, state.missionDay]);
   const bounds = boundsFor(indicator.id, getSpaceAdjustments(state), priorDose);
   if (!points.length)
@@ -73,14 +78,28 @@ export function VitalChart({
     status: indicator.status,
   });
   const last = points.at(-1)!;
-  const projectionDays = Math.min(14, indicator.projectedDaysToThreshold ?? 0);
+  const projectionDays =
+    range === 1 ? 0 : Math.min(14, indicator.projectedDaysToThreshold ?? 0);
   const chartPoints: {
     day: number;
     value?: number;
     baseline: number;
     projected?: number;
+    wearable?: number;
+    manual?: number;
+    synthetic?: number;
   }[] = points.map((p, n) => ({
     ...p,
+    wearable: p.source === "wearable_auto" ? p.value : undefined,
+    manual: [
+      "manual_slider",
+      "lab_document",
+      "ultrasound_image",
+      "voice_log",
+    ].includes(p.source)
+      ? p.value
+      : undefined,
+    synthetic: p.source === "environment_feed" ? p.value : undefined,
     ...(!compact && projectionDays > 0 && n === points.length - 1
       ? { projected: p.value }
       : {}),
@@ -131,7 +150,7 @@ export function VitalChart({
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         <LineChart
           data={chartPoints}
-          margin={{ top: 15, right: 14, bottom: 5, left: 0 }}
+          margin={{ top: 20, right: 20, bottom: 25, left: 16 }}
         >
           <CartesianGrid
             stroke="#203041"
@@ -141,16 +160,41 @@ export function VitalChart({
           <XAxis
             dataKey="day"
             type="number"
-            domain={["dataMin", "dataMax"]}
-            tick={{ fill: "#8a9fb4", fontSize: 10 }}
-            tickFormatter={(v) => `D${Math.floor(v)}`}
+            domain={
+              range === 1
+                ? [Math.floor(last.day), Math.floor(last.day) + 1]
+                : ["dataMin", "dataMax"]
+            }
+            tick={{ fill: "#8a9fb4", fontSize: 12 }}
+            tickFormatter={(v) =>
+              range === 1
+                ? v === Math.floor(last.day) + 1
+                  ? "24:00"
+                  : `${String(Math.floor((v - Math.floor(v)) * 24)).padStart(2, "0")}:${String(Math.round((((v - Math.floor(v)) * 24) % 1) * 60) % 60).padStart(2, "0")}`
+                : `D${Math.floor(v)}`
+            }
+            label={{
+              value: range === 1 ? "Onboard time (hours)" : "Mission day",
+              position: "insideBottom",
+              offset: -16,
+              fill: "#b9ccd8",
+              fontSize: 12,
+            }}
             axisLine={false}
             tickLine={false}
             minTickGap={30}
           />
           <YAxis
             domain={[min, max]}
-            tick={{ fill: "#8a9fb4", fontSize: 10 }}
+            label={{
+              value: indicator.unit,
+              angle: -90,
+              position: "insideLeft",
+              offset: -6,
+              fill: "#b9ccd8",
+              fontSize: 12,
+            }}
+            tick={{ fill: "#8a9fb4", fontSize: 12 }}
             axisLine={false}
             tickLine={false}
             width={compact ? 38 : 45}
@@ -158,7 +202,26 @@ export function VitalChart({
           />
           <Tooltip
             contentStyle={chartTooltip}
-            labelFormatter={(v) => `Mission day ${Number(v).toFixed(2)}`}
+            content={({ active, payload, label }) =>
+              active && payload?.length ? (
+                <div style={chartTooltip}>
+                  <strong>Mission day {Number(label).toFixed(3)}</strong>
+                  <p>
+                    Source:{" "}
+                    {String(
+                      payload[0]?.payload?.source ?? "Projected / baseline",
+                    )}
+                  </p>
+                  {payload
+                    .filter((x) => x.value !== undefined)
+                    .map((x) => (
+                      <p key={String(x.dataKey)}>
+                        {x.name}: {Number(x.value).toFixed(1)} {indicator.unit}
+                      </p>
+                    ))}
+                </div>
+              ) : null
+            }
           />
           {!compact &&
             bands.map((b) => (
@@ -213,10 +276,31 @@ export function VitalChart({
           />
           <Line
             type="monotone"
-            dataKey="value"
-            name={indicator.name}
+            dataKey="wearable"
+            name="Wearable"
             stroke="#5fe2e7"
-            dot={false}
+            dot={{ r: 3 }}
+            connectNulls
+            strokeWidth={2}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="manual"
+            name="Manual / clinical entry"
+            stroke="#7eb2ed"
+            dot={{ r: 3 }}
+            connectNulls
+            strokeWidth={2}
+            isAnimationActive={false}
+          />
+          <Line
+            type="monotone"
+            dataKey="synthetic"
+            name="Environment / synthetic"
+            stroke="#d6e2e8"
+            dot={{ r: 3 }}
+            connectNulls
             strokeWidth={2}
             isAnimationActive={false}
           />
@@ -281,17 +365,22 @@ export function Trends({
   state,
   selectedId,
   onSelect,
+  system,
+  clearSystem,
 }: {
   profile: AstronautProfile;
   state: MissionState;
   selectedId: string;
   onSelect: (id: string) => void;
+  system?: BodySystem | null;
+  clearSystem?: () => void;
 }) {
   const [range, setRange] = useState(30);
   const [guide, setGuide] = useState<HealthIndicator | null>(null);
-  const indicator =
-    profile.indicators.find((i) => i.id === selectedId) ??
-    profile.indicators[0];
+  const choices = profile.indicators.filter(
+    (i) => !system || i.system === system,
+  );
+  const indicator = choices.find((i) => i.id === selectedId) ?? choices[0];
   const dose = THRESHOLDS.radiation.careerLimitMSv;
   const exposures = Array.from({ length: 41 }, (_, n) => {
     const day = Math.round((state.missionDay * n) / 40);
@@ -309,24 +398,38 @@ export function Trends({
             value={indicator.id}
             onChange={(e) => onSelect(e.target.value)}
           >
-            {profile.indicators.map((i) => (
+            {choices.map((i) => (
               <option key={i.id} value={i.id}>
                 {i.name}
               </option>
             ))}
           </select>
         </label>
-        <label>
-          History range
-          <select
-            value={range}
-            onChange={(e) => setRange(Number(e.target.value))}
-          >
-            <option value={7}>7 days</option>
-            <option value={30}>30 days</option>
-            <option value={2000}>Whole mission</option>
-          </select>
-        </label>
+        <div
+          role="group"
+          aria-label="History timeframe"
+          className="timeframe-toggle"
+        >
+          {[
+            { value: 1, label: "1D" },
+            { value: 7, label: "7D" },
+            { value: 30, label: "30D" },
+            { value: 2000, label: "Mission" },
+          ].map((t) => (
+            <button
+              key={t.value}
+              aria-pressed={range === t.value}
+              onClick={() => setRange(t.value)}
+            >
+              {t.label}
+            </button>
+          ))}
+        </div>
+        {system && (
+          <Button variant="outline" onClick={clearSystem}>
+            All systems
+          </Button>
+        )}
         <Button variant="outline" onClick={() => setGuide(indicator)}>
           <Info data-icon="inline-start" />
           Measurement guide
@@ -346,15 +449,19 @@ export function Trends({
           range={range}
         />
         <div className="chart-key">
-          <span>Actual reading</span>
+          <span>Wearable (teal)</span>
+          <span>Manual / clinical (blue)</span>
+          <span>Environment / synthetic (white)</span>
           <span>Personal baseline</span>
           <span>Projected drift (when available)</span>
           <small>Phase markers · Reference bands from health rules</small>
         </div>
         <p className="fine-print">
-          Bands show range boundaries. Pattern and personal-baseline alerts are
-          evaluated by the health service. Blood pressure plots the systolic
-          value.
+          {indicator.simulated ? "Simulated crew data. " : ""}1D shows the
+          latest recorded mission day; source colors identify how data entered
+          the app. Bands show range boundaries. Pattern and personal-baseline
+          alerts are evaluated by the health service. Blood pressure plots the
+          systolic value.
         </p>
         {indicator.projectedDaysToThreshold !== undefined && (
           <p className="trajectory">
@@ -377,9 +484,24 @@ export function Trends({
           <ResponsiveContainer width="100%" height="100%" minWidth={0}>
             <LineChart data={exposures}>
               <CartesianGrid stroke="#203041" vertical={false} />
-              <XAxis dataKey="day" tick={{ fill: "#8a9fb4", fontSize: 11 }} />
+              <XAxis
+                dataKey="day"
+                tick={{ fill: "#b8ccd8", fontSize: 12 }}
+                label={{
+                  value: "Mission day",
+                  position: "insideBottom",
+                  offset: -6,
+                  fill: "#b8ccd8",
+                }}
+              />
               <YAxis
                 domain={[0, Math.max(dose, exposures.at(-1)!.dose * 1.1)]}
+                label={{
+                  value: "mSv",
+                  angle: -90,
+                  position: "insideLeft",
+                  fill: "#b8ccd8",
+                }}
                 tick={{ fill: "#8a9fb4", fontSize: 11 }}
               />
               <Tooltip contentStyle={chartTooltip} />
