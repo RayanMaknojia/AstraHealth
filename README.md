@@ -25,7 +25,7 @@ Open the localhost address printed by Vite (it forwards `/api` to the Python ser
 
 **Health database:** readings, scans, briefings, photo assessments, uploads and SOS events are stored in the browser's IndexedDB (`space-medic`). The first login of each astronaut writes 21 days of simulated history; every new reading is appended. Clear site data to reset. Demo logins: `iss_crew` / `2222`, `moon_crew` / `3333`, `mars_crew` / `1111`, and admin `admin` / `0000`.
 
-The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase7.chatgpt.md`.
+The frontend branch is `codex/space-medic-home-redesign`. Build history and implementation notes are in `phases/phase1.chatgpt.md` through `phases/phase8.chatgpt.md`.
 
 ## Anatomical 3D assets
 
