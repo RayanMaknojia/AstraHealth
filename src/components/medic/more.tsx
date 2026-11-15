@@ -37,6 +37,11 @@ import { statusOf } from "./status";
 import { Panel, Status } from "./primitives";
 import type { MissionModel } from "./use-mission";
 import { MyRecords } from "./my-records";
+import {
+  NASA_DATA_CREDITS,
+  SAA_THRESHOLD_UGY_PER_H,
+} from "@/data/nasaOpenData";
+import type { RadiationSample } from "@/types/astronaut";
 export function More({
   model,
   onLogout,
@@ -186,6 +191,9 @@ export function More({
                       {model.environmentTick?.activeEvent?.summary ??
                         model.missionState.environment.label}
                     </p>
+                    <RadiationSourceNote
+                      sample={model.environmentTick?.radiation}
+                    />
                   </div>
                   <div>
                     <h3>
@@ -384,6 +392,24 @@ export function More({
               provides decision support and needs clinical validation before
               real-world use.
             </p>
+            <h3>Real NASA data used in the app</h3>
+            <ul className="reference-links">
+              {NASA_DATA_CREDITS.map((s) => (
+                <li key={s.url}>
+                  <a href={s.url} target="_blank" rel="noreferrer">
+                    {s.label}
+                    <ArrowUpRight size={16} />
+                  </a>
+                </li>
+              ))}
+            </ul>
+            <p className="fine-print">
+              Astronaut vitals and cabin air are simulated: daily crew medical
+              data is not public. Radiation on the ISS replays real RadLab
+              measurements (absorbed dose × quality factor 2 ≈ dose equivalent);
+              solar storms are based on real DONKI events with modelled doses.
+            </p>
+            <h3>References</h3>
             <ul className="reference-links">
               {Object.values(SOURCES).map((s) => (
                 <li key={s.url}>
@@ -408,5 +434,23 @@ export function More({
         </Button>
       </section>
     </>
+  );
+}
+
+/** Says where the radiation number comes from (real RadLab replay or simulated). */
+function RadiationSourceNote({ sample }: { sample?: RadiationSample }) {
+  if (!sample) return null;
+  if (sample.source !== "radlab")
+    return (
+      <small className="radiation-source">Simulated for this location</small>
+    );
+  const when = sample.measuredAtUtc?.replace("T", " ").replace("Z", " UTC");
+  const saa = (sample.absorbedUGyPerH ?? 0) > SAA_THRESHOLD_UGY_PER_H;
+  return (
+    <small className="radiation-source">
+      Real ISS measurement · NASA OSDR RadLab, {sample.instrument},{" "}
+      {sample.absorbedUGyPerH} µGy/h at {when}
+      {saa ? " · South Atlantic Anomaly pass" : ""}
+    </small>
   );
 }
