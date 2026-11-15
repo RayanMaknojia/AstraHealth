@@ -386,7 +386,7 @@ export const TREND_SENSITIVITY: Record<IndicatorId, { meaningfulPerDay: number; 
 export const STALE_AFTER_DAYS: Record<IndicatorId, number> = {
   heart_rate: 1,
   blood_pressure: 2,
-  blood_sugar: 2,
+  blood_sugar: 8, // weekly fasting check-in
   body_temp: 1,
   spo2: 1,
   sleep_hours: 2,
@@ -826,6 +826,45 @@ export function generateHistory(spec: TrendSpec, days: number, seed: number, sta
 // ── Crew profiles (fictional demo personas) ───────────────────────────────
 
 const HISTORY_DAYS = 14
+/** Phase 5: the database is seeded with this many days per astronaut (14 + 7 older days). */
+export const SEED_HISTORY_DAYS = 21
+
+/**
+ * Days BEFORE `start`, continuing the same trend backwards (so the newest 14 days,
+ * and every demo story built on them, stay exactly as they were).
+ */
+function extendBack(spec: TrendSpec, count: number, seed: number, start: number, clamp: [number, number]): HistoryPoint[] {
+  const rand = mulberry32(seed)
+  const f = 10 ** spec.decimals
+  const out: HistoryPoint[] = []
+  for (let k = count; k >= 1; k--) {
+    const day = start - k
+    if (day < 1) continue
+    const raw = spec.baseline - spec.drift * k + (rand() * 2 - 1) * spec.noise
+    const value = Math.min(clamp[1], Math.max(clamp[0], Math.round(raw * f) / f))
+    out.push({ day, timestamp: `Day ${day}`, value, baseline: spec.baseline, source: 'wearable_auto' })
+  }
+  return out
+}
+
+type SeriesKey = 'hr' | 'sys' | 'dia' | 'glucose' | 'temp' | 'sleep' | 'mood' | 'spo2'
+const SERIES_CLAMP: Record<SeriesKey, [number, number]> = {
+  hr: [40, 180],
+  sys: [80, 190],
+  dia: [45, 120],
+  glucose: [60, 250],
+  temp: [35.5, 40],
+  sleep: [3, 10],
+  mood: [1, 5],
+  spo2: [85, 100],
+}
+
+/** A past day that was not normal (realistic mix: mostly green, some Watch/Alert days). */
+interface SeedEvent {
+  day: number
+  key: SeriesKey
+  value: number
+}
 
 /** Where each indicator's daily history realistically comes from. */
 const HISTORY_SOURCE: Record<IndicatorId, DataModality> = {
@@ -898,6 +937,8 @@ interface ProfileSeed {
   sleep: TrendSpec
   mood: TrendSpec
   spo2: TrendSpec
+  /** Past days that were not normal, applied to the seeded history. */
+  events?: SeedEvent[]
 }
 
 /** Expected cumulative value at the START of a day, integrating a per-day rate over the phase schedule. */
@@ -943,17 +984,36 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
   const days = p.missionDay - start + 1
   const last = (h: HistoryPoint[]) => h[h.length - 1].value
 
-  const hr = generateHistory(p.hr, days, p.seed + 1, start)
-  const sys = generateHistory(p.sys, days, p.seed + 2, start)
-  const dia = generateHistory(p.dia, days, p.seed + 3, start)
-  const glucose = generateHistory(p.glucose, days, p.seed + 4, start)
-  const temp = generateHistory(p.temp, days, p.seed + 5, start)
-  const sleep = generateHistory(p.sleep, days, p.seed + 6, start)
-  const mood = generateHistory(p.mood, days, p.seed + 7, start)
-  const spo2 = generateHistory(p.spo2, days, p.seed + 10, start)
+  const extra = SEED_HISTORY_DAYS - HISTORY_DAYS
+  const recent: Record<SeriesKey, HistoryPoint[]> = {
+    hr: generateHistory(p.hr, days, p.seed + 1, start),
+    sys: generateHistory(p.sys, days, p.seed + 2, start),
+    dia: generateHistory(p.dia, days, p.seed + 3, start),
+    glucose: generateHistory(p.glucose, days, p.seed + 4, start),
+    temp: generateHistory(p.temp, days, p.seed + 5, start),
+    sleep: generateHistory(p.sleep, days, p.seed + 6, start),
+    mood: generateHistory(p.mood, days, p.seed + 7, start),
+    spo2: generateHistory(p.spo2, days, p.seed + 10, start),
+  }
+  const full = Object.fromEntries(
+    (Object.keys(recent) as SeriesKey[]).map((k, i) => [k, [...extendBack(p[k], extra, p.seed + 50 + i, start, SERIES_CLAMP[k]), ...recent[k]]]),
+  ) as Record<SeriesKey, HistoryPoint[]>
+  // Baseline from the original 14-day window, before seed events (so they never shift it).
+  const baseline = baselineFromHistory(p.id, { heart_rate: recent.hr, blood_pressure: recent.sys, blood_sugar: recent.glucose, body_temp: recent.temp, sleep_hours: recent.sleep, mood: recent.mood, spo2: recent.spo2 })
+  for (const e of p.events ?? []) {
+    const pt = full[e.key].find((x) => x.day === e.day)
+    if (pt) pt.value = e.value
+  }
+  // Blood sugar is a WEEKLY fasting check-in: keep one reading every 7 days (3 in the 21 days).
+  full.glucose = full.glucose.filter((pt) => (p.missionDay - pt.day) % 7 === 0)
+  const { hr, sys, dia, glucose, temp, sleep, mood, spo2 } = full
+  const fullStart = hr[0]?.day ?? start
+  const fullDays = p.missionDay - fullStart + 1
   // Radiation + bone follow the phase schedule day by day (the body's "bank account").
-  const radiation = phaseAwareCumulative(mission, start, days, p.seed + 8)
-  const bone = phaseAwareBoneLoss(mission, start, days, p.seed + 9)
+  const radiation = phaseAwareCumulative(mission, fullStart, fullDays, p.seed + 8)
+  const bone = phaseAwareBoneLoss(mission, fullStart, fullDays, p.seed + 9)
+  const diaByDay = new Map(dia.map((pt) => [pt.day, Math.round(pt.value)]))
+  const bpHistory = sys.map((pt) => ({ ...pt, diastolic: diaByDay.get(pt.day) }))
 
   return {
     id: p.id,
@@ -971,11 +1031,11 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
     missionLengthDays: mission.totalDays,
     priorCareerDoseMSv: p.priorCareerDoseMSv,
     notes: p.notes,
-    baseline: baselineFromHistory(p.id, { heart_rate: hr, blood_pressure: sys, blood_sugar: glucose, body_temp: temp, sleep_hours: sleep, mood, spo2 }),
+    baseline,
     indicators: [
       indicator('heart_rate', last(hr), hr),
       // Chart series for BP tracks systolic; value carries both numbers.
-      indicator('blood_pressure', `${Math.round(last(sys))}/${Math.round(last(dia))}`, sys),
+      indicator('blood_pressure', `${Math.round(last(sys))}/${Math.round(last(dia))}`, bpHistory),
       indicator('blood_sugar', last(glucose), glucose),
       indicator('body_temp', last(temp), temp),
       indicator('spo2', last(spo2), spo2),
@@ -1060,6 +1120,14 @@ export const CREW_PROFILES: AstronautProfile[] = [
     sleep: { baseline: 6.3, drift: 0, noise: 0.5, decimals: 1 }, // ISS average ~6 h
     mood: { baseline: 4.3, drift: 0, noise: 0.5, decimals: 0 },
     spo2: { baseline: 98, drift: 0, noise: 0.8, decimals: 0 },
+    // Day 75: short fever after a cold (resolved). Day 78-83: a few Watch days.
+    events: [
+      { day: 75, key: 'temp', value: 38.6 },
+      { day: 76, key: 'temp', value: 38.1 },
+      { day: 78, key: 'hr', value: 104 },
+      { day: 78, key: 'glucose', value: 148 },
+      { day: 83, key: 'sleep', value: 5.4 },
+    ],
   }),
   buildProfile({
     id: 'crew-mars',
@@ -1083,6 +1151,13 @@ export const CREW_PROFILES: AstronautProfile[] = [
     sleep: { baseline: 6.4, drift: -0.03, noise: 0.5, decimals: 1 },
     mood: { baseline: 3.6, drift: -0.03, noise: 0.4, decimals: 0 },
     spo2: { baseline: 97, drift: 0, noise: 0.8, decimals: 0 },
+    // Early transit: a low-oxygen reading during a cabin scrubber fault, one high BP day, one post-meal glucose spike.
+    events: [
+      { day: 27, key: 'spo2', value: 94 },
+      { day: 30, key: 'sys', value: 134 },
+      { day: 30, key: 'dia', value: 87 },
+      { day: 31, key: 'glucose', value: 152 },
+    ],
   }),
   buildProfile({
     id: 'crew-moon',
@@ -1106,6 +1181,13 @@ export const CREW_PROFILES: AstronautProfile[] = [
     sleep: { baseline: 6.0, drift: -0.08, noise: 0.4, decimals: 1 },
     mood: { baseline: 4.4, drift: -0.08, noise: 0.4, decimals: 0 },
     spo2: { baseline: 96, drift: -0.15, noise: 0.6, decimals: 0 }, // 8.2 psia habitat + dust
+    // Day 9: the dust exposure in the notes (low SpO2, warm); day 12: one low-mood day.
+    events: [
+      { day: 3, key: 'hr', value: 103 },
+      { day: 9, key: 'spo2', value: 93 },
+      { day: 9, key: 'temp', value: 37.8 },
+      { day: 12, key: 'mood', value: 2 },
+    ],
   }),
 ]
 
