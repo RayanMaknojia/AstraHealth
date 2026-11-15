@@ -6645,5 +6645,119 @@ body:has(.medic-app) {
   height: auto;
   align-self: start;
 }
-.revised-checkin [data-slot="field-label"]:has(output) > .required-field-heading,
-.revised-checkin [data-slot="field-label"] > output { flex-shrink: 0; white-space: nowrap; }
+.revised-checkin
+  [data-slot="field-label"]:has(output)
+  > .required-field-heading,
+.revised-checkin [data-slot="field-label"] > output {
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+/* Approved Home prototype: compact vitals and briefing at left, aligned scan at right. */
+.revised-home .home-health-columns {
+  grid-template-columns: minmax(0, 2fr) minmax(280px, 1fr);
+  align-items: stretch;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+.revised-home .home-health-content {
+  display: grid;
+  grid-column: 1;
+  grid-row: 1;
+  grid-template-rows: auto auto;
+  align-content: start;
+  gap: 12px;
+  min-width: 0;
+}
+.revised-home .home-health-content .revised-vitals {
+  grid-column: auto;
+  grid-row: auto;
+  height: auto;
+  margin: 0;
+  align-self: start;
+  gap: 12px;
+}
+.workspace .revised-home .revised-vitals .vital-tile {
+  min-height: 158px;
+  padding: 15px;
+  justify-content: space-between;
+  gap: 6px;
+}
+.revised-home .revised-vitals .vital-label {
+  min-height: 20px;
+}
+.workspace .revised-home .revised-vitals .vital-value {
+  margin: 6px 0;
+  font-size: 32px;
+  line-height: 1.25;
+  font-weight: 750;
+}
+.revised-home .home-health-content .briefing-compact {
+  grid-column: auto;
+  grid-row: auto;
+  margin: 0;
+  padding: 18px;
+  min-width: 0;
+}
+.revised-home .briefing-compact .briefing-alerts,
+.revised-home .briefing-compact .briefing-escalation {
+  display: none;
+}
+.revised-home .briefing-compact .briefing-summary {
+  font-size: 15px !important;
+  line-height: 1.65 !important;
+  margin-bottom: 0 !important;
+}
+.revised-home .briefing-compact .briefing-actions {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid #314754;
+}
+.revised-home .briefing-compact .briefing-actions > button {
+  background: transparent;
+  border: 0;
+  color: var(--primary);
+  padding-left: 0;
+  padding-right: 0;
+  box-shadow: none;
+}
+.revised-home .home-health-columns > .home-scan {
+  display: grid;
+  grid-column: 2;
+  grid-row: 1;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  align-self: stretch;
+  height: auto;
+  min-height: 0;
+  gap: 10px;
+  padding: 18px;
+}
+.revised-home .home-scan .home-scan-stage {
+  height: auto;
+  min-height: 0;
+}
+.revised-home .home-scan .home-scan-stage img {
+  position: absolute;
+  inset: 0;
+}
+@media (max-width: 1200px) {
+  .workspace .revised-home .revised-vitals .vital-value {
+    font-size: 27px;
+  }
+}
+@media (max-width: 1000px) {
+  .revised-home .home-health-columns {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .revised-home .home-health-content {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .revised-home .home-health-columns > .home-scan {
+    grid-column: 1;
+    grid-row: 2;
+    height: auto;
+  }
+  .revised-home .home-scan .home-scan-stage {
+    height: 420px;
+  }
+}
