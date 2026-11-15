@@ -252,7 +252,7 @@ Phase 7 ChatGPT presentation updates (see docs/phases/phase7.chatgpt.md):
 
 Phase 5 Claude: Gemini, health database, body scan, auto-SOS (see docs/phases/phase5Claude.md):
 [x] Python server (`server/app.py`, stdlib only): `/api/scan` trend-following KPI generator (~12% Watch/Alert anomalies) and `/api/ai/json` Gemini proxy (key in `server/.env`, model fallback chain). Browser never holds the key.
-[x] IndexedDB health database (`src/services/healthDb.ts`): readings, scans, briefings, photos, uploads, SOS. 21 days of seeded history per astronaut (realistic mix of Normal / Watch / Alert days), every new reading appended and coloured by docs/health_rules.md; profile rebuilt from the database at login.
+[x] IndexedDB health database (`src/services/healthDb.ts`): readings, scans, briefings, photos, uploads, SOS. seeded history for the whole mission so far per astronaut (realistic mix of Normal / Watch / Alert days), every new reading appended and coloured by docs/health_rules.md; profile rebuilt from the database at login.
 [x] Home "Start scan" → new readings (Python, browser fallback) → database → emergency check → new briefing.
 [x] Full medical briefing (`aiBriefing.ts`): last check-in, last 24 h, past 7 days, concerns, next checks, interim steps; Gemini writes it, offline rules otherwise; never greener than the rules.
 [x] Skin / injury photo first look: 11 classes (adds bite, scab, scar, infection, rash), processed pixel data (red / dark / yellow %), Gemini with the astronaut's vitals, symptoms and earlier photos; context-aware severity.

@@ -129,7 +129,7 @@ The same spot flagged earlier raises the colour by one step. Gemini's view can o
 
 ### Measurement sources
 - The body scan measures heart rate, temperature, SpO2 and blood pressure only.
-- **Blood sugar** comes only from the **weekly fasting check-in** (or a lab report): one reading every 7 days in the seeded history, and it stays valid for 8 days.
+- **Blood sugar** comes only from the **weekly fasting check-in** (or a lab report): one reading every 7 days in the seeded history, and it stays valid for 8 days. **Bone density** comes from the weekly guided ultrasound scan: one reading every 7 days.
 
 ### Full briefing
 Colours of every data line (last check-in, last 24 h, past 7 days) come from this file. Gemini writes the words; its overall status is never greener than the rules.
