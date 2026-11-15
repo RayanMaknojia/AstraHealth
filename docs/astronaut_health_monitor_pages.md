@@ -1,7 +1,7 @@
 # Astronaut Health Monitor: Pages and KPIs
 
 NASA Space Apps Challenge 2026
-Companion to `astronaut_health_monitor_plan.md`
+Companion to `docs/astronaut_health_monitor_plan.md`
 
 ---
 
@@ -678,4 +678,4 @@ All overrides:
 * Private medical communications are private (NASA STD 3001): https://www.nasa.gov/reference/6-0-medical-operations/
 * Wound image dataset (AZH): https://github.com/uwm-bigdata/Multi-modal-wound-classification-using-images-and-locations
 * Injury image datasets (cut, burn, bruise, abrasion): https://universe.roboflow.com/john-byfby/injury-rghvp
-* Cabin limits, radiation limits and environment values: see `astronaut_health_monitor_plan.md`
+* Cabin limits, radiation limits and environment values: see `docs/astronaut_health_monitor_plan.md`

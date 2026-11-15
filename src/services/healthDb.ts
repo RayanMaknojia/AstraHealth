@@ -11,7 +11,7 @@
  *   meta       seed flags
  *
  * The first time an astronaut opens the app, 21 days of simulated history are written
- * (SEED_HISTORY_DAYS), each reading tagged with its colour (health_rules.md).
+ * (SEED_HISTORY_DAYS), each reading tagged with its colour (docs/health_rules.md).
  * After that, every new reading is APPENDED; the profile on screen is rebuilt from here.
  * Falls back to an in-memory store when IndexedDB is unavailable (tests / private mode).
  */
@@ -159,7 +159,7 @@ export async function isPersistent(): Promise<boolean> {
   return (await openDb()) !== null
 }
 
-// ── Colour of a single reading (health_rules.md) ───────────────────────────
+// ── Colour of a single reading (docs/health_rules.md) ───────────────────────────
 
 const numeric = (v: number | string): number | null => {
   if (typeof v === 'number') return Number.isFinite(v) ? v : null

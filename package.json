@@ -3,7 +3,7 @@
   "private": true,
   "description": "AstraHealth: offline-first astronaut health monitoring (NASA Space Apps Challenge 2026).",
   "siAssisted": true,
-  "siDisclosure": "Built with SI assistance (Claude Code, OpenAI Codex/ChatGPT); SI-generated images are watermarked; runtime AI text is labelled. See SI_DISCLOSURE.md and si-metadata.json.",
+  "siDisclosure": "Built with SI assistance (Claude Code, OpenAI Codex/ChatGPT); SI-generated images are watermarked; runtime AI text is labelled. See the README and docs/si-metadata.json.",
   "version": "2.0.0",
   "type": "module",
   "scripts": {

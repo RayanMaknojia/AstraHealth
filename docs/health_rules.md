@@ -3,8 +3,8 @@
 NASA Space Apps Challenge 2026 · **Single source of truth for status colours.**
 
 This file reconciles the three team documents:
-- `astronaut_health_monitor_plan.md` (reference doc §5-§7)
-- `astronaut_health_monitor_pages.md` (pages and KPIs)
+- `docs/astronaut_health_monitor_plan.md` (reference doc §5-§7)
+- `docs/astronaut_health_monitor_pages.md` (pages and KPIs)
 - what was built in Phase 2 (`src/services/healthEvaluator.ts`)
 
 Where they disagreed, the rule below was chosen for being **safer, less noisy, or closer to real spaceflight practice**. The reason is written next to each choice. The code in `src/data/nasaSpaceflightData.ts` (`THRESHOLDS`, `SPACE_ADJUSTMENT_RULES`) and `src/services/healthEvaluator.ts` implements exactly this table.
