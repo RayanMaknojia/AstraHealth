@@ -84,9 +84,7 @@ export function Checkin({
       return { bodyTempC: v.bodyTempC, mood: v.mood, sleepHours: v.sleepHours };
     }),
     [symptoms, setSymptoms] = useState<string[]>([]);
-  const [confirmed, setConfirmed] = useState(false),
-    [override, setOverride] = useState(false),
-    [extras, setExtras] = useState<CheckinExtras>({
+  const [extras, setExtras] = useState<CheckinExtras>({
       sleepQuality: 3,
       fatigue: 3,
     }),
@@ -117,7 +115,7 @@ export function Checkin({
       !i.history.length ||
       currentDay - i.history.at(-1)!.day > 6 / 24,
   );
-  const manual = override || missing.length > 0;
+  const manual = missing.length > 0;
   const weekly = slot === "weekly",
     extended = slot === "monthly";
   const available = visibleSchedule(profile);
@@ -168,12 +166,6 @@ export function Checkin({
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    if (!manual && !confirmed) {
-      setError(
-        "Confirm the shirt/watch readings or choose “Something’s off” to enter them manually.",
-      );
-      return;
-    }
     if (
       weekly &&
       (!values.fasting || !extras.reactionMs || !food || !hydration)
@@ -258,48 +250,11 @@ export function Checkin({
             <small>No breathing sensor reading available</small>
           </div>
         </div>
-        <div className="wearable-confirm">
-          <Button
-            variant={confirmed ? "default" : "outline"}
-            onClick={() => {
-              setConfirmed(true);
-              setOverride(false);
-              setValues((v) => ({
-                ...v,
-                heartRateBpm: source.heartRateBpm,
-                systolicMmHg: source.systolicMmHg,
-                diastolicMmHg: source.diastolicMmHg,
-                spo2Pct: source.spo2Pct,
-                sleepHours: source.sleepHours,
-              }));
-            }}
-          >
-            <Check data-icon="inline-start" />
-            Looks right ✓
-          </Button>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setOverride(true);
-              setConfirmed(false);
-              setValues((v) => ({
-                ...v,
-                heartRateBpm: source.heartRateBpm,
-                systolicMmHg: source.systolicMmHg,
-                diastolicMmHg: source.diastolicMmHg,
-                spo2Pct: source.spo2Pct,
-                sleepHours: source.sleepHours,
-              }));
-            }}
-          >
-            Something’s off
-          </Button>
-        </div>
         {missing.length > 0 && (
           <p className="manual-notice" role="status">
             Manual inputs are available: {missing.map((i) => i.name).join(", ")}{" "}
-            is missing, unverified, or more than 6 hours old. Please confirm or
-            retake these measurements.
+            is missing, unverified, or more than 6 hours old. Enter a fresh
+            measurement below when available.
           </p>
         )}
       </Panel>
@@ -597,6 +552,7 @@ export function Checkin({
                     "Movement",
                     "Sleep",
                     "Crew wellbeing",
+                    "Eye Exam (SANS / visual acuity & ocular check)",
                   ].map((item, n) => (
                     <li key={item}>
                       <label>

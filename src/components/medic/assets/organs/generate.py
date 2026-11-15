@@ -104,3 +104,46 @@ ell('Femoral head',(.38,0,1.15),(.24,.24,.24),bone)
 ell('Medial condyle',(.22,0,-1.05),(.24,.25,.28),bone)
 ell('Lateral condyle',(-.13,0,-1.05),(.23,.24,.27),bone)
 export('bone')
+reset()
+# Thorax, pelvis, upper arms and proximal legs: bone landmarks plus layered muscle bellies.
+muscle=mat('Skeletal muscle tissue',(.43,.12,.12),.58)
+tendon=mat('Tendon and fascia',(.72,.61,.49),.65)
+# Vertebrae and central sternum.
+for n in range(14):
+ z=-.55+n*.13
+ ell('Vertebral body',(0,.15,z),(.11,.10,.065),bone)
+ tube('Spinous process',[(0,.18,z),(0,.32,z-.035)],.022,bone)
+tube('Sternum',[(0,-.27,1.11),(0,-.32,.73),(0,-.27,.40)],.045,bone)
+for side in [-1,1]:
+ # Curved individual rib pairs with posterior articulation and anterior cartilage.
+ for n in range(9):
+  z=1.16-n*.095;w=.37+.12*math.sin(n/8*math.pi)
+  tube('Rib',[(side*.06,.14,z),(side*w,.10,z+.015),(side*(w+.07),-.13,z-.03),(side*.27,-.31,z-.14),(side*.045,-.29,z-.16)],.022,bone)
+ tube('Clavicle',[(side*.03,-.20,1.20),(side*.25,-.17,1.26),(side*.55,-.04,1.20)],.044,bone)
+ ell('Scapula',(side*.35,.21,.98),(.22,.045,.27),bone,(0,side*.3,0))
+ # Humerus with deltoid and biceps; small glenohumeral landmark.
+ ell('Humeral head',(side*.58,0,1.16),(.10,.10,.11),bone)
+ tube('Humerus',[(side*.60,0,1.11),(side*.70,0,.70),(side*.76,.01,.30)],.055,bone)
+ ell('Deltoid',(side*.61,-.04,1.10),(.15,.15,.23),muscle,(0,-side*.26,0))
+ ell('Biceps',(side*.70,-.085,.70),(.10,.11,.29),muscle,(0,-side*.18,0))
+ tube('Biceps tendon',[(side*.72,-.07,.44),(side*.77,-.025,.28)],.027,tendon)
+ # Iliac wings and pelvic arch, leaving the ring opening visible.
+ tube('Iliac crest',[(side*.10,.14,-.36),(side*.36,.11,-.33),(side*.45,-.02,-.49),(side*.37,-.13,-.67),(side*.18,-.15,-.77)],.065,bone)
+ tube('Pubic ramus',[(side*.34,-.11,-.67),(side*.20,-.18,-.94),(0,-.19,-.79)],.045,bone)
+ tube('Femoral neck',[(side*.23,0,-.73),(side*.40,0,-.85),(side*.43,0,-1.02)],.06,bone)
+ ell('Femoral head',(side*.22,0,-.72),(.09,.09,.09),bone)
+ tube('Femur',[(side*.43,0,-.98),(side*.39,.025,-1.43),(side*.34,0,-1.83)],.065,bone)
+ ell('Femoral condyle',(side*.34,0,-1.84),(.11,.12,.11),bone)
+ # One side exposes bone; other side shows major muscle groups and fascia fibres.
+ if side==-1:
+  ell('Pectoralis major',(side*.27,-.31,.96),(.25,.08,.18),muscle,(0,-.2,0))
+  ell('External oblique',(side*.29,-.16,.20),(.17,.09,.33),muscle,(0,-.15,0))
+  ell('Vastus lateralis',(side*.46,-.035,-1.30),(.12,.14,.38),muscle,(0,.11,0))
+  ell('Rectus femoris',(side*.34,-.11,-1.32),(.095,.08,.35),muscle,(0,.10,0))
+  for n in range(6):
+   x=side*(.27+n*.032)
+   tube('Muscle fibre',[(x,-.335,1.08),(x*.7,-.39,.96),(side*.50,-.20,.88)],.006,tendon)
+  tube('Quadriceps tendon',[(side*.35,-.10,-1.57),(side*.34,-.10,-1.81)],.035,tendon)
+for n in range(4):
+ ell('Rectus abdominis',(-.09,-.22,.38-n*.15),(.075,.055,.065),muscle)
+export('musculoskeletal')

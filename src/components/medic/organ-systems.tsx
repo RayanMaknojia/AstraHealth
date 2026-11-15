@@ -7,13 +7,13 @@ import brain from "./assets/organs/brain.glb?url";
 import heart from "./assets/organs/heart.glb?url";
 import liver from "./assets/organs/liver.glb?url";
 import dna from "./assets/organs/dna.glb?url";
-import bone from "./assets/organs/bone.glb?url";
+import musculoskeletal from "./assets/organs/musculoskeletal.glb?url";
 const systems: { id: BodySystem; label: string; url: string }[] = [
   { id: "behavioral", label: "Brain and wellbeing", url: brain },
   { id: "cardiovascular", label: "Heart and circulation", url: heart },
   { id: "metabolic", label: "Metabolism", url: liver },
   { id: "radiation_immune", label: "Immune and radiation", url: dna },
-  { id: "musculoskeletal", label: "Bones and muscle", url: bone },
+  { id: "musculoskeletal", label: "Bones and muscle", url: musculoskeletal },
 ];
 export function OrganSystems({
   selected,

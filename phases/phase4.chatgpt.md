@@ -4,6 +4,7 @@
 **Branch:** `codex/space-medic-home-redesign`
 **Source:** User-uploaded `final.md.pdf`, titled "UI Change Instructions".
 **Starting checkpoint:** Build 3, `7b21f9d`.
+**Implementation commit:** `551e958`.
 **Build:** 4
 **Status:** Implemented on the frontend branch, with verification and limits recorded below.
 
@@ -110,6 +111,6 @@ Browser plugin was unavailable, so verification used Chromium through Playwright
 | 1 | `8722c3f` | Generated body on Home plus separate Body Map |
 | 2 | `4216a4d` | Body removed from Home, moved into Body Map |
 | 3 | `7b21f9d` | Rotating SVG organ cards added on Body Map |
-| 4 | Current frontend branch | Phase 4 UI implementation documented here |
+| 4 | `551e958` | Phase 4 UI implementation documented here |
 
 Phase numbers here identify ChatGPT's UI history. Claude's phase numbers describe its backend history independently.

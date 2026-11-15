@@ -17,7 +17,6 @@ import type {
   HealthIndicator,
   MissionState,
   AstronautProfile,
-  BodySystem,
 } from "@/types/astronaut";
 import {
   boundsFor,
@@ -44,6 +43,39 @@ const chartTooltip = {
   color: "#e6f0f7",
   fontSize: 12,
 };
+function HistoryDot({
+  cx,
+  cy,
+  value,
+  today,
+  color,
+}: {
+  cx?: number;
+  cy?: number;
+  value?: number;
+  today: boolean;
+  color: string;
+}) {
+  if (
+    typeof cx !== "number" ||
+    typeof cy !== "number" ||
+    !Number.isFinite(cx) ||
+    !Number.isFinite(cy) ||
+    typeof value !== "number" ||
+    !Number.isFinite(value)
+  )
+    return <g />;
+  return (
+    <circle
+      cx={cx}
+      cy={cy}
+      r={today ? 5 : 3}
+      fill={today ? "#0b141d" : color}
+      stroke={color}
+      strokeWidth={2}
+    />
+  );
+}
 export function VitalChart({
   indicator,
   state,
@@ -119,9 +151,9 @@ export function VitalChart({
   ];
   const low = Math.min(...all);
   const high = Math.max(...all);
-  const pad = Math.max((high - low) * 0.25, 1);
+  const pad = Math.max((high - low) * 0.25, Math.abs(high) * 0.03, 1);
   const min = low - pad;
-  const max = high + pad;
+  const max = Math.max(high + pad, indicator.id === "spo2" ? 102 : -Infinity);
   const boundaries = [
     min,
     ...Object.values(bounds).filter(
@@ -214,7 +246,7 @@ export function VitalChart({
                 <div style={chartTooltip}>
                   <strong>Mission day {Number(label).toFixed(3)}</strong>
                   {payload[0]?.payload?.today && range !== 1 && (
-                    <p>Today so far (average)</p>
+                    <p>Today so far (daily multi-reading average)</p>
                   )}
                   <p>
                     Source:{" "}
@@ -290,14 +322,12 @@ export function VitalChart({
             name="Wearable"
             stroke="#5fe2e7"
             dot={({ cx, cy, payload }) => (
-              <circle
-                key={`${cx}-${cy}`}
+              <HistoryDot
                 cx={cx}
                 cy={cy}
-                r={payload.today && range !== 1 ? 5 : 3}
-                fill={payload.today && range !== 1 ? "#0b141d" : "#9abbd9"}
-                stroke="#9abbd9"
-                strokeWidth={2}
+                value={payload?.wearable}
+                today={payload?.today && range !== 1}
+                color="#5fe2e7"
               />
             )}
             connectNulls
@@ -310,14 +340,12 @@ export function VitalChart({
             name="Manual / clinical entry"
             stroke="#7eb2ed"
             dot={({ cx, cy, payload }) => (
-              <circle
-                key={`${cx}-${cy}`}
+              <HistoryDot
                 cx={cx}
                 cy={cy}
-                r={payload.today && range !== 1 ? 5 : 3}
-                fill={payload.today && range !== 1 ? "#0b141d" : "#9abbd9"}
-                stroke="#9abbd9"
-                strokeWidth={2}
+                value={payload?.manual}
+                today={payload?.today && range !== 1}
+                color="#7eb2ed"
               />
             )}
             connectNulls
@@ -330,14 +358,12 @@ export function VitalChart({
             name="Environment / synthetic"
             stroke="#d6e2e8"
             dot={({ cx, cy, payload }) => (
-              <circle
-                key={`${cx}-${cy}`}
+              <HistoryDot
                 cx={cx}
                 cy={cy}
-                r={payload.today && range !== 1 ? 5 : 3}
-                fill={payload.today && range !== 1 ? "#0b141d" : "#9abbd9"}
-                stroke="#9abbd9"
-                strokeWidth={2}
+                value={payload?.synthetic}
+                today={payload?.today && range !== 1}
+                color="#d6e2e8"
               />
             )}
             connectNulls
@@ -347,20 +373,18 @@ export function VitalChart({
           <Line
             type="monotone"
             dataKey="mixed"
-            name="Combined daily average"
+            name="Daily multi-reading average"
             stroke="#b8a0e7"
             strokeWidth={2}
             connectNulls
             isAnimationActive={false}
             dot={({ cx, cy, payload }) => (
-              <circle
-                key={`${cx}-${cy}`}
+              <HistoryDot
                 cx={cx}
                 cy={cy}
-                r={payload.today ? 5 : 3}
-                fill={payload.today ? "#0b141d" : "#b8a0e7"}
-                stroke="#b8a0e7"
-                strokeWidth={2}
+                value={payload?.mixed}
+                today={payload?.today && range !== 1}
+                color="#b8a0e7"
               />
             )}
           />
@@ -425,21 +449,15 @@ export function Trends({
   state,
   selectedId,
   onSelect,
-  system,
-  clearSystem,
 }: {
   profile: AstronautProfile;
   state: MissionState;
   selectedId: string;
   onSelect: (id: string) => void;
-  system?: BodySystem | null;
-  clearSystem?: () => void;
 }) {
-  const [range, setRange] = useState(30);
+  const [range, setRange] = useState(7);
   const [guide, setGuide] = useState<HealthIndicator | null>(null);
-  const choices = profile.indicators.filter(
-    (i) => !system || i.system === system,
-  );
+  const choices = profile.indicators;
   const indicator = choices.find((i) => i.id === selectedId) ?? choices[0];
   const dose = THRESHOLDS.radiation.careerLimitMSv;
   const exposures = Array.from({ length: 41 }, (_, n) => {
@@ -455,6 +473,7 @@ export function Trends({
         <label>
           Indicator
           <select
+            aria-label="Indicator"
             value={indicator.id}
             onChange={(e) => onSelect(e.target.value)}
           >
@@ -485,11 +504,6 @@ export function Trends({
             </button>
           ))}
         </div>
-        {system && (
-          <Button variant="outline" onClick={clearSystem}>
-            All systems
-          </Button>
-        )}
         <Button variant="outline" onClick={() => setGuide(indicator)}>
           <Info data-icon="inline-start" />
           Measurement guide
@@ -513,7 +527,7 @@ export function Trends({
           <span>Wearable (teal)</span>
           <span>Manual / clinical (blue)</span>
           <span>Environment / synthetic (white)</span>
-          <span>Combined daily average (purple)</span>
+          <span>Daily multi-reading average (purple)</span>
           <span>Personal baseline</span>
           <span>Projected drift (when available)</span>
           <small>Phase markers · Reference bands from health rules</small>
