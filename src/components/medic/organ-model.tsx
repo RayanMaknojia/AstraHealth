@@ -53,17 +53,36 @@ export function OrganModel({
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.3;
+    renderer.toneMappingExposure = 1.1;
     element.appendChild(renderer.domElement);
-    scene.add(new AmbientLight(new Color("#d7e5f5"), 1.7));
-    const key = new DirectionalLight("#ffffff", 3.5);
+    scene.add(new AmbientLight(new Color("#d7e5f5"), 0.8));
+    const key = new DirectionalLight("#fff3ed", 3.0);
     key.position.set(3, 4, 5);
     scene.add(key);
-    const rim = new DirectionalLight("#9cb9df", 2.5);
+    const rim = new DirectionalLight("#8ac9df", 2.0);
     rim.position.set(-3, 1, -2);
     scene.add(rim);
+    const fill = new DirectionalLight("#d1e4f2", 1.0);
+    fill.position.set(-3, 1, 4);
+    scene.add(fill);
     const pivot = new Group();
+    pivot.rotation.y = -0.25;
     scene.add(pivot);
+    let normalizedSize: Vector3 | null = null;
+    const fitCamera = () => {
+      if (!normalizedSize) return;
+      const tangent = Math.tan((camera.fov * Math.PI) / 360);
+      const width = Math.hypot(normalizedSize.x, normalizedSize.z);
+      const distance =
+        (Math.max(
+          normalizedSize.y / (2 * tangent),
+          width / (2 * tangent * camera.aspect),
+        ) +
+          Math.max(normalizedSize.x, normalizedSize.z) * 0.45) *
+        1.05;
+      camera.position.set(0, 0.06, distance);
+      camera.lookAt(0, 0, 0);
+    };
     const dispose = (object: Group) =>
       object.traverse((o) => {
         if (o instanceof Mesh) {
@@ -92,8 +111,8 @@ export function OrganModel({
         pivot.add(loaded);
         const scale = 2 / Math.max(size.x, size.y, size.z);
         pivot.scale.setScalar(scale);
-        camera.position.set(0, 0.15, 4.9);
-        camera.lookAt(0, 0, 0);
+        normalizedSize = size.clone().multiplyScalar(scale);
+        fitCamera();
         renderer.render(scene, camera);
       },
       undefined,
@@ -107,6 +126,7 @@ export function OrganModel({
       renderer.setSize(w, h);
       camera.aspect = w / Math.max(1, h);
       camera.updateProjectionMatrix();
+      fitCamera();
     });
     resize.observe(element);
     const observer = new IntersectionObserver((entries) => {

@@ -6934,3 +6934,74 @@ body:has(.medic-app) {
   display: grid;
   gap: 16px;
 }
+/* Reference-guided trip imagery: real image artwork, balanced optical scale. */
+.journey-art {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background-repeat: no-repeat;
+  background-size: 500% 166.666667%;
+  background-position-y: center;
+}
+.workspace .topbar {
+  padding-top: 12px;
+  padding-bottom: 12px;
+  min-height: 112px;
+}
+.mission-header-center {
+  gap: 4px;
+}
+.mission-header-center .trip-route {
+  min-height: 60px;
+  gap: 12px;
+}
+.topbar .trip-route .journey-endpoint {
+  display: block;
+  width: 60px;
+  height: 60px;
+  flex: 0 0 60px;
+}
+.topbar .trip-track > .journey-spacecraft {
+  width: 64px;
+  height: 64px;
+  background: transparent;
+  filter: drop-shadow(0 2px 3px #020711bb);
+  z-index: 2;
+}
+.topbar .trip-track {
+  height: 3px;
+}
+.trend-controls {
+  align-items: flex-end;
+}
+.trend-controls > label {
+  margin: 0;
+}
+.trend-controls select {
+  height: 48px;
+}
+.trend-controls .timeframe-toggle {
+  margin: 0;
+  align-items: center;
+}
+.trend-controls .timeframe-toggle button {
+  height: 48px;
+}
+.trend-controls > [data-slot="button"] {
+  min-height: 48px;
+}
+@media (max-width: 650px) {
+  .mission-header-center .trip-route {
+    min-height: 52px;
+    gap: 8px;
+  }
+  .topbar .trip-route .journey-endpoint {
+    width: 48px;
+    height: 48px;
+    flex-basis: 48px;
+  }
+  .topbar .trip-track > .journey-spacecraft {
+    width: 56px;
+    height: 56px;
+  }
+}

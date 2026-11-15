@@ -264,3 +264,11 @@ Phase 8 ChatGPT emergency-dialog acknowledgment fix (see phases/phase8.chatgpt.m
 [x] Reproduce the loop caused by confirming an escalated SOS while its original critical alert stays open.
 [x] Display all pending alerts and acknowledge exactly those displayed before reevaluation; use Confirm all for grouped alerts.
 [x] Verify dashboard access after confirmation, automatic reevaluation/reload, new SOS, retained readings and mobile confirmation. No backend or Home-layout changes.
+
+
+Phase 9 ChatGPT journey artwork and rotating anatomy (see phases/phase9.chatgpt.md):
+[x] Verify Claude’s PR #9 is merged and fast-forward the frontend branch to main at 7085952 before making changes.
+[x] Replace small journey icons with larger, balanced Earth/Moon/Mars/ISS artwork and a separate shuttle marker in the shared header.
+[x] Replace the five Body Map models with original reference-inspired brain, heart, liver, DNA and knee-to-foot bone/muscle meshes; retain system selection, pause and reduced motion.
+[x] Align the Trends indicator dropdown and timeframe buttons to matching heights and baseline.
+[x] Document generation, asset provenance, license and illustrative limits; verify lint/build and browser behavior across 25 page/viewport combinations. No changes to backend services, data or types.
