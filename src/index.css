@@ -7176,15 +7176,36 @@ body:has(.medic-app) {
   overflow: hidden;
 }
 .login-screen {
+  /* One composition that scales with the window: overall width, side padding,
+     gap and card width grow together, so big and small screens look balanced. */
+  --login-w: min(1520px, 100vw);
+  --login-pad: clamp(24px, 5vw, 96px);
+  --login-gap: clamp(48px, 7vw, 160px);
+  --login-card: clamp(360px, 30vw, 500px);
+  /* Width of the headline column (everything that is not padding, gap or card). */
+  --login-col: calc(var(--login-w) - 2 * var(--login-pad) - var(--login-gap) - var(--login-card));
+  --login-ring-vh: 86vh;
+  width: 100%;
+  max-width: var(--login-w);
   height: 100dvh;
   min-height: 0;
   margin: 0 auto;
+  grid-template-columns: minmax(0, 1fr) var(--login-card);
+  column-gap: var(--login-gap);
   /* Bottom padding leaves room for the footer line. */
-  padding: clamp(16px, 4vh, 48px) 50px max(48px, 6vh);
+  padding: clamp(16px, 4vh, 48px) var(--login-pad) max(48px, 6vh);
   align-content: safe center;
   /* Only scrolls if a very small screen cannot fit the card. */
   overflow-y: auto;
   overflow-x: hidden;
+}
+.login-screen > .login-copy {
+  /* Headline block centred in its column, so the rings centre in the space beside the card. */
+  justify-self: center;
+}
+.login-footer {
+  left: var(--login-pad);
+  right: var(--login-pad);
 }
 /* Orbit rings centre on the headline and are sized to stay inside the window. */
 .login-copy {
@@ -7196,7 +7217,9 @@ body:has(.medic-app) {
   position: absolute;
   left: 50%;
   top: 50%;
-  width: min(720px, 86vh, calc(100% + 100px + max(0px, 100vw - 1160px)));
+  /* Never wider than the headline column plus half the gap (keeps clear of the card),
+     never taller than the window. */
+  width: min(780px, var(--login-ring-vh), calc(var(--login-col) + var(--login-gap) * 0.5));
   height: auto;
   aspect-ratio: 1;
   transform: translate(-50%, -50%);
@@ -7240,8 +7263,8 @@ body:has(.medic-app) {
   .login-screen {
     height: 80dvh;
   }
-  .login-copy .login-orbit {
-    width: min(720px, 69vh);
+  .login-screen {
+    --login-ring-vh: 69vh;
   }
 }
 /* Phones: brand, headline and card stacked and centred. */
