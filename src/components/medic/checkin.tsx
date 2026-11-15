@@ -83,10 +83,19 @@ function Rating({
         aria-required={required}
         aria-label={label}
         aria-valuetext={
-          value === undefined ? "Not yet provided" : `${value} out of 5`
+          value === undefined
+            ? "Not yet provided. Press Enter to choose 3, or use the arrow keys"
+            : `${value} out of 5`
         }
         onPointerUp={(e) => onChange(Number(e.currentTarget.value))}
         onChange={(e) => onChange(Number(e.target.value))}
+        onKeyDown={(e) => {
+          // Keyboard users: Enter or Space confirms the value shown (e.g. the starting 3).
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            onChange(Number(e.currentTarget.value));
+          }
+        }}
       />
       {help && <small>{help}</small>}
     </Field>

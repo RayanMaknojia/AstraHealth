@@ -229,6 +229,10 @@ export function HomeScan({
                 <title>
                   {r.label}. {data.reason}
                 </title>
+                {r.id === "neck" && (
+                  // Invisible padding: the neck is small, so give it a 24 px+ touch target.
+                  <rect x="126" y="57" width="48" height="30" fill="transparent" />
+                )}
                 <path
                   d={r.shape}
                   fill="currentColor"
@@ -260,7 +264,7 @@ export function HomeScan({
                 if (!s) return setScanInfo("Scan readings could not be saved.");
                 const r = s.readings;
                 setScanInfo(
-                  `${s.generator === "python" ? "Python scanner" : "Browser scanner (Python server offline)"}: HR ${r.heart_rate} bpm · ${r.body_temp} °C · SpO2 ${r.spo2}% · BP ${r.systolic}/${r.diastolic}${s.anomaly ? `. ${KPI_LABEL[s.anomaly.kpi] ?? s.anomaly.kpi}: ${s.anomaly.level === "critical" ? "Alert" : "Watch"}` : ""}`,
+                  `${s.generator === "python" ? "Body scanner" : "Onboard scanner"}: HR ${r.heart_rate} bpm · ${r.body_temp} °C · SpO2 ${r.spo2}% · BP ${r.systolic}/${r.diastolic}${s.anomaly ? `. ${KPI_LABEL[s.anomaly.kpi] ?? s.anomaly.kpi}: ${s.anomaly.level === "critical" ? "Alert" : "Watch"}` : ""}`,
                 );
               });
             if (matchMedia("(prefers-reduced-motion: reduce)").matches) {
