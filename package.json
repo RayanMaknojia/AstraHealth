@@ -1,10 +1,15 @@
 {
-  "name": "shadcn-dashboard-vite",
+  "name": "astrahealth",
   "private": true,
+  "description": "AstraHealth: offline-first astronaut health monitoring (NASA Space Apps Challenge 2026).",
+  "siAssisted": true,
+  "siDisclosure": "Built with SI assistance (Claude Code, OpenAI Codex/ChatGPT); SI-generated images are watermarked; runtime AI text is labelled. See SI_DISCLOSURE.md and si-metadata.json.",
   "version": "2.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "dev": "node scripts/dev.mjs",
+    "dev:web": "vite",
+    "server": "python server/app.py",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"

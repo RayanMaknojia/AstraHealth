@@ -20,6 +20,7 @@ import type {
 } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
 import { statusOf } from "./status";
+import { SiBadge } from "./primitives";
 import type { MissionModel } from "./use-mission";
 import humanModel from "./assets/human-model.webp";
 const regions: {
@@ -240,6 +241,7 @@ export function HomeScan({
             );
           })}
         </svg>
+        <SiBadge />
         {startAt !== null && (
           <div
             className="home-scan-line"

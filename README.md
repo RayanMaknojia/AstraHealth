@@ -1,25 +1,19 @@
-# Space Medic
+# AstraHealth
 
-Astronaut health monitoring demo for NASA Space Apps Challenge 2026.
+Offline-first health monitoring and self-assessment for astronauts on ISS, Moon and Mars missions. NASA Space Apps Challenge 2026, challenge: *Create Health Monitoring Software for Astronauts on Space Missions*.
+
+> **SI disclosure:** built with Super Intelligence (AI) assistance. SI-generated images carry a visible "SI-generated" watermark in the app; AI-written text is labelled. Details: [SI_DISCLOSURE.md](SI_DISCLOSURE.md) and [si-metadata.json](si-metadata.json).
 
 ## Run locally
-
-The app has two parts. Run each in its own terminal.
-
-1. **Python server** (body-scan generator + Gemini). Standard library only, nothing to install:
-
-```bash
-python server/app.py
-```
-
-2. **Web app:**
 
 ```bash
 npm install
 npm run dev
 ```
 
-Open the localhost address printed by Vite (it forwards `/api` to the Python server on port 8787).
+`npm run dev` starts both parts: the **Python server** (body-scan generator + AI proxy, standard library only) on port 8787 and the **web app**. Open the address Vite prints. If Python is not installed, the app still runs with offline fallbacks; you can also start the server yourself with `python server/app.py` (or `npm run server`) and only the web app with `npm run dev:web`.
+
+The app always opens on the login page; a login lasts for the browser tab.
 
 **Gemini key:** copy `server/.env.example` to `server/.env` and set `GEMINI_API_KEY=...`. The key stays in the Python server and never reaches the browser; `server/.env` is git-ignored. Without the key, or without the Python server, everything still works: the scan uses a built-in browser generator and the briefing, photo check and SOS checks use offline rules (the UI says which one was used).
 

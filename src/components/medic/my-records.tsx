@@ -113,7 +113,7 @@ export function MyRecords({ model }: { model: MissionModel }) {
     );
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
-    a.download = `space-medic-${id}-records.json`;
+    a.download = `astrahealth-${id}-records.json`;
     a.click();
     setTimeout(() => URL.revokeObjectURL(a.href), 1000);
   };
@@ -226,7 +226,7 @@ export function MyRecords({ model }: { model: MissionModel }) {
 
       <Panel title={`Reports and files (${data.uploads.length})`}>
         {!data.uploads.length && (
-          <p>Nothing sent yet from “Something wrong? Tell Space Medic”.</p>
+          <p>Nothing sent yet from “Something wrong? Tell AstraHealth”.</p>
         )}
         <ul className="records-list">
           {data.uploads.map((u, n) => (
