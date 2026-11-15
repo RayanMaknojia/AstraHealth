@@ -1,4 +1,4 @@
-# Phase 3 Backend (Claude Code): Every Remaining Page Has a Backend
+# Phase 4 (Claude Code): Backend for Every Remaining Page
 
 **Owner:** Claude Code (backend, data and systems)
 **Branch:** `claude/clever-bardeen-mn9gw6`
@@ -60,7 +60,7 @@ Dependencies were installed in a throwaway copy outside the repo; `package-lock.
 ## Prompt for the frontend (when you add these pages)
 
 ```text
-Pull the latest main (or `git merge main` into your frontend branch). Read PROJECT_PLAN.md (the "PHASE 3 — BACKEND FOR ALL REMAINING PAGES" list), phases/phase3BackendClaude.md, astronaut_health_monitor_pages.md and health_rules.md. Only edit src/components/, src/App.tsx and src/index.css — never src/types/, src/data/ or src/services/. Colours only via displayStatus / STATUS_COLORS / STATUS_LABELS (grey for no_data).
+Pull the latest main (or `git merge main` into your frontend branch). Read PROJECT_PLAN.md (the "PHASE 3 — BACKEND FOR ALL REMAINING PAGES" list), phases/phase4Claude.md, astronaut_health_monitor_pages.md and health_rules.md. Only edit src/components/, src/App.tsx and src/index.css — never src/types/, src/data/ or src/services/. Colours only via displayStatus / STATUS_COLORS / STATUS_LABELS (grey for no_data).
 
 Replace every "Coming soon" card with the real page:
 1. Daily Check-in schedule: getDueCheckins(profile) for Today's tasks (Home) and the Check-in tabs (morning / evening / weekly / monthly / eye exam, fields from each task's `fields`). Submit with submitCheckin({ profile, slot, day, values, extras, symptoms }); apply result.ingestion?.updates with applyIndicatorUpdates, then updateBriefing; toast result.message. "Skin problem" symptom → button to Photo Check with the location prefilled.
