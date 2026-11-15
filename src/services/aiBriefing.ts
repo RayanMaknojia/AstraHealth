@@ -13,7 +13,7 @@
  */
 
 import { CHECKIN_INPUTS, INDICATOR_GUIDES } from '@/data/nasaSpaceflightData'
-import { callGeminiJsonInfo } from '@/services/_gemini'
+import { callGeminiJsonInfo, STYLE_RULES } from '@/services/_gemini'
 import { classifyReading, getReadings, listPhotoRecords, listScans, listUploads, saveBriefing } from '@/services/healthDb'
 import { displayStatus, worstStatus } from '@/services/healthEvaluator'
 import { newId } from '@/services/_store'
@@ -191,7 +191,9 @@ interface GeminiBriefingReply {
 const SYSTEM =
   'You are the onboard medical decision-support assistant of a spacecraft. You write a short medical briefing for an astronaut who is not a doctor. ' +
   'Use plain English, no jargon. Be calm and specific. This is decision support, not a diagnosis. ' +
-  'Status words: Normal (green), Watch (yellow), Alert (red). Never call something Normal if the data line says Watch or Alert. Reply with JSON only.'
+  'Status words: Normal (green), Watch (yellow), Alert (red). Never call something Normal if the data line says Watch or Alert. ' +
+  STYLE_RULES +
+  ' Reply with JSON only.'
 
 const str = (x: unknown, max: number) => (typeof x === 'string' && x.trim() ? x.trim().slice(0, max) : undefined)
 const strs = (x: unknown, n: number, max = 220) => (Array.isArray(x) ? x.map((v) => str(v, max)).filter((v): v is string => !!v).slice(0, n) : [])
@@ -269,7 +271,7 @@ export async function generateBriefing(input: BriefingInput, ai?: AIConfig): Pro
     `PAST 7 DAYS:\n${sevenDay.map(lineText).join('\n')}`,
     concerns.length ? `RULE FLAGS:\n${concerns.map((c) => `- [${WORD[c.status]}] ${c.title}: ${c.detail}`).join('\n')}` : 'RULE FLAGS: none.',
     input.emergency?.sos ? `EMERGENCY RULES SAY SOS: ${input.emergency.reasons.join(' ')}` : '',
-    'Write the briefing. Reply JSON: {"overallStatus":"nominal"|"caution"|"critical","headline":"<= 90 chars, no status prefix","summary":"3-5 plain sentences covering the scan / last check-in, the last 24 h and the 7-day pattern","concerns":[{"title","status","detail","action"}],"recommendations":[up to 6 short next checks],"interimSteps":[steps to do now if anything is Alert, else []],"sosRecommended":boolean,"sosReason":string,"checkinNote":one sentence,"last24hNote":one sentence,"sevenDayNote":one sentence}.',
+    'Write the briefing. Reply JSON: {"overallStatus":"nominal"|"caution"|"critical","headline":"<= 90 chars, no status prefix","summary":"3-5 plain sentences covering the scan / last check-in, the last 24 h and the 7-day pattern","concerns":[{"title","status","detail","action"}],"recommendations":[up to 6 precise next checks, each saying when and how],"interimSteps":[precise steps to do now (amounts, durations, frequency) if anything is Alert, else []],"sosRecommended":boolean,"sosReason":string,"checkinNote":one sentence,"last24hNote":one sentence,"sevenDayNote":one sentence}.',
     'sosRecommended only if the data suggest a life-threatening problem that onboard care cannot handle alone.',
   ]
     .filter(Boolean)
@@ -300,7 +302,7 @@ export async function generateBriefing(input: BriefingInput, ai?: AIConfig): Pro
       sectionNotes: { checkin: str(reply.checkinNote, 300), last24h: str(reply.last24hNote, 300), sevenDay: str(reply.sevenDayNote, 300) },
     }
   } else {
-    out = { ...base, fallbackReason: info.error === 'server_unreachable' ? 'Python server not running' : info.error === 'no_api_key' ? 'No Gemini key on the server' : info.error === 'offline_mode' ? 'Offline mode' : info.error ? `Gemini unavailable (${info.error})` : 'Gemini reply was unusable' }
+    out = { ...base, fallbackReason: info.error === 'server_unreachable' ? 'Python server not running' : info.error === 'no_api_key' ? 'No AI key on the server' : info.error === 'offline_mode' ? 'Offline mode' : info.error ? 'AI service busy or unavailable' : 'AI reply was unusable' }
   }
   await saveBriefing(out).catch(() => undefined)
   return out

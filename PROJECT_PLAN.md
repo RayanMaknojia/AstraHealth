@@ -258,3 +258,4 @@ Phase 5 Claude: Gemini, health database, body scan, auto-SOS (see phases/phase5C
 [x] Skin / injury photo first look: 11 classes (adds bite, scab, scar, infection, rash), processed pixel data (red / dark / yellow %), Gemini with the astronaut's vitals, symptoms and earlier photos; context-aware severity.
 [x] "Something wrong?" panel on Check-in: free text, photo or file → gatekeeper + emergency check + briefing.
 [x] Emergency assessor + 30 s cancellable auto-SOS to AstraHealth Station (Earth) and the ISS with signal delays; manual SOS shows recipients; events stored.
+[x] Round 2: no model name in the UI; photos and files stored + More → My records with export; one automatic SOS per issue (with counts); scan lines removed; exact check-in validation; blood sugar weekly only (not scanned); warning toasts ≤ 1 per 10 min, full-screen alerts ≥ 10 min apart and re-shown only on a later day or if worse; precise care steps.

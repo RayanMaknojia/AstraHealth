@@ -960,6 +960,8 @@ export interface OverrideAlert {
   confirmedAt?: string
   /** Outbox item created for the ground. */
   outboxItemId?: string
+  /** How far from normal it was when raised (bigger = worse); decides re-showing after Confirm. */
+  severity?: number
 }
 
 export interface BannerAlert {
@@ -1272,7 +1274,8 @@ export interface DbReading {
   seeded?: boolean
 }
 
-export type ScanKpi = 'heart_rate' | 'body_temp' | 'spo2' | 'systolic' | 'diastolic' | 'blood_sugar'
+/** Blood sugar is not scanned: it comes from the weekly fasting check-in. */
+export type ScanKpi = 'heart_rate' | 'body_temp' | 'spo2' | 'systolic' | 'diastolic'
 
 export interface ScanResult {
   id: string

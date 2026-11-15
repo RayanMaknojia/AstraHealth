@@ -18,7 +18,7 @@
 import { CREW_PROFILES } from '@/data/nasaSpaceflightData'
 import { evaluateVitals, worstStatus } from '@/services/healthEvaluator'
 import { getMissionState } from '@/services/missionTimeline'
-import { blobToBase64, callGeminiJson, resolveApiKey } from '@/services/_gemini'
+import { blobToBase64, callGeminiJson, resolveApiKey, STYLE_RULES } from '@/services/_gemini'
 import type {
   AIConfig,
   DataModality,
@@ -343,7 +343,7 @@ Only include values that are actually present. Units: mg/dL, bpm, mmHg, °C, %, 
 
 async function aiExtraction(input: IngestionInput, text: string, ai?: AIConfig): Promise<Extraction | null> {
   if (!resolveApiKey(ai)) return null
-  const parts: Parameters<typeof callGeminiJson>[0] = [{ text: AI_PROMPT }]
+  const parts: Parameters<typeof callGeminiJson>[0] = [{ text: AI_PROMPT }, { text: STYLE_RULES }]
   parts.push({ text: `File name: ${input.fileName ?? '(none)'}; MIME: ${input.mimeType ?? input.file?.type ?? 'unknown'}; UI hint: ${input.modality ?? 'none'}` })
   if (text) parts.push({ text: `Text content:\n${text.slice(0, 30_000)}` })
   const mime = input.mimeType ?? input.file?.type ?? ''

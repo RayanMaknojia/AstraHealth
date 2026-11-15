@@ -52,9 +52,10 @@ import { runScan } from "@/services/scanService";
 import { generateBriefing } from "@/services/aiBriefing";
 import {
   assessEmergency,
+  closeSosIssues,
+  noteSosDetection,
   sendSos,
   SOS_COUNTDOWN_SECONDS,
-  SOS_SNOOZE_MINUTES,
 } from "@/services/emergencyService";
 import { getActiveOverrides } from "@/services/alertService";
 
@@ -69,6 +70,24 @@ export interface PendingSos {
 
 export function notify(title: string, description?: string) {
   toast.add({ title, description, timeout: 4500 });
+}
+/** Automatic warnings (status, trajectory, cabin) pop up at most once every 10 minutes. */
+export const WARNING_GAP_MINUTES = 10;
+let lastWarningAt = 0;
+const lastWarningByText = new Map<string, number>();
+/** Messages that answer something the user just did are always shown. */
+const ACTION_RESULT =
+  /^(Logged \d|Demo anomaly|New mission phase|File rejected|.+ added \()/;
+function warn(message: string) {
+  if (ACTION_RESULT.test(message)) return notify(message);
+  const now = Date.now();
+  const key = message.replace(/[\d.]+/g, "#").toLowerCase();
+  const gap = WARNING_GAP_MINUTES * 60_000;
+  if (now - lastWarningAt < gap) return;
+  if (now - (lastWarningByText.get(key) ?? 0) < gap) return;
+  lastWarningAt = now;
+  lastWarningByText.set(key, now);
+  notify(message);
 }
 function hydrate(profile: AstronautProfile) {
   // The profile was loaded from the health database (App.tsx), so stored wearable,
@@ -127,7 +146,6 @@ export function useMission(initialProfile: AstronautProfile) {
     current.current = evaluated;
     setModel(evaluated);
   }, []);
-  const snoozed = useRef(new Map<string, number>());
   /** After any new input: is this too severe for onboard care? Opens the SOS countdown if so. */
   const checkEmergency = useCallback(
     (
@@ -144,10 +162,8 @@ export function useMission(initialProfile: AstronautProfile) {
         ...extra,
       });
       if (!a.sos || m.pendingSos) return a;
-      // Only a reason that was not cancelled in the last hour opens a new countdown.
-      const now = Date.now();
-      if (a.key.split("|").every((k) => now < (snoozed.current.get(k) ?? 0)))
-        return a;
+      // One automatic SOS per issue: later detections are only counted.
+      if (!noteSosDetection(m.profile.id, a, m.profile.missionDay)) return a;
       if (getActiveOverrides(m.profile.id).some((o) => o.kind === "sos"))
         return a;
       commit({
@@ -259,7 +275,7 @@ export function useMission(initialProfile: AstronautProfile) {
                 ? change.tick.timestamp
                 : revised.briefing.lastUpdated,
           });
-          revised.changes.forEach((message) => notify(message));
+          revised.changes.forEach((message) => warn(message));
           if (change.kind === "wearable_tick")
             checkEmergency("Wearable reading");
           return true;
@@ -352,7 +368,7 @@ export function useMission(initialProfile: AstronautProfile) {
         cabinHistory: [],
       });
       setStreamDay(day);
-      revised.changes.forEach((message) => notify(message));
+      revised.changes.forEach((message) => warn(message));
     } catch (error) {
       notify(
         "Unable to change mission day",
@@ -378,6 +394,8 @@ export function useMission(initialProfile: AstronautProfile) {
         snapshot.profile.missionDay,
         response.artifact,
         input.text,
+        input.file,
+        input.fileName,
       ).catch(() => undefined);
       if (response.verdict.accepted) {
         const applied = await event(response.updates, {
@@ -443,8 +461,8 @@ export function useMission(initialProfile: AstronautProfile) {
     return s;
   };
   /** A skin photo was assessed (Photo Check). */
-  const photoAssessed = (record: PhotoRecord) => {
-    void savePhoto(record).catch(() => undefined);
+  const photoAssessed = (record: PhotoRecord, image?: Blob | null) => {
+    void savePhoto(record, image).catch(() => undefined);
     checkEmergency("Photo check", {
       photo: record,
       text: record.notes,
@@ -470,6 +488,7 @@ export function useMission(initialProfile: AstronautProfile) {
       try {
         const m = current.current;
         const a = m.pendingSos?.assessment;
+        if (a) closeSosIssues(m.profile.id, a, "sent");
         const ev = await sendSos({
           profile: m.profile,
           missionState: m.missionState,
@@ -492,14 +511,14 @@ export function useMission(initialProfile: AstronautProfile) {
   const cancelSos = () => {
     const p = current.current.pendingSos;
     if (!p) return;
-    for (const k of p.assessment.key.split("|"))
-      snoozed.current.set(k, Date.now() + SOS_SNOOZE_MINUTES * 60_000);
+    closeSosIssues(current.current.profile.id, p.assessment, "cancelled");
     commit({ ...current.current, pendingSos: null });
     notify(
       "Automatic SOS cancelled",
-      "Keep following the interim steps. Press SOS any time if it gets worse.",
+      "It will not be sent again for this issue. Keep following the steps; press SOS any time if it gets worse.",
     );
   };
+
   // The countdown keeps running even if the dialog is hidden; when it ends, the SOS is sent.
   const sosDeadline = model.pendingSos?.endsAt;
   useEffect(() => {

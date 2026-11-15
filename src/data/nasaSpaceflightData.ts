@@ -386,7 +386,7 @@ export const TREND_SENSITIVITY: Record<IndicatorId, { meaningfulPerDay: number; 
 export const STALE_AFTER_DAYS: Record<IndicatorId, number> = {
   heart_rate: 1,
   blood_pressure: 2,
-  blood_sugar: 2,
+  blood_sugar: 8, // weekly fasting check-in
   body_temp: 1,
   spo2: 1,
   sleep_hours: 2,
@@ -1004,6 +1004,8 @@ function buildProfile(p: ProfileSeed): AstronautProfile {
     const pt = full[e.key].find((x) => x.day === e.day)
     if (pt) pt.value = e.value
   }
+  // Blood sugar is a WEEKLY fasting check-in: keep one reading every 7 days (3 in the 21 days).
+  full.glucose = full.glucose.filter((pt) => (p.missionDay - pt.day) % 7 === 0)
   const { hr, sys, dia, glucose, temp, sleep, mood, spo2 } = full
   const fullStart = hr[0]?.day ?? start
   const fullDays = p.missionDay - fullStart + 1
@@ -1123,7 +1125,7 @@ export const CREW_PROFILES: AstronautProfile[] = [
       { day: 75, key: 'temp', value: 38.6 },
       { day: 76, key: 'temp', value: 38.1 },
       { day: 78, key: 'hr', value: 104 },
-      { day: 80, key: 'glucose', value: 148 },
+      { day: 78, key: 'glucose', value: 148 },
       { day: 83, key: 'sleep', value: 5.4 },
     ],
   }),
@@ -1154,7 +1156,7 @@ export const CREW_PROFILES: AstronautProfile[] = [
       { day: 27, key: 'spo2', value: 94 },
       { day: 30, key: 'sys', value: 134 },
       { day: 30, key: 'dia', value: 87 },
-      { day: 34, key: 'glucose', value: 152 },
+      { day: 31, key: 'glucose', value: 152 },
     ],
   }),
   buildProfile({

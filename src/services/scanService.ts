@@ -4,7 +4,8 @@
  * 1. Ask the Python server (server/scan.py via POST /api/scan).
  * 2. If it is not running, use the browser fallback below (same algorithm), so the
  *    demo never breaks.
- * Readings continue the astronaut's own 7-day trend; ~12% of scans put one reading in
+ * Scans heart rate, temperature, SpO2 and blood pressure (blood sugar comes only from the
+ * weekly fasting check-in). Readings continue the astronaut's own 7-day trend; ~12% of scans put one reading in
  * a Watch/Alert range (never life-threatening).
  */
 
@@ -18,7 +19,6 @@ const KPIS: Record<ScanKpi, { noise: number; dp: number; lo: number; hi: number;
   spo2: { noise: 0.7, dp: 0, lo: 80, hi: 100, def: 97 },
   systolic: { noise: 4, dp: 0, lo: 70, hi: 200, def: 115 },
   diastolic: { noise: 3, dp: 0, lo: 40, hi: 120, def: 74 },
-  blood_sugar: { noise: 6, dp: 0, lo: 50, hi: 260, def: 95 },
 }
 
 const ANOMALIES: Partial<Record<ScanKpi, { caution: [number, number]; critical: [number, number]; note: string }>> = {
@@ -26,7 +26,6 @@ const ANOMALIES: Partial<Record<ScanKpi, { caution: [number, number]; critical: 
   body_temp: { caution: [38.0, 38.3], critical: [38.6, 38.9], note: 'Body temperature is raised (possible fever).' },
   spo2: { caution: [93, 94], critical: [88, 89], note: 'Blood oxygen is lower than usual.' },
   systolic: { caution: [134, 152], critical: [162, 170], note: 'Blood pressure is high for this scan.' },
-  blood_sugar: { caution: [145, 172], critical: [186, 205], note: 'Blood sugar is high (not fasting).' },
 }
 
 const round = (v: number, dp: number) => Math.round(v * 10 ** dp) / 10 ** dp
@@ -65,14 +64,12 @@ export function scanInputs(profile: AstronautProfile): { recent: Partial<Record<
   recent.spo2 = daily('spo2', (h) => h.value)
   recent.systolic = daily('blood_pressure', (h) => h.value)
   recent.diastolic = daily('blood_pressure', (h) => h.diastolic)
-  recent.blood_sugar = daily('blood_sugar', (h) => h.value)
   const b = profile.baseline.values
   const baseline: Partial<Record<ScanKpi, number>> = {
     heart_rate: b.heart_rate?.mean,
     body_temp: b.body_temp?.mean,
     spo2: b.spo2?.mean,
     systolic: b.blood_pressure?.mean,
-    blood_sugar: b.blood_sugar?.mean,
   }
   return { recent, baseline }
 }
@@ -136,7 +133,6 @@ export async function runScan(profile: AstronautProfile, onboardMinute: number):
     up('body_temp', r.body_temp, '°C'),
     up('spo2', r.spo2, '%'),
     up('blood_pressure', `${Math.round(r.systolic)}/${Math.round(r.diastolic)}`, 'mmHg'),
-    up('blood_sugar', r.blood_sugar, 'mg/dL'),
   ]
   return {
     id: newId('scan'),

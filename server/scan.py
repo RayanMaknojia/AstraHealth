@@ -18,8 +18,8 @@ KPIS = {
     "spo2": (0.7, 0, 80, 100, 97),
     "systolic": (4.0, 0, 70, 200, 115),
     "diastolic": (3.0, 0, 40, 120, 74),
-    "blood_sugar": (6.0, 0, 50, 260, 95),
 }
+# Blood sugar is NOT scanned: it comes from the weekly fasting check-in (and lab reports).
 
 # Watch / Alert ranges an anomaly may land in (health_rules.md); none are life-threatening.
 ANOMALIES = {
@@ -27,7 +27,6 @@ ANOMALIES = {
     "body_temp": {"caution": (38.0, 38.3), "critical": (38.6, 38.9), "note": "Body temperature is raised (possible fever)."},
     "spo2": {"caution": (93, 94), "critical": (88, 89), "note": "Blood oxygen is lower than usual."},
     "systolic": {"caution": (134, 152), "critical": (162, 170), "note": "Blood pressure is high for this scan."},
-    "blood_sugar": {"caution": (145, 172), "critical": (186, 205), "note": "Blood sugar is high (not fasting)."},
 }
 
 

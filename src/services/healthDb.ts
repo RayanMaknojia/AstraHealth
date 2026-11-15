@@ -47,7 +47,8 @@ import type {
 
 const DB_NAME = 'space-medic'
 const DB_VERSION = 1
-const SEED_VERSION = 'v1'
+/** Bump to re-seed (v2: blood sugar weekly only). Old seeded rows are replaced. */
+const SEED_VERSION = 'v2'
 export const TABLES = ['readings', 'scans', 'briefings', 'photos', 'uploads', 'sos', 'meta'] as const
 export type Table = (typeof TABLES)[number]
 
@@ -117,6 +118,20 @@ export async function listRows<T = Row>(table: Table, astronautId?: string): Pro
     req.onsuccess = () => resolve(req.result as T[])
     req.onerror = () => resolve([])
   })
+}
+
+async function deleteRows(table: Table, ids: string[]): Promise<void> {
+  if (!ids.length) return
+  const db = await openDb()
+  if (!db) {
+    const m = memory.get(table)!
+    for (const id of ids) m.delete(id)
+    return
+  }
+  const tx = db.transaction(table, 'readwrite')
+  const store = tx.objectStore(table)
+  for (const id of ids) store.delete(id)
+  await done(tx)
 }
 
 async function getRow<T = Row>(table: Table, id: string): Promise<T | null> {
@@ -276,6 +291,7 @@ function genericHistory(profile: AstronautProfile, id: IndicatorId): { day: numb
       continue
     }
     const v = Math.round((g.base + (rand() * 2 - 1) * g.noise) * f) / f
+    if (id === 'blood_sugar' && (profile.missionDay - d) % 7 !== 0) continue // weekly fasting check-in
     if (id === 'blood_pressure') {
       const dia = Math.round(72 + (rand() * 2 - 1) * 4)
       out.push({ day: d, value: `${v}/${dia}`, diastolic: dia })
@@ -292,6 +308,13 @@ function genericHistory(profile: AstronautProfile, id: IndicatorId): { day: numb
 export async function ensureSeeded(profile: AstronautProfile): Promise<number> {
   const key = `seeded:${SEED_VERSION}:${profile.id}`
   if (await getRow('meta', key)) return 0
+  // Upgrading from an older seed: drop its generated rows (and blood sugar that a body
+  // scan used to produce); real check-ins, uploads and wearable readings stay.
+  const old = await listRows<DbReading>('readings', profile.id)
+  await deleteRows(
+    'readings',
+    old.filter((r) => r.seeded || (r.indicatorId === 'blood_sugar' && r.source === 'body_scan')).map((r) => r.id),
+  )
   const rows: DbReading[] = []
   const firstDay = Math.max(1, profile.missionDay - SEED_HISTORY_DAYS + 1)
   for (const ind of profile.indicators) {
@@ -404,11 +427,15 @@ export async function latestBriefing(astronautId: string): Promise<AiBriefing | 
   return (await listBriefings(astronautId)).at(-1) ?? null
 }
 
-export async function savePhoto(p: PhotoRecord): Promise<void> {
-  await putRows('photos', [p as unknown as Row])
+/** A photo assessment plus the photo itself (JPEG, longest side ≤ 1280 px). */
+export type StoredPhoto = PhotoRecord & { image?: Blob; savedAt?: string }
+
+export async function savePhoto(p: PhotoRecord, image?: Blob | null): Promise<void> {
+  const row: StoredPhoto = { ...p, ...(image ? { image } : {}), savedAt: new Date().toISOString() }
+  await putRows('photos', [row as unknown as Row])
 }
-export async function listPhotoRecords(astronautId: string): Promise<PhotoRecord[]> {
-  return (await listRows<PhotoRecord>('photos', astronautId)).sort((a, b) => a.missionDay - b.missionDay)
+export async function listPhotoRecords(astronautId: string): Promise<StoredPhoto[]> {
+  return (await listRows<StoredPhoto>('photos', astronautId)).sort((a, b) => a.missionDay - b.missionDay || (a.savedAt ?? '').localeCompare(b.savedAt ?? ''))
 }
 
 export interface UploadRow {
@@ -417,10 +444,25 @@ export interface UploadRow {
   createdAt: string
   day: number
   artifact: IngestedArtifact
+  /** What the astronaut typed ("Something wrong?" box). */
   text?: string
+  /** The attached file itself (≤ 10 MB), so it can be opened again later. */
+  file?: Blob
+  fileName?: string
+  fileType?: string
 }
-export async function saveUpload(astronautId: string, day: number, artifact: IngestedArtifact, text?: string): Promise<void> {
-  const row: UploadRow = { id: artifact.id || newId('up'), astronautId, createdAt: new Date().toISOString(), day, artifact, ...(text ? { text: text.slice(0, 4000) } : {}) }
+export const MAX_STORED_FILE_BYTES = 10 * 1024 * 1024
+export async function saveUpload(astronautId: string, day: number, artifact: IngestedArtifact, text?: string, file?: Blob | null, fileName?: string): Promise<void> {
+  const keepFile = file && file.size <= MAX_STORED_FILE_BYTES
+  const row: UploadRow = {
+    id: artifact.id || newId('up'),
+    astronautId,
+    createdAt: new Date().toISOString(),
+    day,
+    artifact,
+    ...(text ? { text: text.slice(0, 4000) } : {}),
+    ...(keepFile ? { file, fileName: fileName ?? artifact.fileName, fileType: file.type || undefined } : file ? { fileName: fileName ?? artifact.fileName } : {}),
+  }
   await putRows('uploads', [row as unknown as Row])
 }
 export async function listUploads(astronautId: string): Promise<UploadRow[]> {

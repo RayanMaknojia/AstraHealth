@@ -12,10 +12,13 @@ export function ReportProblem({
   busy,
   onReport,
   onPhoto,
+  onRecords,
 }: {
   busy: boolean;
   onReport: (text: string, file?: File | null) => Promise<void>;
   onPhoto: () => void;
+  /** Open More → My records. */
+  onRecords?: () => void;
 }) {
   const [text, setText] = useState(""),
     [file, setFile] = useState<File | null>(null),
@@ -86,6 +89,11 @@ export function ReportProblem({
         <p className="fine-print" role="status">
           {sent} See the result in the toast and the Medical briefing on Home.
         </p>
+      )}
+      {onRecords && (
+        <Button type="button" variant="ghost" onClick={onRecords}>
+          View all my photos and reports
+        </Button>
       )}
     </Panel>
   );

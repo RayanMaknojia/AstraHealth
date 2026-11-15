@@ -29,7 +29,7 @@ export function PhotoCheck({
   model: MissionModel;
   bodyLocation: string;
   /** Called with the saved assessment (database, emergency check, briefing). */
-  onResult?: (record: PhotoRecord) => void;
+  onResult?: (record: PhotoRecord, image?: Blob | null) => void;
 }) {
   const [file, setFile] = useState<File | null>(null),
     [url, setUrl] = useState(""),
@@ -50,6 +50,15 @@ export function PhotoCheck({
     setError("");
     try {
       const bitmap = await createImageBitmap(file);
+      // Keep a copy of the photo for your records (JPEG, longest side ≤ 1280 px).
+      const scale = Math.min(1, 1280 / Math.max(bitmap.width, bitmap.height));
+      const full = document.createElement("canvas");
+      full.width = Math.max(1, Math.round(bitmap.width * scale));
+      full.height = Math.max(1, Math.round(bitmap.height * scale));
+      full.getContext("2d")!.drawImage(bitmap, 0, 0, full.width, full.height);
+      const image = await new Promise<Blob | null>((res) =>
+        full.toBlob(res, "image/jpeg", 0.85),
+      );
       const canvas = document.createElement("canvas");
       canvas.width = 160;
       canvas.height = 160;
@@ -102,7 +111,7 @@ export function PhotoCheck({
         thumbnailDataUrl: thumb.toDataURL("image/jpeg", 0.7),
       });
       setResult(r);
-      onResult?.(r);
+      onResult?.(r, image);
     } catch (e) {
       setError(
         e instanceof Error
@@ -152,8 +161,8 @@ export function PhotoCheck({
           />
         </label>
         <p className="fine-print">
-          Preview only; image not retained after refresh. Saving records the
-          assessment and queues a review summary, not the image.
+          Saving keeps the photo and its assessment in your health record (More
+          → My records) and queues a review summary for the flight surgeon.
         </p>
         {url && (
           <img
@@ -196,8 +205,8 @@ export function PhotoCheck({
             <p>{card.confidenceText}</p>
             <p>
               {result.engine === "offline_mock"
-                ? "Offline first look (Gemini unavailable): uses your notes, pixel colours, quality checks and your vitals, not image recognition."
-                : "Gemini first look, checked against your vitals and history."}
+                ? "Offline first look (AI unavailable): uses your notes, pixel colours, quality checks and your vitals, not image recognition."
+                : "AI first look, checked against your vitals and history."}
             </p>
             {result.aiSummary && <p>{result.aiSummary}</p>}
             {(result.findings ?? []).length > 0 && (

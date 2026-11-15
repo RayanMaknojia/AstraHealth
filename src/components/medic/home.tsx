@@ -282,7 +282,7 @@ function BriefingText({
 function engineLabel(ai: AiBriefing) {
   const t = new Date(ai.createdAt).toISOString().slice(11, 16);
   return ai.engine === "gemini"
-    ? `Written by Gemini · ${t} UTC`
+    ? `AI briefing · ${t} UTC`
     : `Offline rules · ${t} UTC${ai.fallbackReason ? ` (${ai.fallbackReason})` : ""}`;
 }
 function Lines({ lines }: { lines: BriefingLine[] }) {

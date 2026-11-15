@@ -50,7 +50,7 @@ Three.js is MIT licensed. Lucide icons are ISC licensed. The bundled DM Sans fon
 
 ## Data and privacy
 
-Readings, cabin telemetry, clinical assessments and ground communication (including SOS to the AstraHealth ground lab and the ISS) are demo simulations; no real emergency message is sent. When Gemini is enabled, briefing data and skin photos are sent to Google's Gemini API through the local Python server. Accounts use demo-grade local storage. The journal stays on this device and is never included in clinical ingestion or sync. Photo Check previews are temporary; saving an assessment stores its structured result and queues a review summary, without retaining the photo. Removing browser storage deletes locally saved data.
+Readings, cabin telemetry, clinical assessments and ground communication (including SOS to the AstraHealth ground lab and the ISS) are demo simulations; no real emergency message is sent. When Gemini is enabled, briefing data and skin photos are sent to Google's Gemini API through the local Python server. Accounts use demo-grade local storage. The journal stays on this device and is never included in clinical ingestion or sync. Photo Check stores the photo (JPEG, up to 1280 px) and its assessment in the device's health database; files attached in "Something wrong?" are kept too (up to 10 MB). Everything is listed in More → My records, with a "Download my data" export. A review summary (not the photo) is queued for the flight surgeon. Removing browser storage deletes locally saved data.
 
 The Mars clock is an approximate mission-sol clock. An actual landing longitude and solar-time calibration are not configured. ISS and Moon use UTC/GMT. Transit elapsed time follows the app's mission day and onboard simulation time.
 

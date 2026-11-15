@@ -6872,3 +6872,65 @@ body:has(.medic-app) {
   padding-left: 20px;
   margin: 4px 0 10px;
 }
+.records-list {
+  list-style: none;
+  padding: 0;
+  margin: 8px 0 0;
+  display: grid;
+  gap: 12px;
+}
+.records-list > li {
+  display: grid;
+  grid-template-columns: 96px minmax(0, 1fr);
+  gap: 14px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+.records-list img {
+  width: 96px;
+  height: 96px;
+  object-fit: cover;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.records-noimg {
+  width: 96px;
+  height: 64px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed var(--border);
+  border-radius: 8px;
+  color: var(--muted-foreground);
+}
+.records-list > li > div {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  align-items: flex-start;
+  font-size: 13px;
+}
+.records-list small {
+  color: var(--muted-foreground);
+}
+.records-details h4,
+.my-records h4 {
+  font-size: 13px;
+  font-weight: 650;
+  margin: 8px 0 4px;
+}
+.records-details ul,
+.records-details ol,
+.records-issues {
+  padding-left: 18px;
+  font-size: 13px;
+}
+.records-link {
+  display: inline-flex;
+  gap: 6px;
+  align-items: center;
+  text-decoration: underline;
+}
+.my-records {
+  display: grid;
+  gap: 16px;
+}

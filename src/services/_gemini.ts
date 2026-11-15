@@ -66,6 +66,25 @@ export async function postServer<T>(path: string, body: unknown, timeoutMs = 30_
   }
 }
 
+/** Never show the model or vendor name to the crew: the assistant is "Space Medic". */
+const NAME_RE = /\b(google\s+)?gemini(\s+(flash|pro|lite|ai|model))*\b|\bgoogle(\s+ai)?\b/gi
+export function scrubModelNames<T>(v: T): T {
+  if (typeof v === 'string') return v.replace(NAME_RE, 'Space Medic AI') as T
+  if (Array.isArray(v)) return v.map(scrubModelNames) as T
+  if (v && typeof v === 'object') return Object.fromEntries(Object.entries(v).map(([k, x]) => [k, scrubModelNames(x)])) as T
+  return v
+}
+
+/** Shared instruction added to every prompt. */
+export const STYLE_RULES =
+  'Never mention Gemini, Google or any AI model or company; you are "Space Medic". ' +
+  'Every care step must be precise and measurable: say how much, how long, how often and with what, e.g. ' +
+  '"Rinse with 100-200 mL sterile saline from a 20 mL syringe for 30 seconds", "Press firmly with a 10 x 10 cm gauze pad for 10 full minutes", ' +
+  '"Apply a pea-sized amount (about 0.5 g) of antibiotic ointment once a day", "Ibuprofen 400 mg by mouth every 6-8 h with food, max 1,200 mg in 24 h, if no allergy", ' +
+  '"Re-check temperature every 4 h". Use items from a spacecraft medical kit (sterile saline, gauze 10 x 10 cm, wound-closure strips, transparent film dressing, ' +
+  'antibiotic ointment, hydrocortisone 1% cream, cold pack, ibuprofen 200 mg tablets, paracetamol 500 mg tablets, cetirizine 10 mg, epinephrine 0.3 mg auto-injector, oxygen mask). ' +
+  'Add "check allergies first" before any medicine.'
+
 /** Like callGeminiJson, but also says which model answered or why it failed (safe with parallel calls). */
 export async function callGeminiJsonInfo<T = unknown>(parts: GeminiPart[], ai?: AIConfig, system?: string): Promise<{ json: T | null; info: AiCallInfo }> {
   let info: AiCallInfo
@@ -80,7 +99,7 @@ export async function callGeminiJsonInfo<T = unknown>(parts: GeminiPart[], ai?: 
     if (!reply) info = { ok: false, error: 'server_unreachable' }
     else {
       info = { ok: reply.ok, model: reply.model, error: reply.error }
-      json = reply.ok && reply.json !== undefined && reply.json !== null ? reply.json : null
+      json = reply.ok && reply.json !== undefined && reply.json !== null ? scrubModelNames(reply.json) : null
     }
   }
   lastCall = info

@@ -9,9 +9,10 @@
  *  O4 sos              - SOS button, or an O1 left unconfirmed for 10 minutes
  *  Banner              - comms blackout / waiting for link (not full screen)
  *
- * Call syncOverrides() after every evaluation or tick; it raises new problems,
- * never re-raises one that's still open, and waits a cool-down before raising
- * the same problem again after it was confirmed.
+ * Call syncOverrides() after every evaluation or tick; it raises new problems and
+ * never re-raises one that's still open. After Confirm, the same problem is shown
+ * again only on a later mission day or if it gets worse. Health and cabin alerts are
+ * spaced at least 10 minutes apart (radiation shelter and SOS are never delayed).
  */
 
 import { CABIN_STANDARD_LIMITS as L } from '@/data/nasaSpaceflightData'
@@ -20,8 +21,26 @@ import { createStore, missionTimestamp, newId } from '@/services/_store'
 import { enqueue, getLinkStatus } from '@/services/syncService'
 import type { BannerAlert, MissionState, OverrideAlert, OverrideInputs, OverrideKind } from '@/types/astronaut'
 
-/** After a confirm, the same problem can be raised again after this many minutes (real time). */
-export const REARM_AFTER_MINUTES = 60
+/** Health / cabin alerts: at most one new full-screen alert per this many minutes. */
+export const OVERRIDE_MIN_GAP_MINUTES = 10
+/** "Getting worse" = this much further from normal than when it was confirmed (5%). */
+export const WORSE_BY = 1.05
+/** Middle of the normal range, used to measure how far a reading is from normal. */
+const NORMAL_MID: Record<string, number> = {
+  heart_rate: 70,
+  blood_pressure: 115,
+  blood_sugar: 95,
+  body_temp: 36.9,
+  spo2: 98,
+  sleep_hours: 8,
+  mood: 4.5,
+  radiation_dose: 0,
+  bone_density: 0,
+}
+function distanceFromNormal(id: string, value: number | string): number {
+  const n = typeof value === 'number' ? value : Number(String(value).split('/')[0])
+  return Number.isFinite(n) ? Math.abs(n - (NORMAL_MID[id] ?? n)) : 0
+}
 /** An O1 left unconfirmed this long escalates to SOS. */
 export const UNCONFIRMED_SOS_AFTER_MINUTES = 10
 /** CO2 above the limit for this long → Cabin Emergency. */
@@ -57,6 +76,7 @@ function healthCandidates(input: OverrideInputs): Candidate[] {
         details: [e.message, `Rule: ${e.thresholdNote}`],
         steps: e.actionPlan.steps.slice(0, 5),
         indicatorId: e.id,
+        severity: distanceFromNormal(e.id, e.value),
       }
     })
 }
@@ -79,6 +99,7 @@ function cabinCandidates(input: OverrideInputs): Candidate[] {
         headline: `CO2 ${avg} mmHg for over ${CO2_SUSTAINED_HOURS} h`,
         details: [`Limit: ${L.co2AlertMmHg} mmHg (1 h average).`, rising > 0.1 ? `Rising ${Math.round(rising * 100) / 100} mmHg in the last hour.` : 'Holding steady above the limit.'],
         steps: ['Put on a mask or move to a well-ventilated module.', 'Check CO2 scrubber status and clear vents.', 'Report to the crew and Mission Control.', 'Re-check CO2 every 15 minutes.'],
+        severity: avg,
       })
     }
   }
@@ -90,6 +111,7 @@ function cabinCandidates(input: OverrideInputs): Candidate[] {
       headline: `Cabin pressure ${latest.cabinPsia} psia`,
       details: [`Allowed ${L.pressureLowPsia}-${L.pressureHighPsia} psia.`],
       steps: ['Follow the leak / rapid-depress procedure.', 'Move to the safe module and close the hatch.', 'Masks on if pressure keeps falling.', 'Report to Mission Control.'],
+      severity: Math.abs(latest.cabinPsia - 10),
     })
   if (latest) {
     const o2 = inspiredO2MmHg(latest.cabinPsia, latest.o2Pct)
@@ -101,6 +123,7 @@ function cabinCandidates(input: OverrideInputs): Candidate[] {
         headline: `Inspired O2 ${o2} mmHg`,
         details: [`Minimum ${L.minInspiredO2MmHg} mmHg.`],
         steps: ['Put on emergency O2 masks now.', 'Check life support and O2 supply.', 'Check SpO2 on every crew member.', 'Report to Mission Control.'],
+        severity: L.minInspiredO2MmHg - o2,
       })
   }
   return out
@@ -126,8 +149,8 @@ function radiationCandidates(input: OverrideInputs): Candidate[] {
   ]
 }
 
-function raise(astronautId: string, c: Candidate, missionDay: number): OverrideAlert {
-  const alert: OverrideAlert = { ...c, id: newId('ovr'), astronautId, raisedAt: new Date().toISOString(), missionDay, missionTimestamp: missionTimestamp(missionDay) }
+function raise(astronautId: string, c: Candidate, missionDay: number, now: Date = new Date()): OverrideAlert {
+  const alert: OverrideAlert = { ...c, id: newId('ovr'), astronautId, raisedAt: now.toISOString(), missionDay, missionTimestamp: missionTimestamp(missionDay) }
   const out = enqueue({ astronautId, type: c.kind === 'sos' ? 'sos' : 'alert', title: `${c.title}: ${c.headline}`, summary: c.details[0] ?? c.headline, missionDay, priority: 'high', refId: alert.id })
   const withOutbox = { ...alert, outboxItemId: out.id }
   store.update((s) => ({ alerts: [...s.alerts, withOutbox] }))
@@ -146,12 +169,22 @@ export function evaluateOverrides(input: OverrideInputs): Candidate[] {
 export function syncOverrides(input: OverrideInputs, now: Date = new Date()): OverrideAlert[] {
   const astronautId = input.profile.id
   const existing = store.get().alerts.filter((a) => a.astronautId === astronautId)
+  const day = Math.floor(input.missionState.missionDay)
+  const gated = (k: OverrideKind) => k === 'critical_health' || k === 'cabin_emergency'
+  let lastGatedRaise = existing.filter((a) => gated(a.kind)).reduce((m, a) => Math.max(m, Date.parse(a.raisedAt)), 0)
   for (const c of evaluateOverrides(input)) {
     const open = existing.find((a) => a.key === c.key && !a.confirmedAt)
     if (open) continue
     const lastConfirmed = existing.filter((a) => a.key === c.key && a.confirmedAt).sort((a, b) => b.confirmedAt!.localeCompare(a.confirmedAt!))[0]
-    if (lastConfirmed && now.getTime() - Date.parse(lastConfirmed.confirmedAt!) < REARM_AFTER_MINUTES * 60_000) continue
-    raise(astronautId, c, input.missionState.missionDay)
+    if (lastConfirmed) {
+      // Confirmed already: show again only on a later mission day, or if it got worse.
+      const laterDay = day > Math.floor(lastConfirmed.missionDay)
+      const worse = (c.severity ?? 0) > (lastConfirmed.severity ?? 0) * WORSE_BY + 1e-6
+      if (!laterDay && !worse) continue
+    }
+    if (gated(c.kind) && now.getTime() - lastGatedRaise < OVERRIDE_MIN_GAP_MINUTES * 60_000) continue // shown on a later sync
+    raise(astronautId, c, input.missionState.missionDay, now)
+    if (gated(c.kind)) lastGatedRaise = now.getTime()
   }
   checkUnconfirmed(astronautId, input.missionState.missionDay, now)
   return getActiveOverrides(astronautId)
