@@ -12,9 +12,56 @@ import {
   WebGLRenderer,
   Mesh,
   MeshStandardMaterial,
-  ACESFilmicToneMapping,
+  NoToneMapping,
 } from "three";
+import type { BufferGeometry } from "three";
 import { GLTFLoader } from "three/addons/loaders/GLTFLoader.js";
+/**
+ * The image-based models carry the reference picture as a front projection. Surfaces
+ * that face sideways would only show a stretched edge of that picture, so they are
+ * coloured by projecting the same picture from the side (alpha still comes from the
+ * front projection, so the outline never changes).
+ */
+function addSideProjection(mesh: Mesh) {
+  const material = mesh.material;
+  if (!(material instanceof MeshStandardMaterial) || !material.map) return;
+  // Per-vertex (row centre u, u per unit of depth), written by image-to-3d.py.
+  if (!(mesh.geometry as BufferGeometry).getAttribute("_side")) return;
+  material.onBeforeCompile = (shader) => {
+    shader.vertexShader = shader.vertexShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nattribute vec2 _side;\nvarying vec2 vSide;\nvarying vec3 vObjPos;\nvarying vec3 vObjNormal;",
+      )
+      .replace(
+        "#include <begin_vertex>",
+        "#include <begin_vertex>\nvSide = _side;\nvObjPos = position;\nvObjNormal = normal;",
+      );
+    shader.fragmentShader = shader.fragmentShader
+      .replace(
+        "#include <common>",
+        "#include <common>\nvarying vec2 vSide;\nvarying vec3 vObjPos;\nvarying vec3 vObjNormal;",
+      )
+      .replace(
+        "#include <map_fragment>",
+        `
+        vec4 frontTex = texture2D( map, vMapUv );
+        vec3 n = normalize( vObjNormal );
+        vec2 sideUv = vec2( vSide.x + vSide.y * vObjPos.z * sign( n.x ), vMapUv.y );
+        vec3 sideTex = texture2D( map, sideUv ).rgb;
+        float sideWeight = smoothstep( 0.45, 0.9, abs( n.x ) );
+        // Side surfaces turned toward the camera are solid; seen edge-on (front view) the
+        // picture's soft outline still decides the silhouette.
+        float facing = abs( normalize( vNormal ).z );
+        float solid = smoothstep( 0.45, 0.9, 1.0 - abs( n.z ) ) * smoothstep( 0.12, 0.4, facing );
+        diffuseColor *= vec4( mix( frontTex.rgb, sideTex, sideWeight ), max( frontTex.a, solid ) );
+        `,
+      );
+  };
+  material.needsUpdate = true;
+}
+/** One full turn every 12 seconds (30° per second), like the reference turntable. */
+const DEGREES_PER_SECOND = 30;
 export function OrganModel({
   url,
   label,
@@ -52,21 +99,20 @@ export function OrganModel({
     const camera = new PerspectiveCamera(32, 1, 0.01, 100);
     renderer.setPixelRatio(Math.min(devicePixelRatio, 1.5));
     renderer.outputColorSpace = SRGBColorSpace;
-    renderer.toneMapping = ACESFilmicToneMapping;
-    renderer.toneMappingExposure = 1.1;
+    // The models are textured with the reference images, which already contain their
+    // studio lighting: keep the colours true (no tone mapping) and add gentle lights so
+    // the surface relief still shades as it turns.
+    renderer.toneMapping = NoToneMapping;
     element.appendChild(renderer.domElement);
-    scene.add(new AmbientLight(new Color("#d7e5f5"), 0.8));
-    const key = new DirectionalLight("#fff3ed", 3.0);
-    key.position.set(3, 4, 5);
+    scene.add(new AmbientLight(new Color("#ffffff"), 1.55));
+    const key = new DirectionalLight("#fff6f0", 1.15);
+    key.position.set(2, 3, 5);
     scene.add(key);
-    const rim = new DirectionalLight("#8ac9df", 2.0);
-    rim.position.set(-3, 1, -2);
+    const rim = new DirectionalLight("#9fd3e6", 0.9);
+    rim.position.set(-4, 2, -3);
     scene.add(rim);
-    const fill = new DirectionalLight("#d1e4f2", 1.0);
-    fill.position.set(-3, 1, 4);
-    scene.add(fill);
     const pivot = new Group();
-    pivot.rotation.y = -0.25;
+    pivot.rotation.y = 0;
     scene.add(pivot);
     let normalizedSize: Vector3 | null = null;
     const fitCamera = () => {
@@ -104,6 +150,9 @@ export function OrganModel({
           return;
         }
         loaded = gltf.scene;
+        loaded.traverse((o) => {
+          if (o instanceof Mesh) addSideProjection(o);
+        });
         const box = new Box3().setFromObject(loaded);
         const size = box.getSize(new Vector3());
         const center = box.getCenter(new Vector3());
@@ -141,7 +190,7 @@ export function OrganModel({
       previous = time;
       if (!visible || document.hidden) return;
       if (!pausedRef.current && !reduced.matches)
-        pivot.rotation.y += (delta * Math.PI) / 18;
+        pivot.rotation.y += (delta * DEGREES_PER_SECOND * Math.PI) / 180;
       renderer.render(scene, camera);
     };
     frame = requestAnimationFrame(animate);
