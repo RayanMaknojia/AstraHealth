@@ -2,14 +2,13 @@
  * Photo Check (pages doc §4).
  *
  * Tab 1 - Skin photo, AI FIRST LOOK ONLY (not a diagnosis):
- *   classes cut/laceration, burn, bruise, abrasion, bite/sting, scab, scar, possible
- *   infection, rash, normal skin, plus "unsure".
- *   Confidence < 70% → "Unsure. Sent to the flight surgeon for review." - never guess.
+ *   onboard model classes: cut/laceration, burn, bruise, abrasion, normal skin, plus "unsure".
+ *   Confidence < 60% → "Unsure. Sent to the flight surgeon for review." - never guess.
  *   1. The photo is turned into processed data in the browser (brightness, sharpness,
  *      % red / dark / yellow pixels).
- *   2. The AI (Gemini via the Python server) reads the image + that data + the astronaut's
- *      vitals, symptoms and earlier photos; offline, a stand-in uses the notes, file
- *      name and pixel colours.
+ *   2. The onboard model (src/services/skinModel.ts, trained in ml/skin_classifier) classifies
+ *      the photo in the browser, fully offline. If it can't load, a stand-in uses the notes,
+ *      file name and pixel colours.
  *   3. Severity is decided by rules here (never greener than the AI says), e.g. a
  *      possible infection with a fever ≥ 38.5 °C is an Alert and recommends SOS.
  * Tab 2 - Ultrasound, guided capture with NO AI diagnosis: step-by-step guide,
@@ -20,17 +19,15 @@
 
 import { SKIN_CONFIDENCE_MIN, SKIN_GUIDANCE, SKIN_KEYWORDS, SKIN_LABELS, IMAGE_QUALITY as Q, ULTRASOUND_GUIDES } from '@/data/phase3Data'
 import { CREW_PROFILES, phaseForDay } from '@/data/nasaSpaceflightData'
-import { blobToBase64, callGeminiJson, resolveApiKey, STYLE_RULES } from '@/services/_gemini'
+import { classifySkinPhoto } from '@/services/skinModel'
 import { createStore, missionTimestamp, newId } from '@/services/_store'
 import { enqueue, listInbox } from '@/services/syncService'
 import type {
-  AIConfig,
   ImageStats,
   PhotoComparison,
   PhotoRecord,
   ScanQuality,
   SkinLabel,
-  PhotoContext,
   SkinPhotoInput,
   StatusLevel,
   UltrasoundCaptureInput,
@@ -156,74 +153,26 @@ function offlineSkinGuess(input: SkinPhotoInput): SkinGuess {
   return { label: top.label, confidence: Math.round(confidence * 100) / 100, alternatives, engine: 'offline_mock' }
 }
 
-interface AiSkinReply {
-  label?: string
-  confidence?: number
-  alternatives?: { label?: string; confidence?: number }[]
-  findings?: string[]
-  summary?: string
-  severity?: string
-  interimSteps?: string[]
-  sosRecommended?: boolean
-  reason?: string
-}
-
-const LABELS: SkinLabel[] = ['laceration', 'burn', 'bruise', 'abrasion', 'bite', 'scab', 'scar', 'infection', 'rash', 'normal', 'unsure']
-const strList = (x: unknown, max = 6): string[] => (Array.isArray(x) ? x.filter((v): v is string => typeof v === 'string' && v.trim().length > 0).slice(0, max) : [])
-
-function contextText(c?: PhotoContext): string {
-  if (!c) return 'No other data.'
-  return [
-    `Mission day ${c.missionDay}, ${c.location}. ${c.escalationMode === 'act_then_report' ? 'Earth is too far for real-time help: act onboard first.' : 'Flight surgeon reachable with short delay.'}`,
-    `Latest vitals: temperature ${c.tempC ?? 'unknown'} °C, heart rate ${c.heartRate ?? 'unknown'} bpm, SpO2 ${c.spo2 ?? 'unknown'} %, BP ${c.bloodPressure ?? 'unknown'}.`,
-    `Recent symptoms: ${c.symptoms.join(', ') || 'none reported'}.`,
-    `Medical notes: ${c.medicalNotes.join(' ') || 'none'}.`,
-    `Earlier photos: ${c.priorPhotos.join('; ') || 'none'}.`,
-  ].join('\n')
-}
-
-const SKIN_SYSTEM =
-  'You are an onboard medical decision-support assistant for astronauts. You give a FIRST LOOK, never a diagnosis. ' +
-  'Be conservative: if unsure, say "unsure". Write short, plain-English steps a non-doctor can follow with a basic spacecraft medical kit. ' +
-  STYLE_RULES +
-  ' Reply with JSON only.'
-
-async function aiSkinGuess(input: SkinPhotoInput, ai?: AIConfig): Promise<SkinGuess | null> {
-  if (!resolveApiKey(ai) || !input.file) return null
-  const data = await blobToBase64(input.file)
-  if (!data) return null
-  const st = input.imageStats
-  const reply = await callGeminiJson<AiSkinReply>(
-    [
-      {
-        text: [
-          'Look at this skin photo from an astronaut and classify it as ONE of: laceration, burn, bruise, abrasion, bite, scab, scar, infection, rash, normal, unsure.',
-          `Body location: ${input.bodyLocation}. Pain: ${input.painLevel ?? 'not given'}/5. Astronaut's notes: ${input.notes || 'none'}.`,
-          st ? `Processed image data: brightness ${st.meanBrightness}/255, sharpness ${st.sharpness}, red pixels ${st.rednessPct ?? '?'}%, dark pixels ${st.darkPct ?? '?'}%, yellow pixels ${st.yellowPct ?? '?'}%.` : '',
-          contextText(input.context),
-          'Consider the vitals and history: e.g. a red, swollen wound plus fever suggests a spreading infection; a bite plus breathing trouble suggests anaphylaxis.',
-          'Reply JSON: {"label":string,"confidence":0..1,"alternatives":[{"label":string,"confidence":number}],"findings":[short observations of the image],"summary":one sentence,"severity":"nominal"|"caution"|"critical","interimSteps":[up to 6 precise steps to do now, each with amounts, durations and frequency],"sosRecommended":boolean,"reason":why that severity}.',
-          'Use "unsure" if the image is unclear or not skin. sosRecommended only for a possibly life- or limb-threatening situation.',
-        ].filter(Boolean).join('\n'),
-      },
-      { inline_data: { mime_type: input.mimeType ?? input.file.type ?? 'image/jpeg', data } },
-    ],
-    ai,
-    SKIN_SYSTEM,
-  )
-  if (!reply || !LABELS.includes(reply.label as SkinLabel) || typeof reply.confidence !== 'number') return null
-  const sev = reply.severity === 'critical' || reply.severity === 'caution' || reply.severity === 'nominal' ? reply.severity : undefined
+/**
+ * Onboard model first look (ml/skin_classifier, runs offline in the browser).
+ * The model recognizes abrasion, bruise, burn, laceration and normal skin.
+ * Below SKIN_CONFIDENCE_MIN the result becomes "unsure" and goes to the flight surgeon.
+ */
+async function modelSkinGuess(input: SkinPhotoInput): Promise<SkinGuess | null> {
+  if (!input.file) return null
+  const res = await classifySkinPhoto(input.file)
+  if (!res) return null
+  const [top, ...rest] = res.ranked
+  const alternatives = rest.slice(0, 2).map((a) => ({ label: a.label, confidence: a.confidence }))
   return {
-    label: reply.label as SkinLabel,
-    confidence: Math.max(0, Math.min(1, reply.confidence)),
-    alternatives: (reply.alternatives ?? []).filter((a) => LABELS.includes(a.label as SkinLabel) && typeof a.confidence === 'number').slice(0, 3).map((a) => ({ label: a.label as SkinLabel, confidence: a.confidence! })),
-    engine: 'gemini',
-    findings: strList(reply.findings),
-    summary: typeof reply.summary === 'string' ? reply.summary.slice(0, 300) : undefined,
-    severity: sev,
-    interimSteps: strList(reply.interimSteps, 5),
-    sos: reply.sosRecommended === true,
-    reason: typeof reply.reason === 'string' ? reply.reason.slice(0, 300) : undefined,
+    label: top.label,
+    confidence: top.confidence,
+    alternatives,
+    engine: 'onboard_model',
+    summary:
+      top.confidence < SKIN_CONFIDENCE_MIN
+        ? `The onboard model is not sure (best guess ${SKIN_LABELS[top.label]}, ${Math.round(top.confidence * 100)}%).`
+        : `${SKIN_LABELS[top.label]} (${Math.round(top.confidence * 100)}% sure) on the ${input.bodyLocation}.`,
   }
 }
 
@@ -233,7 +182,7 @@ const raise = (a: StatusLevel, b: StatusLevel): StatusLevel => (ORDER[b] > ORDER
 
 /**
  * Context-aware severity (deterministic; docs/health_rules.md "Photo check severity").
- * The result is never greener than the label's default or than Gemini's view.
+ * The result is never greener than the label's default (or an optional reviewer's view).
  */
 export function judgeSkinSeverity(
   label: SkinLabel,
@@ -303,18 +252,17 @@ export function judgeSkinSeverity(
  * Analyze a skin photo. Never throws for bad input: a non-image or unclear photo comes back
  * as "unsure" and is still queued for the flight surgeon.
  */
-export async function analyzeSkinPhoto(input: SkinPhotoInput, ai?: AIConfig): Promise<PhotoRecord> {
+export async function analyzeSkinPhoto(input: SkinPhotoInput): Promise<PhotoRecord> {
   const mime = input.mimeType ?? input.file?.type ?? ''
   const isImage = !input.file || mime.startsWith('image/') || /\.(png|jpe?g|webp|heic|gif|bmp)$/i.test(input.fileName ?? '')
-  let guess: SkinGuess = isImage ? ((await aiSkinGuess(input, ai).catch(() => null)) ?? offlineSkinGuess(input)) : { label: 'unsure', confidence: 0, alternatives: [], engine: 'offline_mock' }
+  let guess: SkinGuess = isImage ? ((await modelSkinGuess(input).catch(() => null)) ?? offlineSkinGuess(input)) : { label: 'unsure', confidence: 0, alternatives: [], engine: 'offline_mock' }
   const quality = qualityFrom(input.imageStats, input.file)
   if (quality.quality !== 'ok' && guess.label !== 'unsure') guess = { ...guess, confidence: Math.min(guess.confidence, 0.6) }
   if (guess.confidence < SKIN_CONFIDENCE_MIN) guess = { ...guess, label: 'unsure' }
 
   const g = SKIN_GUIDANCE[guess.label]
-  const judged = judgeSkinSeverity(guess.label, input, guess.engine === 'gemini' ? guess.severity : undefined, guess.sos)
+  const judged = judgeSkinSeverity(guess.label, input)
   const status: StatusLevel = judged.status
-  if (guess.reason && guess.engine === 'gemini') judged.reasons.push(`AI review: ${guess.reason}`)
   const findings = [...(guess.findings ?? []), ...describeImageStats(input.imageStats)].slice(0, 8)
   const interim = (guess.interimSteps?.length ? guess.interimSteps : g.firstAid).slice(0, 6)
 

@@ -1103,7 +1103,7 @@ export interface PhotoRecord {
   // Ground review
   reviewStatus: 'pending' | 'reviewed'
   reviewNotes?: string
-  engine: 'gemini' | 'offline_mock'
+  engine: 'onboard_model' | 'gemini' | 'offline_mock'
   // Phase 5: processed image data + context-aware severity
   /** What the image analysis saw, in plain words ("redness spreading ~3 cm", "clean edges"). */
   findings?: string[]
