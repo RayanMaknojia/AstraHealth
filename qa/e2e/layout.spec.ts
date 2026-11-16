@@ -4,7 +4,7 @@
  * The test only fails on JavaScript exceptions; layout findings are reported, not asserted.
  */
 import { expect, test } from "@playwright/test";
-import { audit, dismissAlerts, goTo, login, offlineAi, watchHealth } from "./helpers";
+import { audit, dismissAlerts, goTo, login, offlineAi, skipWelcome, watchHealth } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await offlineAi(page);
@@ -29,8 +29,17 @@ test("audit every screen", async ({ page }, testInfo) => {
   await expect(page.getByRole("alert")).toBeVisible();
   await a("02-login-wrong-pin");
 
-  // Log in; the Mars demo opens a critical alert straight away.
-  await login(page, "mars_crew", "1111", { keepAlerts: true });
+  // Log in: the welcome ("Welcome, Doctor Lavoie") covers the screen first.
+  await page.getByPlaceholder("e.g. mars_crew").fill("mars_crew");
+  await page.getByPlaceholder("Enter your PIN").fill("1111");
+  await page.getByRole("button", { name: /Log in/ }).click();
+  await expect(page.locator(".welcome-name")).toBeVisible();
+  await page.waitForTimeout(700); // past the fade-in
+  await a("02b-login-welcome");
+  // Skip it; then the Mars demo's critical alert opens.
+  await skipWelcome(page);
+  await expect(page.locator(".mission-sidebar, [role=dialog]").first()).toBeVisible();
+  await page.waitForTimeout(800);
   if (await page.getByRole("dialog").count()) await a("03-critical-alert");
 
   // SOS raised on top of the open alert → tall two-alert dialog.

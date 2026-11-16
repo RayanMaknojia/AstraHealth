@@ -153,10 +153,13 @@ export function Workspace({
   initialProfile,
   onLogout,
   onSwitchCrew,
+  holdAlerts = false,
 }: {
   initialProfile: AstronautProfile;
   onLogout: () => void;
   onSwitchCrew: (login: string) => void;
+  /** True while the login welcome is on screen: health alerts open right after it. */
+  holdAlerts?: boolean;
 }) {
   const controller = useMission(initialProfile);
   const {
@@ -181,8 +184,9 @@ export function Workspace({
   const active = model.overrides[0];
   // On laptops/desktops the alert dialog widens into columns instead of
   // scrolling when its text is taller than the screen.
+  const alertOpen = !!active && !model.pendingSos && !holdAlerts;
   const { ref: alertFitRef, cols: alertCols } = useFitColumns(
-    !!active && !model.pendingSos,
+    alertOpen,
     model.overrides.map((o) => o.id).join("|"),
   );
   const banner = getBanner(model.missionState, model.profile.id);
@@ -423,7 +427,7 @@ export function Workspace({
           onSend={() => void controller.sendSosNow("auto")}
         />
       )}
-      <Dialog open={!!active && !model.pendingSos} onOpenChange={() => {}}>
+      <Dialog open={alertOpen} onOpenChange={() => {}}>
         <DialogContent
           className="critical-dialog"
           showCloseButton={false}

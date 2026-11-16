@@ -39,6 +39,8 @@ Branch `planb` · run 2026-11-15 · Chrome (installed on this PC) via Playwright
 | F15 | Log out from the app returns to the login screen |
 | F16 | Keyboard: navigation button shows a focus ring and Enter opens the page |
 | F17 | Reduced motion: Body Map 3D organs stop spinning (canvas frames compared) |
+| F18 | Login welcome: shows and speaks "Welcome, Doctor Lavoie"; the health alert waits until it ends; a reload does not repeat it |
+| F18b | Login welcome: "Welcome, Commander Okafor"; Esc skips it |
 
 ## Issues found (all fixed — see Fixes)
 

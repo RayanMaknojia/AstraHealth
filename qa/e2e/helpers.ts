@@ -68,10 +68,33 @@ export async function login(page: Page, user = "mars_crew", pin = "1111", opts: 
   await page.getByPlaceholder("e.g. mars_crew").fill(user);
   await page.getByPlaceholder("Enter your PIN").fill(pin);
   await page.getByRole("button", { name: /Log in/ }).click();
+  await skipWelcome(page);
   // An alert dialog may open straight away and hide the page from role queries.
   await expect(page.locator(".mission-sidebar, [role=dialog]").or(page.getByText(/Create astronaut/)).first()).toBeVisible();
   await page.waitForTimeout(800);
   if (!opts.keepAlerts) await dismissAlerts(page);
+}
+
+/** The login welcome ("Welcome, Doctor Lavoie") covers the screen for ~3 s; Esc skips it. */
+export async function skipWelcome(page: Page) {
+  const welcome = page.locator(".welcome-screen");
+  if (await welcome.waitFor({ state: "visible", timeout: 3000 }).then(() => true, () => false)) {
+    await page.keyboard.press("Escape");
+    await welcome.waitFor({ state: "detached", timeout: 5000 });
+  }
+}
+
+/** Record what the app asks the browser to say (and keep the test run silent). */
+export async function recordSpeech(page: Page) {
+  await page.addInitScript(() => {
+    const w = window as unknown as { __spoken: string[] };
+    w.__spoken = [];
+    if ("speechSynthesis" in window)
+      window.speechSynthesis.speak = (u: SpeechSynthesisUtterance) => {
+        w.__spoken.push(u.text);
+        setTimeout(() => u.onend?.(new Event("end") as SpeechSynthesisEvent), 10);
+      };
+  });
 }
 
 export async function goTo(page: Page, name: string) {
@@ -148,7 +171,7 @@ async function layoutFindings(page: Page, mobile: boolean): Promise<Finding[]> {
       const name = (el.getAttribute("aria-label") || (el.getAttribute("aria-labelledby") && document.getElementById(el.getAttribute("aria-labelledby")!)?.textContent) || (el as HTMLElement).innerText || el.getAttribute("title") || el.querySelector("img[alt]")?.getAttribute("alt") || el.getAttribute("placeholder") || (labelled && labelled.textContent) || (el.closest("label")?.textContent ?? "") || "").trim();
       if (!name) out.push({ type: "no-label", severity: "medium", detail: `Control has no readable name (screen readers announce nothing): ${el.outerHTML.replace(/\s+/g, " ").slice(0, 160)}`, element: desc(el) });
       // Covered by another element (only when on screen; behind an open modal is expected).
-      const modal = document.querySelector('[role=dialog][aria-modal=true], [role=dialog][data-open], [role=alertdialog]');
+      const modal = document.querySelector('[role=dialog][aria-modal=true], [role=dialog][data-open], [role=alertdialog], .welcome-screen');
       if ((!modal || modal.contains(el)) && el.tagName.toLowerCase() !== "g" && r.top >= 0 && r.bottom <= vh && r.left >= 0 && r.right <= vw && r.width >= 4 && r.height >= 4) {
         const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
         const hit = document.elementFromPoint(cx, cy);
