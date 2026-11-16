@@ -1,0 +1,19 @@
+# Render Blueprint: deploys AstraHealth as one web service from this repo's Dockerfile.
+# Render: New > Blueprint > pick this repo. Every push to main redeploys.
+services:
+  - type: web
+    name: astrahealth
+    runtime: docker
+    plan: free # free sleeps after ~15 min idle (first visit then takes ~1 min); "starter" stays awake
+    branch: main
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      # Paste the key in Render (Environment tab); it is never stored in GitHub.
+      - key: GEMINI_API_KEY
+        sync: false
+      # AI limits for the public site (calls per visitor per 10 min, all visitors per hour).
+      - key: AI_LIMIT_PER_IP
+        value: "30"
+      - key: AI_LIMIT_PER_HOUR
+        value: "400"
