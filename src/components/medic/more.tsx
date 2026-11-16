@@ -37,6 +37,7 @@ import { statusOf } from "./status";
 import { Panel, Status } from "./primitives";
 import type { MissionModel } from "./use-mission";
 import { MyRecords } from "./my-records";
+import { DockingRun } from "./docking-run";
 import {
   NASA_DATA_CREDITS,
   SAA_THRESHOLD_UGY_PER_H,
@@ -75,6 +76,7 @@ export function More({
         {[
           "Cabin readings",
           "My records",
+          "Docking Run",
           "Past journal entries",
           "Guidance & triage",
           "References",
@@ -92,6 +94,16 @@ export function More({
       {tab === "My records" && (
         <div role="tabpanel" aria-label="My records">
           <MyRecords model={model} />
+        </div>
+      )}
+      {tab === "Docking Run" && (
+        <div role="tabpanel" aria-label="Docking Run">
+          <DockingRun
+            astronautId={model.profile.id}
+            name={model.profile.name}
+            missionDay={model.profile.missionDay}
+            mode="play"
+          />
         </div>
       )}
       {tab === "Past journal entries" && (
