@@ -350,7 +350,7 @@ export function StationGarden({ model }: { model: MissionModel }) {
           <p>
             A garden the whole crew grows together. Each day, a check-in, a
             workout that meets the goal, a good night’s sleep, a journal entry
-            and a Ghost Run each earn a seed; plant it anywhere in the dome and
+            a Ghost Run and the Orbit Lab target each earn a seed; plant it anywhere in the dome and
             watch it grow over the coming days.
           </p>
         </div>
@@ -403,7 +403,7 @@ export function StationGarden({ model }: { model: MissionModel }) {
       </div>
       <p className="garden-hint" role="status">
         {seeds.available < 1
-          ? "No seeds right now: check in, sleep 7 h+, exercise, journal or race a Ghost Run to earn more."
+          ? "No seeds right now: check in, sleep 7 h+, exercise, journal, race a Ghost Run or solve the Orbit Lab to earn more."
           : kind
             ? `Now tap an empty plot to plant your ${PLANTS.find((p) => p.kind === kind)?.label.toLowerCase()}.`
             : "Pick a plant above, then tap an empty plot."}
@@ -558,7 +558,8 @@ export function StationGarden({ model }: { model: MissionModel }) {
         <div className="garden-earned">
           Your seeds: {seeds.checkins} check-ins · {seeds.goodSleep} good nights
           · {seeds.workouts} workout days · {seeds.journalDays} journal days ·{" "}
-          {seeds.ghostRuns} Ghost Run days = {seeds.total} earned, {seeds.spent}{" "}
+          {seeds.ghostRuns} Ghost Run days · {seeds.labDays} Orbit Lab days ={" "}
+          {seeds.total} earned, {seeds.spent}{" "}
           planted. The journal’s text is never read; only the number of days
           counts.
         </div>

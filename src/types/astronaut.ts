@@ -1476,6 +1476,8 @@ export interface SeedEarnings {
   goodSleep: number
   journalDays: number
   ghostRuns: number
+  /** Days the Orbit Lab target was made. */
+  labDays: number
   total: number
   spent: number
   available: number
@@ -1488,4 +1490,47 @@ export interface GardenView {
   pending: number
   online: boolean
   lastSync: string | null
+}
+
+// ══════════════════════════════════════════════════════════════════════════
+// §11 Orbit Lab (daily combining game, More page)
+// ══════════════════════════════════════════════════════════════════════════
+
+export interface LabElement {
+  id: string
+  name: string
+  icon: string
+  /** One of the starting elements everyone has. */
+  base?: boolean
+  /** A short space-health fact shown when it is first made. */
+  fact?: string
+}
+
+/** Combining a and b (in any order) makes out. */
+export interface LabRecipe {
+  a: string
+  b: string
+  out: string
+}
+
+/** One astronaut's daily game. */
+export interface LabDay {
+  astronautId: string
+  missionDay: number
+  target: string
+  solved: boolean
+  /** Combinations tried today (including ones that made nothing). */
+  combos: number
+  hintsUsed: number
+  /** Elements first made today. */
+  found: string[]
+}
+
+export interface LabProgress {
+  /** Every element this astronaut has made (kept across days, in order). */
+  discovered: string[]
+  today: LabDay
+  /** Days in a row with the target made, up to today. */
+  streak: number
+  solvedDays: number
 }
