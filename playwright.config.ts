@@ -30,18 +30,21 @@ export default defineConfig({
   workers: 4,
   reporter: [["list"], ["json", { outputFile: "qa/e2e/.results/results.json" }]],
   use: {
-    baseURL: "http://localhost:5173",
+    // QA_BASE_URL tests another server, e.g. the production build (npm run start:prod).
+    baseURL: process.env.QA_BASE_URL || "http://localhost:5173",
     channel: "chrome",
     actionTimeout: 15_000,
     screenshot: "only-on-failure",
     trace: "retain-on-failure",
   },
-  webServer: {
-    command: "npm run dev -- --port 5173 --strictPort",
-    url: "http://localhost:5173",
-    reuseExistingServer: true,
-    timeout: 60_000,
-  },
+  webServer: process.env.QA_BASE_URL
+    ? undefined
+    : {
+        command: "npm run dev -- --port 5173 --strictPort",
+        url: "http://localhost:5173",
+        reuseExistingServer: true,
+        timeout: 60_000,
+      },
   projects: SIZES.map((s) => ({
     name: s.name,
     use: {

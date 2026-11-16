@@ -285,38 +285,43 @@ test("F17 reduced motion: Body Map organs stop animating", async ({ page }) => {
   const canvas = page.locator(".organ-card canvas").first();
   await canvas.scrollIntoViewIfNeeded(); // off-screen canvases do not render
   await expect(canvas).toBeVisible();
-  await page.waitForTimeout(4000); // let the 3D model load and frame itself
-  // Freeze CSS animations (card glow shows through the transparent canvas) so only the 3D spin counts.
-  const first = await canvas.screenshot({ animations: "disabled" });
-  await page.waitForTimeout(1500);
-  const second = await canvas.screenshot({ animations: "disabled" });
-  // Stars twinkle behind the transparent canvas, so allow a few changed pixels; a spinning organ changes thousands.
-  const changed = await page.evaluate(
-    async ([a, b]) => {
-      const load = (src: string) =>
-        new Promise<HTMLImageElement>((ok) => {
-          const img = new Image();
-          img.onload = () => ok(img);
-          img.src = `data:image/png;base64,${src}`;
-        });
-      const [ia, ib] = await Promise.all([load(a), load(b)]);
-      const px = (img: HTMLImageElement) => {
-        const c = document.createElement("canvas");
-        c.width = img.width;
-        c.height = img.height;
-        const g = c.getContext("2d")!;
-        g.drawImage(img, 0, 0);
-        return g.getImageData(0, 0, c.width, c.height).data;
-      };
-      const da = px(ia), db = px(ib);
-      let n = 0;
-      for (let i = 0; i < da.length; i += 4)
-        if (Math.abs(da[i] - db[i]) + Math.abs(da[i + 1] - db[i + 1]) + Math.abs(da[i + 2] - db[i + 2]) > 30) n++;
-      return n / (da.length / 4);
-    },
-    [first.toString("base64"), second.toString("base64")],
-  );
-  expect(changed).toBeLessThan(0.005);
+  await expect(page.locator(".model-error")).toHaveCount(0);
+  // Share of pixels that differ between two frames 1.5 s apart. CSS animations are frozen (the
+  // card glow shows through the transparent canvas); stars twinkling behind it change a few pixels,
+  // a spinning organ changes thousands.
+  const frameChange = async () => {
+    const first = await canvas.screenshot({ animations: "disabled" });
+    await page.waitForTimeout(1500);
+    const second = await canvas.screenshot({ animations: "disabled" });
+    return page.evaluate(
+      async ([a, b]) => {
+        const load = (src: string) =>
+          new Promise<HTMLImageElement>((ok) => {
+            const img = new Image();
+            img.onload = () => ok(img);
+            img.src = `data:image/png;base64,${src}`;
+          });
+        const [ia, ib] = await Promise.all([load(a), load(b)]);
+        const px = (img: HTMLImageElement) => {
+          const c = document.createElement("canvas");
+          c.width = img.width;
+          c.height = img.height;
+          const g = c.getContext("2d")!;
+          g.drawImage(img, 0, 0);
+          return g.getImageData(0, 0, c.width, c.height).data;
+        };
+        const da = px(ia), db = px(ib);
+        let n = 0;
+        for (let i = 0; i < da.length; i += 4)
+          if (Math.abs(da[i] - db[i]) + Math.abs(da[i + 1] - db[i + 1]) + Math.abs(da[i + 2] - db[i + 2]) > 30) n++;
+        return n / (da.length / 4);
+      },
+      [first.toString("base64"), second.toString("base64")],
+    );
+  };
+  // The model may still be downloading and framing itself (slower on the live site), so keep
+  // comparing until it holds still. A spinning organ never does, and the test fails after 20 s.
+  await expect.poll(frameChange, { timeout: 20_000, intervals: [0] }).toBeLessThan(0.005);
 });
 
 test("F18 login welcome: shows and speaks the astronaut's title and surname, then the alert opens", async ({ page }) => {
