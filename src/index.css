@@ -7160,8 +7160,11 @@ body:has(.medic-app) {
   position: relative;
 }
 .trip-bar .si-badge {
+  /* Under the middle of the track, clear of the Earth, ship and planet art. */
   bottom: 2px;
-  right: 4px;
+  right: auto;
+  left: 50%;
+  transform: translateX(-50%);
   font-size: 9px;
 }
 .organ-card .si-badge {
