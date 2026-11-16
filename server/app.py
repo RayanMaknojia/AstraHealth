@@ -3,6 +3,11 @@ AstraHealth local server (Python standard library only, no pip installs).
 
     python server/app.py            # listens on http://127.0.0.1:8787
 
+Production (one service runs the whole app, e.g. Render via the Dockerfile):
+    HOST=0.0.0.0 PORT=<host's port> STATIC_DIR=dist TRUST_PROXY=1 python server/app.py
+    - serves the built website (npm run build -> dist/) next to the API
+    - limits AI calls per visitor and per hour so a public site can't drain the quota
+
 Endpoints (all JSON):
     GET  /api/health    -> {"ok": true, "ai": bool, "models": [...]}
     POST /api/scan      -> new simulated KPI readings for the Home "Start scan" button
@@ -16,11 +21,15 @@ leaves this process. If the key is missing or Gemini fails, /api/ai/json answers
 from __future__ import annotations
 
 import json
+import mimetypes
 import os
 import sys
+import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
+from collections import deque
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 
@@ -46,6 +55,17 @@ def load_env_file(path: Path) -> None:
 
 load_env_file(HERE / ".env")
 PORT = int(os.environ.get("PORT", "8787"))
+HOST = os.environ.get("HOST", "127.0.0.1")
+# Built website to serve next to the API (production). Unset = API only (local dev).
+STATIC_DIR = Path(os.environ["STATIC_DIR"]).resolve() if os.environ.get("STATIC_DIR") else None
+# Behind a hosting proxy (Render, etc.) the visitor's IP is the first X-Forwarded-For entry.
+TRUST_PROXY = os.environ.get("TRUST_PROXY", "") in ("1", "true", "yes")
+# CORS: the site and API share one origin in production; allow others only if set.
+ALLOWED_ORIGIN = os.environ.get("ALLOWED_ORIGIN", "*")
+# AI rate limits (0 = off). Defaults suit a public demo on a free Gemini key.
+AI_PER_IP = int(os.environ.get("AI_LIMIT_PER_IP", "30"))  # calls per visitor ...
+AI_PER_IP_WINDOW = float(os.environ.get("AI_LIMIT_PER_IP_SECONDS", "600"))  # ... per 10 minutes
+AI_GLOBAL_PER_HOUR = int(os.environ.get("AI_LIMIT_PER_HOUR", "400"))  # all visitors together
 MODELS = [m.strip() for m in os.environ.get("GEMINI_MODELS", "gemini-flash-lite-latest,gemini-flash-latest").split(",") if m.strip()]
 TIMEOUT = float(os.environ.get("GEMINI_TIMEOUT_SECONDS", "10"))  # per attempt (text)
 IMAGE_TIMEOUT = float(os.environ.get("GEMINI_IMAGE_TIMEOUT_SECONDS", "25"))  # per attempt (with an image)
@@ -137,6 +157,43 @@ def call_gemini(parts: list[dict], system: str | None, temperature: float) -> di
     return {"ok": False, "error": last_error}
 
 
+class RateLimiter:
+    """Sliding-window counters: per visitor and for the whole server."""
+
+    def __init__(self, per_key: int, key_window: float, global_per_hour: int):
+        self.per_key, self.key_window, self.global_per_hour = per_key, key_window, global_per_hour
+        self._keys: dict[str, deque] = {}
+        self._all: deque = deque()
+        self._lock = threading.Lock()
+
+    def allow(self, key: str, now: float | None = None) -> bool:
+        now = time.monotonic() if now is None else now
+        with self._lock:
+            while self._all and now - self._all[0] > 3600:
+                self._all.popleft()
+            q = self._keys.setdefault(key, deque())
+            while q and now - q[0] > self.key_window:
+                q.popleft()
+            if self.global_per_hour and len(self._all) >= self.global_per_hour:
+                return False
+            if self.per_key and len(q) >= self.per_key:
+                return False
+            q.append(now)
+            self._all.append(now)
+            if len(self._keys) > 5000:  # forget idle visitors
+                self._keys = {k: v for k, v in self._keys.items() if v}
+            return True
+
+
+ai_limiter = RateLimiter(AI_PER_IP, AI_PER_IP_WINDOW, AI_GLOBAL_PER_HOUR)
+
+# Types the browser needs for the built site (3D models, fonts, images).
+for _ext, _mime in {".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".glb": "model/gltf-binary",
+                    ".webp": "image/webp", ".svg": "image/svg+xml", ".woff2": "font/woff2", ".json": "application/json",
+                    ".csv": "text/csv", ".wasm": "application/wasm"}.items():
+    mimetypes.add_type(_mime, _ext)
+
+
 class Handler(BaseHTTPRequestHandler):
     server_version = "AstraHealth/1.0"
 
@@ -148,7 +205,7 @@ class Handler(BaseHTTPRequestHandler):
         self.send_response(status)
         self.send_header("content-type", "application/json")
         self.send_header("content-length", str(len(body)))
-        self.send_header("access-control-allow-origin", "*")
+        self.send_header("access-control-allow-origin", ALLOWED_ORIGIN)
         self.send_header("access-control-allow-headers", "content-type")
         self.send_header("access-control-allow-methods", "GET, POST, OPTIONS")
         self.end_headers()
@@ -164,12 +221,58 @@ class Handler(BaseHTTPRequestHandler):
         except (ValueError, UnicodeDecodeError):
             return None
 
+    def _client(self) -> str:
+        if TRUST_PROXY:
+            fwd = (self.headers.get("x-forwarded-for") or "").split(",")[0].strip()
+            if fwd:
+                return fwd
+        return self.client_address[0]
+
+    def _static(self, head: bool = False) -> None:
+        """Serve the built website; unknown app paths get index.html (single-page app)."""
+        assert STATIC_DIR is not None
+        rel = urllib.parse.unquote(self.path.split("?", 1)[0].split("#", 1)[0]).lstrip("/")
+        target = (STATIC_DIR / rel).resolve() if rel else STATIC_DIR / "index.html"
+        if not (target == STATIC_DIR or STATIC_DIR in target.parents):  # no ../ escapes
+            self._send(404, {"ok": False, "error": "not_found"})
+            return
+        if not target.is_file():
+            if "." in Path(rel).name:  # a missing file (asset), not an app route
+                self._send(404, {"ok": False, "error": "not_found"})
+                return
+            target = STATIC_DIR / "index.html"
+        data = target.read_bytes()
+        mime = mimetypes.guess_type(target.name)[0] or "application/octet-stream"
+        if mime.startswith("text/") or mime in ("application/json", "image/svg+xml"):
+            mime += "; charset=utf-8"
+        self.send_response(200)
+        self.send_header("content-type", mime)
+        self.send_header("content-length", str(len(data)))
+        # Hashed build files never change; index.html must always be re-checked.
+        hashed = rel.startswith("assets/")
+        self.send_header("cache-control", "public, max-age=31536000, immutable" if hashed else "no-cache")
+        self.send_header("x-content-type-options", "nosniff")
+        self.send_header("referrer-policy", "strict-origin-when-cross-origin")
+        self.send_header("x-frame-options", "SAMEORIGIN")
+        self.end_headers()
+        if not head:
+            self.wfile.write(data)
+
     def do_OPTIONS(self):  # CORS preflight
         self._send(204, {})
+
+    def do_HEAD(self):
+        if STATIC_DIR and not self.path.startswith("/api/"):
+            self._static(head=True)
+        else:
+            self.send_response(200 if self.path.rstrip("/") == "/api/health" else 404)
+            self.end_headers()
 
     def do_GET(self):
         if self.path.rstrip("/") == "/api/health":
             self._send(200, {"ok": True, "ai": api_key() is not None, "models": MODELS})
+        elif STATIC_DIR and not self.path.startswith("/api/"):
+            self._static()
         else:
             self._send(404, {"ok": False, "error": "not_found"})
 
@@ -189,6 +292,10 @@ class Handler(BaseHTTPRequestHandler):
             if not isinstance(parts, list) or not parts:
                 self._send(400, {"ok": False, "error": "parts_required"})
                 return
+            if not ai_limiter.allow(self._client()):
+                sys.stderr.write("[server] AI rate limit reached; the app used offline rules.\n")
+                self._send(200, {"ok": False, "error": "rate_limited"})
+                return
             temperature = body.get("temperature", 0.2)
             started = time.monotonic()
             result = call_gemini(parts, body.get("system"), float(temperature) if isinstance(temperature, (int, float)) else 0.2)
@@ -204,8 +311,11 @@ class Handler(BaseHTTPRequestHandler):
 
 
 def main() -> None:
-    httpd = ThreadingHTTPServer(("127.0.0.1", PORT), Handler)
-    print(f"AstraHealth server on http://127.0.0.1:{PORT}  (Gemini: {'on' if api_key() else 'off - offline rules only'})", flush=True)
+    if STATIC_DIR and not (STATIC_DIR / "index.html").is_file():
+        print(f"STATIC_DIR {STATIC_DIR} has no index.html: run `npm run build` first. Serving the API only.", flush=True)
+    httpd = ThreadingHTTPServer((HOST, PORT), Handler)
+    site = f", website from {STATIC_DIR}" if STATIC_DIR else ""
+    print(f"AstraHealth server on http://{HOST}:{PORT}  (Gemini: {'on' if api_key() else 'off - offline rules only'}{site})", flush=True)
     try:
         httpd.serve_forever()
     except KeyboardInterrupt:
