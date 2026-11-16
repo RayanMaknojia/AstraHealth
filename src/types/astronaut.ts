@@ -1380,3 +1380,70 @@ export interface SosEvent {
   vitalsSnapshot: string[]
   overrideId?: string
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// §9 Docking Run (ghost-racing reaction game; replaces the plain reaction test)
+// ══════════════════════════════════════════════════════════════════════════
+
+/** One docking light on today's course (the same course for the whole crew that day). */
+export interface RaceGate {
+  /** When the light turns green, ms after the start. */
+  atMs: number
+  /** Vertical position of the light on the track, 0-1 (visual only). */
+  lane: number
+}
+
+export interface RaceCourse {
+  missionDay: number
+  gates: RaceGate[]
+  /** Whole run length, ms. */
+  durationMs: number
+}
+
+export type RaceGateOutcome = 'hit' | 'slow' | 'missed'
+
+/** Result of one docking light. */
+export interface RaceGateResult {
+  /** Reaction time in ms; null when missed (no press within the window). */
+  rtMs: number | null
+  outcome: RaceGateOutcome
+  points: number
+  /** Presses before this light turned green. */
+  falseStarts: number
+}
+
+export interface RaceRun {
+  id: string
+  astronautId: string
+  name: string
+  missionDay: number
+  /** ISO time it was played. */
+  playedAt: string
+  gates: RaceGateResult[]
+  score: number
+  /** Median of valid reaction times (same rule as the reaction test). */
+  medianMs: number | null
+  lapses: number
+  misses: number
+  falseStarts: number
+  /** A simulated crewmate (labelled as such in the UI). */
+  simulated?: boolean
+}
+
+/** A ghost on the track: when each light was pressed and the distance after it. */
+export interface RaceGhost {
+  runId: string
+  name: string
+  simulated: boolean
+  /** Per gate: press time (ms from start) and cumulative score after that gate. */
+  path: { atMs: number; total: number }[]
+  score: number
+}
+
+export interface RaceBoard {
+  personalBest: number | null
+  /** Best run on today's course by anyone (you, crewmates, simulated crewmates). */
+  stationRecord: { score: number; name: string; simulated: boolean } | null
+  /** Crew total for this mission week (each member's best score per day) vs the target. */
+  crewWeek: { total: number; target: number; days: [number, number] }
+}

@@ -23,7 +23,7 @@ import {
 import { Panel, Status } from "./primitives";
 import { statusOf } from "./status";
 import { nextScheduledCheckin, visibleSchedule } from "./checkin-schedule";
-import { ReactionTest } from "./reaction-test";
+import { DockingRun } from "./docking-run";
 import type { MissionModel } from "./use-mission";
 import { PhotoCheck } from "./photo-check";
 import { ReportProblem } from "./report-problem";
@@ -233,7 +233,7 @@ export function Checkin({
       if (!food) missing.push("Food / nutrition questionnaire");
       if (hydration === "") missing.push("Water / fluids yesterday");
       if (!values.fasting) missing.push("Fasting glucose confirmation");
-      if (!extras.reactionMs) missing.push("30-second reaction test");
+      if (!extras.reactionMs) missing.push("Docking Run (reaction game)");
     }
     if (extended) {
       for (const guide of EXAM_GUIDES)
@@ -756,10 +756,13 @@ export function Checkin({
               </section>
             )}
             <div className="checkin-bottom-columns">
-              <ReactionTest
+              <DockingRun
                 key={draftRevision}
+                mode="checkin"
                 required={weekly}
                 astronautId={profile.id}
+                name={profile.name}
+                missionDay={profile.missionDay}
                 onResult={(ms) =>
                   setExtras((x) => ({ ...x, reactionMs: ms ?? undefined }))
                 }
