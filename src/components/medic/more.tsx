@@ -369,7 +369,7 @@ export function More({
           </Panel>
           <Panel title="Onboard medications">
             <div className="medication-list">
-              {getMedicationList().map((m) => (
+              {getMedicationList(model.profile.id).map((m) => (
                 <div key={m.id}>
                   <h3>{m.name}</h3>
                   <Status status={m.status} />
