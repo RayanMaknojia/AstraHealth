@@ -89,5 +89,79 @@ class ServerTests(unittest.TestCase):
         self.assertEqual(app.parse_json_text('```json\n{"a": 1}\n```'), {"a": 1})
 
 
+class RateLimitTests(unittest.TestCase):
+    def test_per_visitor_limit_and_window(self):
+        rl = app.RateLimiter(per_key=3, key_window=60, global_per_hour=0)
+        self.assertEqual([rl.allow("a", now=t) for t in (0, 1, 2, 3)], [True, True, True, False])
+        self.assertTrue(rl.allow("b", now=3))  # other visitors unaffected
+        self.assertTrue(rl.allow("a", now=61))  # window slid past the first call
+
+    def test_global_hourly_limit(self):
+        rl = app.RateLimiter(per_key=0, key_window=60, global_per_hour=2)
+        self.assertEqual([rl.allow(k, now=0) for k in "xyz"], [True, True, False])
+        self.assertTrue(rl.allow("z", now=3601))
+
+
+class StaticSiteTests(unittest.TestCase):
+    """Production mode: the same server serves the built website next to /api."""
+
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        cls.tmp = tempfile.TemporaryDirectory()
+        root = Path(cls.tmp.name)
+        (root / "assets").mkdir()
+        (root / "index.html").write_text("<!doctype html><title>AstraHealth</title>", encoding="utf-8")
+        (root / "assets" / "app-abc123.js").write_text("console.log(1)", encoding="utf-8")
+        (root / "assets" / "brain.glb").write_bytes(b"glTF")
+        (Path(cls.tmp.name).parent / "secret.txt").write_text("nope", encoding="utf-8")
+        cls.saved = app.STATIC_DIR
+        app.STATIC_DIR = root.resolve()
+        cls.httpd = app.ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+        cls.base = f"http://127.0.0.1:{cls.httpd.server_address[1]}"
+        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        app.STATIC_DIR = cls.saved
+        cls.tmp.cleanup()
+
+    def get(self, path):
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        try:
+            with opener.open(self.base + path, timeout=5) as res:
+                return res.status, dict(res.headers), res.read()
+        except urllib.error.HTTPError as e:
+            return e.code, dict(e.headers), e.read()
+
+    def test_index_and_app_routes(self):
+        for path in ("/", "/home", "/trends?x=1"):
+            status, headers, body = self.get(path)
+            self.assertEqual(status, 200, path)
+            self.assertIn(b"AstraHealth", body)
+            self.assertEqual(headers["cache-control"], "no-cache")
+
+    def test_hashed_assets_cached_with_types(self):
+        status, headers, _ = self.get("/assets/app-abc123.js")
+        self.assertEqual(status, 200)
+        self.assertTrue(headers["content-type"].startswith("text/javascript"))
+        self.assertIn("immutable", headers["cache-control"])
+        self.assertEqual(self.get("/assets/brain.glb")[1]["content-type"], "model/gltf-binary")
+
+    def test_missing_asset_is_404_not_index(self):
+        self.assertEqual(self.get("/assets/missing.js")[0], 404)
+
+    def test_no_path_traversal(self):
+        for path in ("/../secret.txt", "/%2e%2e/secret.txt", "/assets/../../secret.txt"):
+            status, _, body = self.get(path)
+            self.assertNotIn(b"nope", body, path)
+
+    def test_api_still_works(self):
+        status, _, body = self.get("/api/health")
+        self.assertEqual(status, 200)
+        self.assertTrue(json.loads(body)["ok"])
+
+
 if __name__ == "__main__":
     unittest.main()

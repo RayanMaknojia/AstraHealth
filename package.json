@@ -13,6 +13,7 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
+    "start:prod": "node scripts/prod.mjs",
     "qa": "vitest run qa --exclude \"qa/e2e/**\"",
     "qa:ui": "playwright test"
   },
