@@ -77,7 +77,7 @@ A reading can be 🟢 and still be **drifting**. The app fits a line through the
 |---|---|---|---|---|
 | Body mass (% from preflight) | within 3% | 3-5% loss | > 5% loss | Pages doc, weekly |
 | Exercise (min/day) | ≥ 120 | 60-119 | < 60 for 3 days in a row | Pages doc, ISS 2 h/day |
-| Reaction test (ms), measured by the **Docking Run** game | within 10% of baseline | 10-20% slower | > 20% slower | Our choice (pages doc gives no limits). Each docking light is one trial; the median of valid presses (100-1000 ms) is scored. The game itself never shows these colours. |
+| Reaction test (ms), measured by the **Ghost Run** game | within 10% of baseline | 10-20% slower | > 20% slower | Our choice (pages doc gives no limits). Each docking light is one trial; the median of valid presses (100-1000 ms) is scored. The result is shown after each run, against the personal baseline. |
 | Cabin CO2 override | - | - | > 3.0 mmHg for 1 hour → Cabin Emergency | Pages doc O2 |
 | Skin photo first look | - | label with ≥ 70% confidence (cut, burn, abrasion → Watch) | burn with blister / large / face / hand | Below 70% → "Unsure", sent to the flight surgeon; never guess |
 | Medication | > 30 days to expiry | expires within 30 days, or ≤ 5 left | expired | Our choice |

@@ -2,6 +2,11 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Rocket, Trophy, Users, Timer } from "lucide-react";
 import { RACE_RULES } from "@/data/ghostRaceData";
 import {
+  evaluateReaction,
+  getReactionBaseline,
+  recordReaction,
+} from "@/services/wellbeingService";
+import {
   dailyCourse,
   gateResult,
   getBoard,
@@ -11,6 +16,8 @@ import {
 } from "@/services/ghostRaceService";
 import type { RaceGateResult, RaceRun } from "@/types/astronaut";
 import { Button } from "@/components/ui/button";
+import { Status } from "./primitives";
+import { statusStyle } from "./status";
 
 type Phase = "idle" | "countdown" | "running" | "done";
 const COUNTDOWN_MS = 3000;
@@ -20,12 +27,14 @@ const ordinal = (n: number) =>
   n === 1 ? "1st" : n === 2 ? "2nd" : n === 3 ? "3rd" : `${n}th`;
 
 /**
- * Docking Run: race today's docking course against your crewmates' ghosts.
- * Each green docking light is one reaction trial, so in the weekly check-in the run
- * also gives the median reaction time the health rules need (onResult). The game
- * itself only shows race results.
+ * Ghost Run - Reaction test: race today's docking course against your crewmates'
+ * ghosts. Each green docking light is one reaction trial (a psychomotor vigilance
+ * test, the kind used to track alertness and fatigue), so every run also measures
+ * reaction speed and compares it with the astronaut's own baseline:
+ *  - in the weekly check-in, the median is saved with the check-in (onResult);
+ *  - played from More, it is saved to the health record straight away.
  */
-export function DockingRun({
+export function GhostRun({
   astronautId,
   name,
   missionDay,
@@ -36,7 +45,7 @@ export function DockingRun({
   astronautId: string;
   name: string;
   missionDay: number;
-  /** "checkin": part of the weekly check-in; "play": just for fun (More page). */
+  /** "checkin": part of the weekly check-in (saved on submit); "play": More page (saved now). */
   mode: "checkin" | "play";
   required?: boolean;
   onResult?: (medianMs: number | null) => void;
@@ -48,6 +57,8 @@ export function DockingRun({
   const [results, setResults] = useState<RaceGateResult[]>([]);
   const [feedback, setFeedback] = useState("");
   const [run, setRun] = useState<RaceRun | null>(null);
+  const [saved, setSaved] = useState(false);
+  const baseline = getReactionBaseline(astronautId);
   // Ghosts and the board change only when a run is saved, not every frame.
   const [snap, setSnap] = useState(() => ({
     ghosts: getGhosts(astronautId, day),
@@ -72,11 +83,21 @@ export function DockingRun({
     });
     saveRun(scored);
     setRun(scored);
+    // Played from More: this run is a reaction test of its own, saved right away.
+    // In the check-in it is saved when the check-in is submitted (onResult).
+    if (mode === "play" && scored.medianMs !== null) {
+      try {
+        recordReaction(astronautId, day, scored.medianMs);
+        setSaved(true);
+      } catch {
+        setSaved(false);
+      }
+    }
     setPhase("done");
     // Ghosts stay as raced; the board now includes this run.
     setSnap((s) => ({ ...s, board: getBoard(astronautId, day) }));
     onResult?.(scored.medianMs);
-  }, [astronautId, name, day, onResult]);
+  }, [astronautId, name, day, onResult, mode]);
 
   const resolveGate = useCallback(
     (result: RaceGateResult) => {
@@ -158,6 +179,7 @@ export function DockingRun({
     };
     setResults([]);
     setRun(null);
+    setSaved(false);
     setFeedback("");
     setT(-COUNTDOWN_MS);
     setPhase("countdown");
@@ -194,17 +216,40 @@ export function DockingRun({
   const beat = run
     ? ghosts.filter((g) => g.score < run.score).map((g) => g.name)
     : [];
+  // Reaction speed vs the astronaut's own baseline (same rules as the old reaction test).
+  const ms = run?.medianMs ?? null;
+  const verdict = ms === null ? null : evaluateReaction(ms, baseline);
+  const reactionStatus =
+    ms === null
+      ? "no_data"
+      : baseline === null
+        ? ms > 350
+          ? "caution"
+          : "nominal"
+        : (verdict?.status ?? "no_data");
+  const reactionText =
+    ms === null
+      ? "No valid presses this run, so no reaction time. Race again and press only on green."
+      : baseline === null
+        ? `${ms} ms. Baseline being set. Optimal reference: 250 to 350 ms.`
+        : verdict?.status === "critical"
+          ? `${ms} ms. Much slower than your usual (${verdict.slowerPct}%). Rest, and retest later; avoid EVA, robotics and piloting until it recovers.`
+          : verdict?.status === "caution"
+            ? `${ms} ms. A bit slower than your usual (${verdict.slowerPct}%). Check your sleep and stress.`
+            : ms < baseline
+              ? `${ms} ms. Faster than your usual. Nice.`
+              : `${ms} ms. Your reaction time is in your optimal range.`;
   const weekPct = Math.min(
     100,
     Math.round((board.crewWeek.total / board.crewWeek.target) * 100),
   );
 
   return (
-    <section className="docking-run" aria-label="Docking Run">
+    <section className="docking-run" aria-label="Ghost Run, reaction test">
       <div className="dock-head">
         <div>
           <h3>
-            Docking Run
+            Ghost Run · Reaction test
             {required && (
               <span className="required-mark" aria-hidden="true">
                 *{" "}
@@ -330,10 +375,25 @@ export function DockingRun({
               <span style={{ width: `${weekPct}%` }} />
             </span>
           </div>
+          <div className="dock-reaction">
+            <h4>Reaction speed</h4>
+            <p className="reaction-result" style={statusStyle(reactionStatus)}>
+              <Status status={reactionStatus} /> {reactionText}
+            </p>
+            <small>
+              Reaction speed follows alertness: slower than your usual often
+              comes with short sleep, fatigue or stress.{" "}
+              {baseline === null
+                ? "A personal baseline is set after three saved tests."
+                : `Your baseline: ${baseline} ms.`}{" "}
+              {mode === "checkin"
+                ? "Finish the check-in to save this test."
+                : saved
+                  ? "Saved to your health record."
+                  : ""}
+            </small>
+          </div>
           <small>
-            {mode === "checkin"
-              ? "Your run is saved with this check-in."
-              : "Practice run: saved to today’s race, not to your health record."}{" "}
             Simulated crewmates race until real crewmates run today’s course.
           </small>
         </div>

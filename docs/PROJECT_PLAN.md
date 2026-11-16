@@ -286,7 +286,7 @@ Phase 7 Claude (see docs/phases/phase7Claude.md):
 [x] SI disclosure: visible watermarks, labelled AI text, file metadata, README.md, docs/si-metadata.json; docs/SUBMISSION.md for the Space Apps form.
 
 
-Docking Run (ghost-racing reaction game; replaces the 30-second reaction test):
+Ghost Run - Reaction test (ghost-racing game; replaces the 30-second reaction test):
 [x] One seeded course per mission day (12 docking lights, about 36 s); press Space or tap on green. Faster = more points; false starts cost points; never zero-sum.
 [x] Ghosts: crewmates' best runs today on the same course (real runs first, labelled simulated crewmates until then); personal best, station record and a weekly crew target.
-[x] Each light is one reaction trial (false start < 100 ms, slow > 500 ms, missed > 1000 ms), scored with the existing reaction rule, so the weekly check-in and health rules are unchanged. The game shows race results only, never health colours. Also playable for fun in More → Docking Run (not recorded to health).
+[x] Each light is one reaction trial (false start < 100 ms, slow > 500 ms, missed > 1000 ms), scored with the existing reaction rule, so the weekly check-in and health rules are unchanged. After the race it shows the reaction result against the personal baseline, like the old test. Also in More → Ghost Run; every run shows the reaction result vs the personal baseline and is saved to the health record (check-in runs on submit). Reaction speed is added to the medical briefing (last 24 h and 7 days).

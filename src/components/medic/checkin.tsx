@@ -23,7 +23,7 @@ import {
 import { Panel, Status } from "./primitives";
 import { statusOf } from "./status";
 import { nextScheduledCheckin, visibleSchedule } from "./checkin-schedule";
-import { DockingRun } from "./docking-run";
+import { GhostRun } from "./ghost-run";
 import type { MissionModel } from "./use-mission";
 import { PhotoCheck } from "./photo-check";
 import { ReportProblem } from "./report-problem";
@@ -233,7 +233,7 @@ export function Checkin({
       if (!food) missing.push("Food / nutrition questionnaire");
       if (hydration === "") missing.push("Water / fluids yesterday");
       if (!values.fasting) missing.push("Fasting glucose confirmation");
-      if (!extras.reactionMs) missing.push("Docking Run (reaction game)");
+      if (!extras.reactionMs) missing.push("Ghost Run (reaction test)");
     }
     if (extended) {
       for (const guide of EXAM_GUIDES)
@@ -756,7 +756,7 @@ export function Checkin({
               </section>
             )}
             <div className="checkin-bottom-columns">
-              <DockingRun
+              <GhostRun
                 key={draftRevision}
                 mode="checkin"
                 required={weekly}

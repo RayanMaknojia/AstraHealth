@@ -7443,7 +7443,7 @@ body:has(.medic-app) {
   }
 }
 
-/* ── Docking Run (ghost-racing reaction game) ─────────────────────────── */
+/* ── Ghost Run - Reaction test (ghost-racing game) ─────────────────────────── */
 .docking-run {
   display: flex;
   flex-direction: column;
@@ -7663,4 +7663,27 @@ body:has(.medic-app) {
   .dock-target {
     height: 96px;
   }
+}
+.dock-reaction {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgb(4 10 16 / 0.35);
+}
+.dock-reaction h4 {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.dock-reaction .reaction-result {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 15px;
+  line-height: 1.45;
 }
