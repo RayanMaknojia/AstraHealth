@@ -7,6 +7,18 @@ NASA Space Apps Challenge 2026, challenge: *Create Health Monitoring Software fo
 
 Decision support, not diagnosis. All health data in the app is simulated.
 
+## What it does
+
+- **One health record, one clear colour.** Wearable readings, body scans, daily check-ins, photos and lab files go into one on-device record, each marked Normal, Watch or Alert.
+- **Rules that move with the mission.** Limits change with the mission day (in flight, on the Moon or Mars, back on Earth), and patterns count: one short night is Watch, three in a row is Alert. The 7-day trend warns before a drifting reading crosses its limit.
+- **A medical briefing** for the last check-in, the last 24 hours and the last 7 days, with next steps (AI-written when online, rules-based offline).
+- **Knows when advice isn't enough.** Danger words or dangerous vitals give first aid at once and start a 30-second SOS to the ground lab and the ISS, showing the signal delay. Photo Check gives a first look at cuts, burns, bites and rashes, offline.
+- **Care for the mind, too.** Isolation and confinement are one of the hazards of spaceflight, so healthy habits are also play:
+  - **Ghost Run - Reaction test:** race your crewmates' ghosts; each light is a reaction trial, compared with your own baseline (a slower reaction can mean fatigue, poor sleep or stress) and added to the briefing.
+  - **Station Garden:** check-ins, good sleep, exercise, journaling and the games earn seeds for one garden the whole crew grows together.
+  - **Orbit Lab:** a daily combining puzzle; health elements teach a fact about life in space.
+- **Crew features:** a notification box for alerts and crew messages ("Notify crew"), the mission day counted live from the launch date, and each crew's own medication stock.
+
 ## Run locally
 
 ```bash
@@ -37,12 +49,15 @@ One service runs the whole app: the Python server serves the built website and t
 
 | Path | What it is |
 |---|---|
-| `src/` | The web app (React + TypeScript): `components/medic` (screens), `services` (health rules, database, AI, SOS), `data` (reference data), `types` (shared schema) |
-| `server/` | Python server: body-scan generator and AI proxy (`app.py`, `scan.py`, tests) |
-| `scripts/` | `dev.mjs`: starts the server and the web app together |
-| `public/` | Static files served as-is |
-| `docs/` | Project documents: plan (`PROJECT_PLAN.md`), health rules (`health_rules.md`), challenge brief, page specs, submission text (`SUBMISSION.md`), SI metadata (`si-metadata.json`) and the per-phase build history (`phases/`) |
-| Root config files | `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `components.json` and `index.html`. The tools need these in the root. |
+| `src/` | The web app (React + TypeScript): `components/medic` (screens and games), `components/ui` (shared UI parts), `services` (health rules, database, AI, SOS, games), `data` (reference data), `types` (shared schema) |
+| `server/` | Python server: body-scan generator, AI proxy and the shared Station Garden (`app.py`, `scan.py`, `garden.py`, tests) |
+| `ml/skin_classifier/` | The onboard skin photo model: training scripts, model and data cards, reports |
+| `qa/` | Health-rule and game tests (Vitest), browser tests (`qa/e2e`, Playwright) and QA reports |
+| `scripts/` | `dev.mjs` starts the server and the web app together; `prod.mjs` runs the production build locally |
+| `public/` | Static files served as-is (favicons, the skin model in `models/`) |
+| `docs/` | Project documents: plan (`PROJECT_PLAN.md`), health rules (`health_rules.md`), check-in fields, challenge brief, page specs, submission text (`SUBMISSION.md`), SI metadata (`si-metadata.json`) and the per-phase build history (`phases/`) |
+| `Dockerfile`, `render.yaml` | The hosted website (one service: Python server plus the built site) |
+| Root config files | `package.json`, `vite.config.ts`, `tsconfig*.json`, `eslint.config.js`, `playwright.config.ts`, `components.json` and `index.html`. The tools need these in the root. |
 | `CLAUDE.md`, `AGENTS.md` | Instructions read automatically by the coding assistants (Claude Code, Codex) |
 
 ## Use of Super Intelligence (SI)
@@ -66,7 +81,7 @@ AstraHealth does not use, contain or modify NASA logos, flags, mission patches o
 
 | Tool | Used for |
 |---|---|
-| Claude Code (Anthropic) | Data schema, health rules engine, services, health database, Python server, AI briefing / photo diagnosis / SOS logic, 3D organ generator, parts of the UI, documentation |
+| Claude Code (Anthropic) | Data schema, health rules engine, services, health database, Python server, AI briefing / photo diagnosis / SOS logic, 3D organ generator, the three games (Ghost Run, Station Garden, Orbit Lab), parts of the UI, documentation |
 | OpenAI Codex / ChatGPT | Frontend UI (React components, layout, styling), earlier Blender organ generators, journey artwork and human body figure |
 | Image generator (SI) | The five organ reference images (brain, heart, liver, DNA, leg), the human body figure and the journey artwork |
 | Google Gemini API (at run time) | Medical briefing text, extracting values from uploaded text and files |
@@ -125,5 +140,13 @@ npm run lint
 npm run build
 ```
 ```bash
+npm run qa
+```
+```bash
+npm run qa:ui
+```
+```bash
 python -m unittest discover -s server
 ```
+
+`npm run qa` runs the health-rule and game tests; `npm run qa:ui` runs the browser tests (Playwright; it starts the app itself).
