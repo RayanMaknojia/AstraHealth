@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { ScanLine } from "lucide-react";
 import { STATUS_COLORS, worstStatus } from "@/services/healthEvaluator";
 import {
@@ -11,6 +11,7 @@ import {
   getReactionBaseline,
 } from "@/services/wellbeingService";
 import { listCheckins } from "@/services/checkinService";
+import { speak } from "@/services/voice";
 import type {
   ScanResult,
   BodySystem,
@@ -171,6 +172,20 @@ export function HomeScan({
     frame = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(frame);
   }, [startAt]);
+  // Voice: "Scanning now" on start; "Scan complete, vitals updated" once the beam has
+  // finished AND the new readings are saved (so it never claims an update that failed).
+  const readingsSaved = useRef<Promise<boolean> | null>(null);
+  useEffect(() => {
+    const saved = readingsSaved.current;
+    if (!completedAt || !saved) return;
+    readingsSaved.current = null;
+    void saved.then((ok) =>
+      speak(
+        ok ? "Scan complete, vitals updated" : "Scan complete. Vitals could not be updated",
+        { queue: true },
+      ),
+    );
+  }, [completedAt]);
   const complete = Boolean(completedAt);
   const regionData = useMemo(
     () => regions.map((r) => ({ r, data: regionState(r, model) })),
@@ -261,8 +276,16 @@ export function HomeScan({
             setProgress(0);
             setCompletedAt("");
             setScanInfo("");
-            if (onScan)
-              void onScan().then((s) => {
+            void speak("Scanning now");
+            const run = onScan ? onScan() : null;
+            readingsSaved.current = run
+              ? run.then(
+                  (s) => !!s,
+                  () => false,
+                )
+              : Promise.resolve(true);
+            if (run)
+              void run.then((s) => {
                 if (!s) return setScanInfo("Scan readings could not be saved.");
                 const r = s.readings;
                 setScanInfo(

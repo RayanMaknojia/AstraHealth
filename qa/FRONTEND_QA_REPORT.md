@@ -41,6 +41,7 @@ Branch `planb` · run 2026-11-15 · Chrome (installed on this PC) via Playwright
 | F17 | Reduced motion: Body Map 3D organs stop spinning (canvas frames compared) |
 | F18 | Login welcome: shows and speaks "Welcome, Doctor Lavoie"; the health alert waits until it ends; a reload does not repeat it |
 | F18b | Login welcome: "Welcome, Commander Okafor"; Esc skips it |
+| F19 | Body scan voice: "Scanning now" on start; "Scan complete, vitals updated" only after the beam ends and readings are saved |
 
 ## Issues found (all fixed — see Fixes)
 

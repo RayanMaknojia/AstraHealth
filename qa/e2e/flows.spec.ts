@@ -355,3 +355,18 @@ test("F18b login welcome: the ISS commander is greeted 'Commander Okafor' and Es
   await expect(page.locator(".mission-sidebar")).toBeVisible();
   await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken)).toEqual(["Welcome, Commander Okafor"]);
 });
+
+test("F19 body scan voice: says 'Scanning now', then 'Scan complete, vitals updated' once readings are saved", async ({ page }) => {
+  const issues = watchHealth(page);
+  await recordSpeech(page);
+  await login(page);
+  const spoken = () => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken.filter((t) => !t.startsWith("Welcome")));
+  await page.getByRole("button", { name: /Start scan/ }).click();
+  await expect.poll(spoken).toEqual(["Scanning now"]);
+  // The beam runs ~5 s; the completion line comes after it, not before.
+  await page.waitForTimeout(2000);
+  expect(await spoken()).toEqual(["Scanning now"]);
+  await expect(page.getByText(/Scan complete ·/)).toBeVisible({ timeout: 10_000 });
+  await expect.poll(spoken).toEqual(["Scanning now", "Scan complete, vitals updated"]);
+  noJsErrors(issues);
+});

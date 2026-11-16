@@ -76,9 +76,11 @@ let last = { text: '', at: 0 }
 
 /**
  * Speak a short line. Resolves when it finishes, fails or speech is unavailable
- * (never rejects), so the UI never waits on the voice.
+ * (never rejects), so the UI never waits on the voice. By default it interrupts
+ * anything still being said; `queue: true` waits for it instead (e.g. "Scan complete"
+ * right after "Scanning now" when animations are off).
  */
-export async function speak(text: string): Promise<void> {
+export async function speak(text: string, opts: { queue?: boolean } = {}): Promise<void> {
   if (!canSpeak() || !text) return
   // The same line asked for twice in a row (e.g. React re-running an effect) is said once.
   const now = Date.now()
@@ -86,7 +88,7 @@ export async function speak(text: string): Promise<void> {
   last = { text, at: now }
   try {
     const synth = window.speechSynthesis
-    synth.cancel() // never queue behind an older line
+    if (!opts.queue) synth.cancel() // don't queue behind an older line
     const voice = pickVoice(await loadVoices())
     await new Promise<void>((resolve) => {
       const u = new SpeechSynthesisUtterance(text)
