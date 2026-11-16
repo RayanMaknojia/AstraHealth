@@ -24,6 +24,15 @@ Demo logins: `iss_crew` / `2222`, `moon_crew` / `3333`, `mars_crew` / `1111`, ad
 - Other commands: `npm run server` (Python server only), `npm run dev:web` (web app only).
 - **Health database:** readings, scans, briefings, photos, uploads and SOS events are stored in the browser's IndexedDB. Each astronaut's first login writes simulated history for the whole mission so far (daily vitals; weekly blood sugar and bone density); every new reading is appended. To reset, clear the site data.
 
+## Deploy (hosted website)
+
+One service runs the whole app: the Python server serves the built website and the `/api` endpoints from one address (`Dockerfile`, `render.yaml`).
+
+- **Render:** New > Blueprint > pick this repo. Then in the service's **Environment** tab add `GEMINI_API_KEY` (never commit it). Every push to `main` redeploys.
+- **Custom domain:** in Render, Settings > Custom Domains > add the domain; then add the DNS records Render shows at the domain registrar.
+- **Try the production setup locally:** `npm run build`, then `npm run start:prod` (http://127.0.0.1:8080).
+- **AI limits on the public site:** `AI_LIMIT_PER_IP` calls per visitor per 10 minutes (default 30) and `AI_LIMIT_PER_HOUR` for everyone (default 400). Over the limit, the app uses its offline rules.
+
 ## Repository layout
 
 | Path | What it is |
@@ -103,6 +112,7 @@ The models are CC0-1.0 (see `assets/organs/LICENSE.txt`). Three.js is MIT licens
 - **When the AI is enabled**, briefing data is sent to Google's Gemini API through the local Python server. Skin photos never leave the device: the onboard model classifies them in the browser.
 - **Stored on the device:** accounts use demo-grade local storage. Photo Check stores the photo and its assessment in the device's health database, and files attached in "Something wrong?" are kept too. Everything is listed in More → My records, with a "Download my data" export.
 - **Journal:** the journal never leaves the device.
+- **Station Garden:** the only data it shares is who planted which plant where. Seeds are counted on each device from the astronaut's own habits; no health values or journal text are sent. On Render's free plan the garden file can reset on a redeploy; devices re-send their own unsent plantings.
 - **Mars clock:** it is approximate; ISS and Moon use UTC.
 
 ## Checks

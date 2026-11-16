@@ -20,7 +20,8 @@ ENV HOST=0.0.0.0 \
     PORT=8080 \
     STATIC_DIR=/app/dist \
     TRUST_PROXY=1 \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    GARDEN_FILE=/home/astra/data/garden.json
 # Never bake the AI key into the image: set GEMINI_API_KEY on the host.
 RUN rm -f server/.env && useradd --create-home astra
 USER astra

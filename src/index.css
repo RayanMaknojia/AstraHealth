@@ -7442,3 +7442,432 @@ body:has(.medic-app) {
     transition: none;
   }
 }
+
+/* ── Ghost Run - Reaction test (ghost-racing game) ─────────────────────────── */
+.docking-run {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.dock-head {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-wrap: wrap;
+}
+.dock-head h3 {
+  font-size: 16px;
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+.dock-head p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  max-width: 62ch;
+}
+.dock-timer {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-variant-numeric: tabular-nums;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+.dock-track {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgb(4 10 16 / 0.55);
+  border: 1px solid var(--border);
+}
+.dock-lane {
+  display: grid;
+  grid-template-columns: minmax(110px, 190px) 1fr 64px;
+  gap: 12px;
+  align-items: center;
+  min-height: 34px;
+}
+.dock-name {
+  font-size: 12.5px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dock-name em {
+  font-style: normal;
+  color: var(--muted-foreground);
+}
+.dock-lane.you .dock-name {
+  font-weight: 650;
+  color: #34d399;
+}
+.dock-rail {
+  position: relative;
+  height: 28px;
+  border-radius: 14px;
+  background: repeating-linear-gradient(
+    90deg,
+    rgb(255 255 255 / 0.05) 0 2px,
+    transparent 2px 28px
+  );
+  border: 1px dashed rgb(255 255 255 / 0.12);
+}
+.dock-ship {
+  position: absolute;
+  top: 2px;
+  color: #34d399;
+  transition: left 180ms ease-out;
+  filter: drop-shadow(0 0 6px rgb(52 211 153 / 0.55));
+}
+.dock-ship svg {
+  transform: rotate(45deg);
+}
+.dock-lane.ghost .dock-ship {
+  color: #cbd5e1;
+  opacity: 0.45;
+  filter: none;
+}
+.dock-station {
+  position: absolute;
+  right: -2px;
+  top: -3px;
+  width: 6px;
+  height: 32px;
+  border-radius: 3px;
+  background: #f5a25d;
+}
+.dock-score {
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+.dock-target {
+  height: 110px;
+  border-radius: 12px;
+  border: 2px solid var(--border);
+  background: rgb(4 10 16 / 0.6);
+  color: var(--muted-foreground);
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  transition:
+    background-color 60ms linear,
+    border-color 60ms linear;
+}
+.dock-target.running {
+  color: #f5a25d;
+  border-color: rgb(245 162 93 / 0.6);
+}
+.dock-target.go {
+  background: #10b981;
+  border-color: #6ee7b7;
+  color: #04120d;
+  box-shadow: 0 0 32px rgb(16 185 129 / 0.55);
+}
+.dock-target:disabled {
+  cursor: default;
+}
+.dock-feedback {
+  min-height: 20px;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.dock-results {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border);
+}
+.dock-result-main {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+.dock-result-main svg {
+  color: #f5a25d;
+  flex-shrink: 0;
+}
+.dock-result-main div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dock-result-main strong {
+  font-size: 18px;
+}
+.dock-result-main span,
+.dock-stats span,
+.dock-week span {
+  font-size: 13px;
+}
+.dock-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 20px;
+  color: var(--muted-foreground);
+}
+.dock-stats b,
+.dock-week b {
+  color: var(--foreground);
+}
+.dock-week {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.dock-week > span:first-child {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dock-week-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+.dock-week-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+}
+.docking-run small {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+@media (max-width: 560px) {
+  .dock-lane {
+    grid-template-columns: 1fr 52px;
+  }
+  .dock-rail {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+  .dock-target {
+    height: 96px;
+  }
+}
+.dock-reaction {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: rgb(4 10 16 / 0.35);
+}
+.dock-reaction h4 {
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted-foreground);
+}
+.dock-reaction .reaction-result {
+  display: flex;
+  gap: 8px;
+  align-items: baseline;
+  font-size: 15px;
+  line-height: 1.45;
+}
+
+/* ── Station Garden (shared crew garden) ──────────────────────────────── */
+.station-garden {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--card);
+}
+.garden-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+.garden-head h3 {
+  font-size: 16px;
+  font-weight: 650;
+  margin-bottom: 4px;
+}
+.garden-head p {
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--muted-foreground);
+  max-width: 64ch;
+}
+.garden-seeds {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 16px;
+  border-radius: 999px;
+  background: rgb(16 185 129 / 0.12);
+  border: 1px solid rgb(52 211 153 / 0.4);
+  color: #6ee7b7;
+}
+.garden-seeds strong {
+  font-size: 22px;
+  font-variant-numeric: tabular-nums;
+  color: #d1fae5;
+}
+.garden-seeds span {
+  font-size: 13px;
+}
+.garden-picker {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.garden-chip {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 92px;
+  padding: 8px 6px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: rgb(4 10 16 / 0.45);
+  font-size: 12px;
+  cursor: pointer;
+  transition:
+    border-color 120ms ease,
+    background-color 120ms ease;
+}
+.garden-chip.on {
+  border-color: #34d399;
+  background: rgb(16 185 129 / 0.16);
+}
+.garden-chip:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+.garden-chip small {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  font-size: 11px;
+  color: var(--muted-foreground);
+}
+.garden-hint {
+  font-size: 13px;
+  color: var(--muted-foreground);
+  min-height: 18px;
+}
+.garden-dome {
+  border-radius: 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  background: #050b16;
+}
+.garden-dome svg {
+  display: block;
+  width: 100%;
+  height: auto;
+}
+.garden-plot {
+  fill: rgb(20 35 16 / 0.85);
+  stroke: rgb(255 255 255 / 0.06);
+}
+.garden-plot.open {
+  cursor: pointer;
+  stroke: rgb(110 231 183 / 0.45);
+  stroke-dasharray: 4 3;
+}
+.garden-plot.hover,
+.garden-plot.open:focus-visible {
+  fill: rgb(52 211 153 / 0.35);
+  outline: none;
+}
+.garden-plant {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: garden-sway 5.5s ease-in-out infinite alternate;
+}
+.garden-plant.starter {
+  opacity: 0.8;
+}
+@keyframes garden-sway {
+  from {
+    transform: rotate(-2.5deg);
+  }
+  to {
+    transform: rotate(2.5deg);
+  }
+}
+.garden-aurora {
+  animation: garden-aurora 9s ease-in-out infinite alternate;
+}
+@keyframes garden-aurora {
+  from {
+    opacity: 0.55;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .garden-plant,
+  .garden-aurora {
+    animation: none;
+  }
+}
+.garden-stats {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  font-size: 13px;
+}
+.garden-stats > div:first-child,
+.garden-week > span:first-child,
+.garden-sync {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.garden-stats b {
+  color: var(--foreground);
+}
+.garden-week {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.garden-bar {
+  height: 8px;
+  border-radius: 4px;
+  background: rgb(255 255 255 / 0.08);
+  overflow: hidden;
+}
+.garden-bar span {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, #34d399, #a78bfa);
+}
+.garden-earned,
+.garden-sync {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}

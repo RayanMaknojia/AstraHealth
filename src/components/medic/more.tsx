@@ -37,6 +37,8 @@ import { statusOf } from "./status";
 import { Panel, Status } from "./primitives";
 import type { MissionModel } from "./use-mission";
 import { MyRecords } from "./my-records";
+import { GhostRun } from "./ghost-run";
+import { StationGarden } from "./station-garden";
 import {
   NASA_DATA_CREDITS,
   SAA_THRESHOLD_UGY_PER_H,
@@ -75,6 +77,8 @@ export function More({
         {[
           "Cabin readings",
           "My records",
+          "Ghost Run",
+          "Station Garden",
           "Past journal entries",
           "Guidance & triage",
           "References",
@@ -92,6 +96,21 @@ export function More({
       {tab === "My records" && (
         <div role="tabpanel" aria-label="My records">
           <MyRecords model={model} />
+        </div>
+      )}
+      {tab === "Ghost Run" && (
+        <div role="tabpanel" aria-label="Ghost Run">
+          <GhostRun
+            astronautId={model.profile.id}
+            name={model.profile.name}
+            missionDay={model.profile.missionDay}
+            mode="play"
+          />
+        </div>
+      )}
+      {tab === "Station Garden" && (
+        <div role="tabpanel" aria-label="Station Garden">
+          <StationGarden model={model} />
         </div>
       )}
       {tab === "Past journal entries" && (
