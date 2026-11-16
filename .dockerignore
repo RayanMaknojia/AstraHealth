@@ -1,0 +1,13 @@
+# Keep the image small and never copy secrets or local results into it.
+.git
+.claude
+node_modules
+dist
+server/.env
+**/.env
+**/.env.*
+**/__pycache__
+*.pyc
+qa/e2e/.results
+qa/e2e/screens
+.DS_Store
