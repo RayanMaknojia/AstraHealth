@@ -1,5 +1,5 @@
 /**
- * Docking Run: a ghost-racing version of the psychomotor vigilance (reaction) test.
+ * Ghost Run - Reaction test: a ghost-racing version of the psychomotor vigilance (reaction) test.
  *
  * Timing follows the usual reaction-test conventions used in the app: a press under
  * 100 ms is a false start, over 500 ms a lapse (slow, the standard PVT lapse), and no

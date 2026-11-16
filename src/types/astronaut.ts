@@ -1382,7 +1382,7 @@ export interface SosEvent {
 }
 
 // ══════════════════════════════════════════════════════════════════════════
-// §9 Docking Run (ghost-racing reaction game; replaces the plain reaction test)
+// §9 Ghost Run - Reaction test (ghost-racing game; replaces the plain reaction test)
 // ══════════════════════════════════════════════════════════════════════════
 
 /** One docking light on today's course (the same course for the whole crew that day). */

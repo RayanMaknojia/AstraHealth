@@ -1,5 +1,5 @@
 /**
- * Docking Run: ghost racing that replaces the plain reaction test.
+ * Ghost Run - Reaction test: ghost racing that replaces the plain reaction test.
  *
  * - One course per mission day (seeded), so everyone races the same lights and a
  *   crewmate's run can be replayed beside you as a "ghost".

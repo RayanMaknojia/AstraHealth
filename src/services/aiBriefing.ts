@@ -17,6 +17,7 @@ import { callGeminiJsonInfo, STYLE_RULES } from '@/services/_gemini'
 import { classifyReading, getReadings, listPhotoRecords, listScans, listUploads, saveBriefing } from '@/services/healthDb'
 import { displayStatus, worstStatus } from '@/services/healthEvaluator'
 import { newId } from '@/services/_store'
+import { evaluateReaction, getReactionBaseline, listReactions } from '@/services/wellbeingService'
 import type {
   AIConfig,
   AiBriefing,
@@ -172,6 +173,32 @@ function rulesConcerns(input: BriefingInput, photos: { label: string; status: St
   return out.sort((a, b) => ORDER[b.status] - ORDER[a.status]).slice(0, 8)
 }
 
+/**
+ * Reaction speed from the Ghost Run reaction test (alertness / fatigue), vs the personal
+ * baseline. One line, or none when no test was taken in the window.
+ */
+export function reactionLines(astronautId: string, now: number, days: number): BriefingLine[] {
+  const from = Math.floor(now) - (days - 1)
+  const tests = listReactions(astronautId).filter((r) => r.day >= from && r.day <= Math.floor(now))
+  if (!tests.length) return days === 1 ? [] : [{ label: 'Reaction speed (Ghost Run)', status: 'no_data', text: 'No reaction test in the past 7 days.' }]
+  const sorted = tests.map((t) => t.ms).sort((a, b) => a - b)
+  const median = sorted[Math.floor(sorted.length / 2)]
+  const baseline = getReactionBaseline(astronautId)
+  const v = evaluateReaction(median, baseline)
+  const latest = tests[tests.length - 1].ms
+  const vs = baseline === null ? 'baseline still being set' : `your baseline is ${baseline} ms${v.slowerPct !== null && v.slowerPct > 0 ? ` (${v.slowerPct}% slower)` : ''}`
+  return [
+    {
+      label: 'Reaction speed (Ghost Run)',
+      status: baseline === null ? 'no_data' : v.status,
+      text:
+        days === 1
+          ? `Latest ${latest} ms; ${vs}. Slower than usual often follows short sleep, fatigue or stress.`
+          : `${tests.length} test${tests.length > 1 ? 's' : ''}, median ${median} ms; ${vs}.`,
+    },
+  ]
+}
+
 // ── Gemini ─────────────────────────────────────────────────────────────────
 
 interface GeminiBriefingReply {
@@ -233,6 +260,8 @@ export async function generateBriefing(input: BriefingInput, ai?: AIConfig): Pro
   for (const u of recentUploads.filter((u) => u.day >= Math.floor(today)))
     last24h.push({ label: 'Upload', status: u.artifact.accepted ? u.artifact.severity : 'no_data', text: u.artifact.accepted ? u.artifact.extractedSummary : `Rejected: ${u.artifact.rejectionReason ?? 'not medical data'}` })
   const sevenDay = sevenDayLines(profile, readings, now)
+  last24h.push(...reactionLines(profile.id, now, 1))
+  sevenDay.push(...reactionLines(profile.id, now, 7))
 
   const rulesStatus = worstStatus([report.overallStatus, ...photoConcerns.map((p) => p.status), input.emergency?.level ?? 'nominal'])
   const concerns = rulesConcerns(input, photoConcerns)
