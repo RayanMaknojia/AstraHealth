@@ -4,7 +4,7 @@
  * - Seeds are earned on this device from the astronaut's own healthy habits: each
  *   check-in, each workout day that met the goal, each good night's sleep (7 h+, last
  *   21 days), each day with a journal entry (the journal's text is never read) and each
- *   day with a Ghost Run. One seed = one plant.
+ *   day with a Ghost Run or a solved Orbit Lab. One seed = one plant.
  * - The garden itself is shared through the server (GET /api/garden, POST
  *   /api/garden/plant), so every device on the deployment sees the same garden.
  * - Offline first: a planting is kept on the device and sent when the server is
@@ -18,6 +18,7 @@ import { createStore, newId } from '@/services/_store'
 import { listCheckins } from '@/services/checkinService'
 import { listWorkouts } from '@/services/exerciseService'
 import { listRuns } from '@/services/ghostRaceService'
+import { labSolvedDays } from '@/services/orbitLabService'
 import { listJournal } from '@/services/wellbeingService'
 import type { AstronautProfile, GardenPlant, GardenView, PlantKind, SeedEarnings } from '@/types/astronaut'
 
@@ -69,9 +70,11 @@ export function seedEarnings(profile: AstronautProfile, crew: string = GARDEN.cr
   const journalDays = new Set(listJournal(profile.id).filter((j) => inWindow(j.missionDay)).map((j) => j.missionDay)).size
   const ghostRuns = new Set(listRuns(profile.id).filter((r) => inWindow(r.missionDay)).map((r) => r.missionDay)).size
 
-  const total = checkins + workouts + goodSleep + journalDays + ghostRuns
+  const labDays = new Set(labSolvedDays(profile.id).filter(inWindow)).size
+
+  const total = checkins + workouts + goodSleep + journalDays + ghostRuns + labDays
   const spent = gardenPlants(crew).filter((p) => !p.starter && p.astronautId === profile.id).length
-  return { checkins, workouts, goodSleep, journalDays, ghostRuns, total, spent, available: Math.max(0, total - spent) }
+  return { checkins, workouts, goodSleep, journalDays, ghostRuns, labDays, total, spent, available: Math.max(0, total - spent) }
 }
 
 // ── Garden state ───────────────────────────────────────────────────────────
@@ -149,7 +152,7 @@ export function plantSeed(input: { profile: AstronautProfile; kind: PlantKind; c
   if (!unlockedKinds(crew).has(input.kind)) throw new GardenError('That plant is not unlocked yet.')
   if (input.col < 0 || input.col >= GARDEN.cols || input.row < 0 || input.row >= GARDEN.rows) throw new GardenError('Pick a plot inside the garden.')
   if (gardenPlants(crew).some((p) => p.col === input.col && p.row === input.row)) throw new GardenError('Something is already growing there.')
-  if (seedEarnings(input.profile, crew).available < 1) throw new GardenError('No seeds left. Check in, sleep well, exercise or race a Ghost Run to earn more.')
+  if (seedEarnings(input.profile, crew).available < 1) throw new GardenError('No seeds left. Check in, sleep well, exercise race a Ghost Run or solve the Orbit Lab to earn more.')
   const plant: GardenPlant = {
     id: newId('plant').replace(/[^A-Za-z0-9_-]/g, '-'),
     astronautId: input.profile.id,

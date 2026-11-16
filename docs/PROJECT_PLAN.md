@@ -293,8 +293,15 @@ Ghost Run - Reaction test (ghost-racing game; replaces the 30-second reaction te
 
 
 Station Garden (shared crew garden, More → Station Garden):
-[x] Healthy habits earn seeds: at most one a day each for a check-in, a workout that meets the goal, 7 h+ sleep, a journal day (count only, text never read) and a Ghost Run, from 7 days before the astronaut first opens the garden.
+[x] Healthy habits earn seeds: at most one a day each for a check-in, a workout that meets the goal, 7 h+ sleep, a journal day (count only, text never read), a Ghost Run and a solved Orbit Lab, from 7 days before the astronaut first opens the garden.
 [x] One shared garden (12 × 5 plots) through the server (`server/garden.py`: GET /api/garden, POST /api/garden/plant; JSON file at GARDEN_FILE; plot conflicts and re-sends handled). Every device on the deployment sees the same garden; polls every 15 s.
 [x] Offline first: plantings wait on the device and are sent when the server is reachable; a planting that lost its plot to a crewmate is refunded.
 [x] Nine plant types in four growth stages (sprout, young, grown, blooming, by real days), gentle sway; biomes unlock as the crew's garden grows (Forest 10, Water 22, Alpine 36); a weekly crew goal of 12 plants lights up an aurora. A small simulated starter garden, labelled as such. Nothing is zero-sum.
 [x] Render deploy setup restored after PR #14 (static serving, AI limits, tests); garden file in the app user's home on Render.
+
+
+Orbit Lab (daily combining game, More → Orbit Lab):
+[x] Start with Water, Air, Earth, Fire and Light; drag one element onto another (or tap one, then another) to make a new one. 78 elements, 84 combinations, space and health themed; data in `src/data/orbitLabData.ts`, logic in `src/services/orbitLabService.ts`.
+[x] One target per mission day for the whole crew (18 in rotation, 6-21 steps), fresh board each day, drop the target on the target pill; 5 hints a day (next combination on the shortest way that you can already make); search and sort of your elements; bin to clear.
+[x] Health elements (Bone, Sleep, Radiation Shield, Hydration...) show a short space-health fact the first time they are made; a collection keeps everything ever made; day streak.
+[x] Making the day's target earns a Station Garden seed. Tests in `qa/orbitLab.test.ts` (every element reachable, no conflicting recipes, hints alone solve every target).
