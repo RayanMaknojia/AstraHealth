@@ -41,6 +41,8 @@ import { useMission, notify } from "./use-mission";
 import { useFitColumns } from "./use-fit-columns";
 import type { PendingSos } from "./use-mission";
 import { DemoControls } from "./demo-controls";
+import { NotificationCenter } from "./notifications";
+import { notifyCrew, recordAlert } from "@/services/notificationService";
 const Checkin = lazy(() =>
   import("./checkin").then((m) => ({ default: m.Checkin })),
 );
@@ -208,6 +210,31 @@ export function Workspace({
     const timer = window.setInterval(refresh, 30000);
     return () => window.clearInterval(timer);
   }, [refresh]);
+  // Save every alert pop-up in this astronaut's notification box (once per alert).
+  const overrideKey = model.overrides.map((o) => o.id).join("|");
+  useEffect(() => {
+    model.overrides.forEach((o) =>
+      recordAlert(model.profile.id, o, model.profile.missionDay),
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [overrideKey, model.profile.id]);
+  // Every SOS that is sent also goes to the rest of the crew.
+  const lastSosId = model.lastSos?.id;
+  useEffect(() => {
+    const ev = model.lastSos;
+    if (!ev) return;
+    notifyCrew(
+      { id: model.profile.id, name: model.profile.name },
+      {
+        kind: "sos",
+        title: `SOS sent (${ev.trigger === "auto" ? "automatic" : "manual"})`,
+        body: [ev.location, ...ev.reasons].filter(Boolean).join(". "),
+        ref: `sos:${ev.id}`,
+      },
+      ev.missionDay,
+    );
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [lastSosId]);
   const sos = () => {
     void controller.sendSosNow("manual");
   };
@@ -289,6 +316,7 @@ export function Workspace({
                 aria-label="Demo mode"
               />
             </label>
+            <NotificationCenter astronautId={model.profile.id} />
             <Button variant="destructive" onClick={sos}>
               <ShieldAlert data-icon="inline-start" />
               SOS
@@ -514,14 +542,27 @@ export function Workspace({
                 <Button
                   variant="outline"
                   onClick={() => {
+                    const names = notifyCrew(
+                      { id: model.profile.id, name: model.profile.name },
+                      {
+                        title: model.overrides.map((o) => o.title).join(", "),
+                        body: model.overrides
+                          .map((o) => `${o.headline} ${o.steps[0] ?? ""}`.trim())
+                          .join(" "),
+                        ref: `notify:${model.overrides.map((o) => o.id).join("|")}`,
+                      },
+                      model.profile.missionDay,
+                    );
                     setCrewNotified(true);
                     notify(
-                      "Crew notification noted",
-                      "Tell your crewmates directly. Ground messages are queued by the alert service.",
+                      names.length ? "Crew notified" : "No crew to notify",
+                      names.length
+                        ? `Sent to ${names.join(", ")}. Saved in their notifications.`
+                        : "There are no other crew accounts on this device.",
                     );
                   }}
                 >
-                  {crewNotified ? "Crew notification noted" : "Notify crew"}
+                  {crewNotified ? "Crew notified" : "Notify crew"}
                 </Button>
                 <Button
                   onClick={() => {
