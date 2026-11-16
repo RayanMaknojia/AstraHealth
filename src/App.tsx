@@ -11,10 +11,16 @@ import { loadProfileFromDb } from "@/services/healthDb";
 import { Toaster } from "@/components/ui/toast";
 import { Login, Admin } from "@/components/medic/accounts";
 import { Workspace } from "@/components/medic/workspace";
+import { WelcomeScreen } from "@/components/medic/welcome";
+import { welcomeText } from "@/services/voice";
 
 export default function App() {
   const [session, setSession] = useState<AuthSession | null>(getCurrentSession);
+  // Login welcome ("Welcome, Commander Okafor", shown and spoken). Only after pressing
+  // Log in: browsers allow speech after a click, and a reload should not repeat it.
+  const [welcome, setWelcome] = useState<string | null>(null);
   const leave = () => {
+    setWelcome(null);
     logout();
     setSession(null);
   };
@@ -43,7 +49,12 @@ export default function App() {
     <div className="medic-app dark">
       <Toaster>
         {!session ? (
-          <Login onLogin={setSession} />
+          <Login
+            onLogin={(s) => {
+              setSession(s);
+              setWelcome(welcomeText(s.account.displayName));
+            }}
+          />
         ) : session.account.userRole === "admin" ? (
           <Admin onLogout={leave} />
         ) : baseProfile && !profile ? (
@@ -55,6 +66,7 @@ export default function App() {
             key={`${profile.id}:${profile.mission.launchDate}`}
             initialProfile={profile}
             onLogout={leave}
+            holdAlerts={!!welcome}
             onSwitchCrew={(login) => {
               const demo = DEMO_LOGINS.find((d) => d.login === login);
               if (demo) {
@@ -68,6 +80,9 @@ export default function App() {
             <p>Profile unavailable.</p>
             <button onClick={leave}>Return to login</button>
           </div>
+        )}
+        {session && welcome && (
+          <WelcomeScreen text={welcome} onDone={() => setWelcome(null)} />
         )}
       </Toaster>
     </div>

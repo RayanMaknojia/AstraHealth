@@ -3,7 +3,7 @@
  * Runs at a phone, a tablet and a laptop size (see FLOW_PROJECTS).
  */
 import { expect, test, type Page } from "@playwright/test";
-import { dismissAlerts, goTo, login, offlineAi, watchHealth } from "./helpers";
+import { dismissAlerts, goTo, login, offlineAi, recordSpeech, watchHealth } from "./helpers";
 
 test.beforeEach(async ({ page }) => {
   await offlineAi(page);
@@ -317,4 +317,41 @@ test("F17 reduced motion: Body Map organs stop animating", async ({ page }) => {
     [first.toString("base64"), second.toString("base64")],
   );
   expect(changed).toBeLessThan(0.005);
+});
+
+test("F18 login welcome: shows and speaks the astronaut's title and surname, then the alert opens", async ({ page }) => {
+  const issues = watchHealth(page);
+  await recordSpeech(page);
+  await page.goto("/");
+  await page.getByPlaceholder("e.g. mars_crew").fill("mars_crew");
+  await page.getByPlaceholder("Enter your PIN").fill("1111");
+  await page.getByRole("button", { name: /Log in/ }).click();
+  const welcome = page.locator(".welcome-screen");
+  await expect(welcome).toContainText("Welcome,");
+  await expect(welcome).toContainText("Doctor Lavoie");
+  // The health alert waits until the welcome is gone.
+  await expect(page.getByRole("dialog").filter({ hasText: /Do this now/ })).toHaveCount(0);
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken)).toEqual(["Welcome, Doctor Lavoie"]);
+  // Fades out on its own after ~3 s, then the Mars crew's alert opens.
+  await expect(welcome).toHaveCount(0, { timeout: 6000 });
+  await expect(page.getByRole("dialog").filter({ hasText: /Do this now/ })).toBeVisible();
+  // A reload keeps the session but does not repeat the welcome.
+  await page.reload();
+  await page.waitForTimeout(1500);
+  await expect(welcome).toHaveCount(0);
+  noJsErrors(issues);
+});
+
+test("F18b login welcome: the ISS commander is greeted 'Commander Okafor' and Esc skips it", async ({ page }) => {
+  await recordSpeech(page);
+  await page.goto("/");
+  await page.getByPlaceholder("e.g. mars_crew").fill("iss_crew");
+  await page.getByPlaceholder("Enter your PIN").fill("2222");
+  await page.getByRole("button", { name: /Log in/ }).click();
+  const welcome = page.locator(".welcome-screen");
+  await expect(welcome).toContainText("Commander Okafor");
+  await page.keyboard.press("Escape");
+  await expect(welcome).toHaveCount(0, { timeout: 2000 });
+  await expect(page.locator(".mission-sidebar")).toBeVisible();
+  await expect.poll(() => page.evaluate(() => (window as unknown as { __spoken: string[] }).__spoken)).toEqual(["Welcome, Commander Okafor"]);
 });
