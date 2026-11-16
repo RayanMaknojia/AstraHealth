@@ -8,3 +8,8 @@ __pycache__/
 .DS_Store
 qa/e2e/.results/
 qa/e2e/screens/
+
+# Skin model training data and checkpoints (download with the scripts in ml/skin_classifier)
+ml/skin_classifier/data/
+ml/skin_classifier/reports/*.pt
+ml/skin_classifier/export/*.onnx

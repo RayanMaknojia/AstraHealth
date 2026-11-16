@@ -126,7 +126,8 @@ export const DEMO_CREW_ACTIVITY: Record<string, { streakDays: number; missedDays
 
 // ── Photo Check (pages doc §4) ─────────────────────────────────────────────
 
-export const SKIN_CONFIDENCE_MIN = 0.7
+/** Below this, Photo Check says "Unsure" (onboard model: 88% accurate on answered validation photos at 0.6). */
+export const SKIN_CONFIDENCE_MIN = 0.6
 
 export const SKIN_LABELS: Record<SkinLabel, string> = {
   laceration: 'Laceration (cut)',

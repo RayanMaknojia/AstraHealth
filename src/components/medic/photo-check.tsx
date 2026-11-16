@@ -7,6 +7,7 @@ import {
   SKIN_LABEL_TEXT,
 } from "@/services/photoCheckService";
 import { listCheckins } from "@/services/checkinService";
+import { loadSkinModel } from "@/services/skinModel";
 import type { PhotoContext, PhotoRecord } from "@/types/astronaut";
 import {
   Dialog,
@@ -38,6 +39,10 @@ export function PhotoCheck({
     [busy, setBusy] = useState(false),
     [result, setResult] = useState<PhotoRecord | null>(null),
     [error, setError] = useState("");
+  // Load the onboard photo model as soon as Photo Check opens (cached after the first time).
+  useEffect(() => {
+    if (open) void loadSkinModel();
+  }, [open]);
   useEffect(
     () => () => {
       if (url) URL.revokeObjectURL(url);
@@ -141,11 +146,11 @@ export function PhotoCheck({
       <DialogContent className="photo-check-dialog">
         <DialogTitle>Photo Check</DialogTitle>
         <DialogDescription>
-          First look only. Not a diagnosis. Use onboard guidance for concerning
-          symptoms.
+          Recognizes cuts, burns, bruises, scrapes and normal skin. First look
+          only, not a diagnosis.
         </DialogDescription>
         <label>
-          Skin photo / camera
+          Photo of a cut, burn, bruise or scrape
           <input
             type="file"
             accept="image/*"
@@ -185,6 +190,7 @@ export function PhotoCheck({
             value={notes}
             onChange={(e) => setNotes(e.target.value)}
             rows={2}
+            placeholder="e.g. Cut on a cable edge, still bleeding a little"
           />
         </label>
         <Button
@@ -204,9 +210,11 @@ export function PhotoCheck({
             <h3>{card.likelyType}</h3>
             <p>{card.confidenceText}</p>
             <p>
-              {result.engine === "offline_mock"
-                ? "Offline first look (AI unavailable): uses your notes, pixel colours, quality checks and your vitals, not image recognition."
-                : "AI first look (SI-generated text), checked against your vitals and history."}
+              {result.engine === "onboard_model"
+                ? "Onboard model first look (runs offline on this device), checked against your vitals and history."
+                : result.engine === "offline_mock"
+                  ? "Offline first look (model unavailable): uses your notes, pixel colours, quality checks and your vitals, not image recognition."
+                  : "AI first look (SI-generated text), checked against your vitals and history."}
             </p>
             {result.aiSummary && <p>{result.aiSummary}</p>}
             {(result.findings ?? []).length > 0 && (
