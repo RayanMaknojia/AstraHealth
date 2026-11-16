@@ -165,3 +165,57 @@ class StaticSiteTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class GardenTests(unittest.TestCase):
+    """Station Garden: shared plots, validation, no double planting."""
+
+    @classmethod
+    def setUpClass(cls):
+        import tempfile
+        import garden
+        cls.tmp = tempfile.TemporaryDirectory()
+        garden.GARDEN_FILE = Path(cls.tmp.name) / "garden.json"
+        cls.httpd = app.ThreadingHTTPServer(("127.0.0.1", 0), app.Handler)
+        cls.base = f"http://127.0.0.1:{cls.httpd.server_address[1]}"
+        threading.Thread(target=cls.httpd.serve_forever, daemon=True).start()
+
+    @classmethod
+    def tearDownClass(cls):
+        cls.httpd.shutdown()
+        cls.tmp.cleanup()
+
+    def call(self, path, payload=None):
+        opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
+        data = json.dumps(payload).encode() if payload is not None else None
+        req = urllib.request.Request(self.base + path, data=data, headers={"content-type": "application/json"}, method="POST" if data else "GET")
+        try:
+            with opener.open(req, timeout=5) as res:
+                return res.status, json.loads(res.read())
+        except urllib.error.HTTPError as e:
+            return e.code, json.loads(e.read())
+
+    def plant(self, **over):
+        p = {"id": "p1", "astronautId": "crew-mars", "name": "Dr. L", "kind": "fern", "col": 2, "row": 1, "missionDay": 45, "plantedAt": "2026-11-16T10:00:00Z"}
+        p.update(over)
+        return p
+
+    def test_plant_then_shared(self):
+        status, out = self.call("/api/garden/plant", {"crew": "test-a", "plant": self.plant()})
+        self.assertEqual(status, 200)
+        status, out = self.call("/api/garden?crew=test-a")
+        self.assertEqual([p["id"] for p in out["plants"]], ["p1"])
+
+    def test_resend_is_idempotent_and_plot_taken(self):
+        self.call("/api/garden/plant", {"crew": "test-b", "plant": self.plant()})
+        status, out = self.call("/api/garden/plant", {"crew": "test-b", "plant": self.plant()})
+        self.assertEqual((status, len(out["plants"])), (200, 1))
+        status, out = self.call("/api/garden/plant", {"crew": "test-b", "plant": self.plant(id="p2")})
+        self.assertEqual((status, out["error"]), (409, "plot_taken"))
+
+    def test_rejects_bad_input(self):
+        for bad in (self.plant(kind="cactus"), self.plant(col=99), self.plant(id="../x"), self.plant(name="")):
+            status, _ = self.call("/api/garden/plant", {"crew": "test-c", "plant": bad})
+            self.assertEqual(status, 400)
+        status, _ = self.call("/api/garden?crew=Bad%20Crew")
+        self.assertEqual(status, 400)

@@ -1447,3 +1447,45 @@ export interface RaceBoard {
   /** Crew total for this mission week (each member's best score per day) vs the target. */
   crewWeek: { total: number; target: number; days: [number, number] }
 }
+
+// ══════════════════════════════════════════════════════════════════════════
+// §10 Station Garden (shared crew garden, More page)
+// ══════════════════════════════════════════════════════════════════════════
+
+export type PlantKind = 'grass' | 'flower' | 'fern' | 'tree' | 'mushroom' | 'reed' | 'lily' | 'pine' | 'crystal'
+
+export interface GardenPlant {
+  id: string
+  astronautId: string
+  /** Who planted it, shown in the garden. */
+  name: string
+  kind: PlantKind
+  col: number
+  row: number
+  missionDay: number
+  /** ISO time it was planted (growth is counted in real days from here). */
+  plantedAt: string
+  /** Part of the starter garden (simulated crewmates), shown as such. */
+  starter?: boolean
+}
+
+/** Seeds an astronaut has earned from healthy habits (counts only, never content). */
+export interface SeedEarnings {
+  checkins: number
+  workouts: number
+  goodSleep: number
+  journalDays: number
+  ghostRuns: number
+  total: number
+  spent: number
+  available: number
+}
+
+export interface GardenView {
+  crew: string
+  plants: GardenPlant[]
+  /** Plantings waiting to reach the shared server. */
+  pending: number
+  online: boolean
+  lastSync: string | null
+}

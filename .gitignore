@@ -13,3 +13,4 @@ qa/e2e/screens/
 ml/skin_classifier/data/
 ml/skin_classifier/reports/*.pt
 ml/skin_classifier/export/*.onnx
+server/data/

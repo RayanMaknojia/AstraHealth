@@ -112,6 +112,7 @@ The models are CC0-1.0 (see `assets/organs/LICENSE.txt`). Three.js is MIT licens
 - **When the AI is enabled**, briefing data is sent to Google's Gemini API through the local Python server. Skin photos never leave the device: the onboard model classifies them in the browser.
 - **Stored on the device:** accounts use demo-grade local storage. Photo Check stores the photo and its assessment in the device's health database, and files attached in "Something wrong?" are kept too. Everything is listed in More → My records, with a "Download my data" export.
 - **Journal:** the journal never leaves the device.
+- **Station Garden:** the only data it shares is who planted which plant where. Seeds are counted on each device from the astronaut's own habits; no health values or journal text are sent. On Render's free plan the garden file can reset on a redeploy; devices re-send their own unsent plantings.
 - **Mars clock:** it is approximate; ISS and Moon use UTC.
 
 ## Checks
