@@ -10,6 +10,7 @@
 
 import { MEDICATIONS, MEDICATION_RULES as MR, PROCEDURES, TRIAGE_TREES } from '@/data/phase3Data'
 import { ESCALATION_MODE_LABELS } from '@/services/healthEvaluator'
+import { createStore } from '@/services/_store'
 import type {
   ActionLevel,
   GuidedProcedure,
@@ -73,10 +74,50 @@ export function listProcedures(): GuidedProcedure[] {
   return PROCEDURES
 }
 
-/** Medication list with status: red = expired, yellow = expiring within 30 days or low stock. */
-export function getMedicationList(now: Date = new Date()): MedicationStatus[] {
+// ── Per-astronaut medication stock ─────────────────────────────────────────
+// Every astronaut starts with the full kit (MEDICATIONS). Each check-in that logs a
+// medication takes that amount off that astronaut's own count.
+
+interface MedTake {
+  medId: string
+  amount: number
+  day: number
+  at: string
+}
+const medStore = createStore<Record<string, MedTake[]>>('medication-use:v1', () => ({}))
+
+/** Units of a medication this astronaut has left. */
+export function medicationLeft(astronautId: string, medId: string): number {
+  const start = MEDICATIONS.find((m) => m.id === medId)?.qtyLeft ?? 0
+  const used = (medStore.get()[astronautId] ?? []).filter((t) => t.medId === medId).reduce((sum, t) => sum + t.amount, 0)
+  return Math.max(0, start - used)
+}
+
+/**
+ * Take medication off this astronaut's stock (called when a check-in is saved).
+ * Throws if an amount is not a whole number above 0 or is more than what is left.
+ */
+export function recordMedicationsTaken(astronautId: string, taken: { medId: string; amount: number }[], day: number): void {
+  for (const t of taken) {
+    const left = medicationLeft(astronautId, t.medId)
+    if (!Number.isInteger(t.amount) || t.amount < 1) throw new Error('Amount taken must be a whole number above 0.')
+    if (t.amount > left) throw new Error(`Only ${left} left of ${MEDICATIONS.find((m) => m.id === t.medId)?.name ?? t.medId}.`)
+  }
+  const at = new Date().toISOString()
+  medStore.update((all) => ({
+    ...all,
+    [astronautId]: [...(all[astronautId] ?? []), ...taken.map((t) => ({ medId: t.medId, amount: t.amount, day, at }))],
+  }))
+}
+
+/**
+ * Medication list with status: red = expired or none left, yellow = expiring within 30 days or low stock.
+ * Pass an astronautId to get that astronaut's own count.
+ */
+export function getMedicationList(astronautId?: string, now: Date = new Date()): MedicationStatus[] {
   const today = Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate())
-  return MEDICATIONS.map((m) => {
+  return MEDICATIONS.map((kit) => {
+    const m = astronautId ? { ...kit, qtyLeft: medicationLeft(astronautId, kit.id) } : kit
     const days = Math.round((Date.parse(`${m.expiryDate}T00:00:00Z`) - today) / 86_400_000)
     let status: StatusLevel = 'nominal'
     let statusText = `Expires in ${days} days`
@@ -87,7 +128,10 @@ export function getMedicationList(now: Date = new Date()): MedicationStatus[] {
       status = 'caution'
       statusText = days === 0 ? 'Expires today' : `Expires in ${days} day${days === 1 ? '' : 's'}`
     }
-    if (m.qtyLeft <= MR.lowStockAtOrBelow && status !== 'critical') {
+    if (m.qtyLeft === 0) {
+      status = 'critical'
+      statusText = `None left · ${statusText}`
+    } else if (m.qtyLeft <= MR.lowStockAtOrBelow && status !== 'critical') {
       status = 'caution'
       statusText = `${statusText} · Low stock (${m.qtyLeft} ${m.unit})`
     }
