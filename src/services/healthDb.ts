@@ -16,7 +16,7 @@
  * Falls back to an in-memory store when IndexedDB is unavailable (tests / private mode).
  */
 
-import { isWeeklyReadingDay, seedFirstDay } from '@/data/nasaSpaceflightData'
+import { CREW_PROFILES, isWeeklyReadingDay, seedFirstDay } from '@/data/nasaSpaceflightData'
 import {
   evaluateBloodPressure,
   evaluateBloodSugar,
@@ -303,8 +303,8 @@ function genericHistory(profile: AstronautProfile, id: IndicatorId): { day: numb
 
 /**
  * Write the mission's history so far for this astronaut once per device (and once per seed version).
- * Uses the profile's own generated series (demo crew stories), or healthy population
- * values for admin-created crew. Returns the number of readings written (0 if already seeded).
+ * Uses the profile's own generated series (demo crew stories). Admin-created crew get
+ * nothing: their record starts empty and fills from check-ins, scans and the wearable. Returns the number of readings written (0 if already seeded).
  */
 export async function ensureSeeded(profile: AstronautProfile): Promise<number> {
   const key = `seeded:${SEED_VERSION}:${profile.id}`
@@ -317,8 +317,12 @@ export async function ensureSeeded(profile: AstronautProfile): Promise<number> {
     old.filter((r) => r.seeded || (r.indicatorId === 'blood_sugar' && r.source === 'body_scan')).map((r) => r.id),
   )
   const rows: DbReading[] = []
+  const isDemoCrew = CREW_PROFILES.some((p) => p.id === profile.id)
   const firstDay = seedFirstDay(profile.missionDay)
   for (const ind of profile.indicators) {
+    // Admin-created crew start with an empty record: readings come only from their own
+    // check-ins, body scans and the wearable feed. Only the demo crew get a simulated history.
+    if (!ind.history.length && !isDemoCrew) continue
     const pts: { day: number; value: number | string; diastolic?: number; source: DbReading['source'] }[] = ind.history.length
       ? ind.history
           .filter((h) => h.day >= firstDay && h.day <= profile.missionDay)

@@ -4,7 +4,10 @@ import { CHECKIN_INPUTS, CHECKIN_SYMPTOMS } from "@/data/nasaSpaceflightData";
 import { CHECKIN_SCHEDULE } from "@/data/phase3Data";
 import { getDueCheckins } from "@/services/checkinService";
 import { indicatorsToVitals } from "@/services/healthEvaluator";
-import { getMedicationList } from "@/services/guidanceService";
+import {
+  getMedicationList,
+  recordMedicationsTaken,
+} from "@/services/guidanceService";
 import { addJournalEntry, listJournal } from "@/services/wellbeingService";
 import type {
   CheckinSlot,
@@ -137,7 +140,7 @@ export function Checkin({
     [examDone, setExamDone] = useState(false),
     [photoOpen, setPhotoOpen] = useState(false),
     [medDetails, setMedDetails] = useState<
-      Record<string, { dose: string; time: string }>
+      Record<string, { dose: string; time: string; amount?: string }>
     >({});
   const [journal, setJournal] = useState(""),
     [entries, setEntries] = useState(() => listJournal(profile.id)),
@@ -223,7 +226,15 @@ export function Checkin({
     for (const [name, v] of ratings)
       if (v === undefined || v < 1 || v > 5) missing.push(`${name} rating`);
     if (pain > 0 && !region.trim()) missing.push("Pain body region");
+    const kit = getMedicationList(profile.id);
     for (const name of medications) {
+      const med = kit.find((m) => m.name === name);
+      const amount = Number(medDetails[name]?.amount);
+      if (!medDetails[name]?.amount?.trim()) missing.push(`${name} amount taken`);
+      else if (!Number.isInteger(amount) || amount < 1)
+        missing.push(`${name} amount as a whole number of ${med?.unit ?? "units"}`);
+      else if (med && amount > med.qtyLeft)
+        missing.push(`${name} amount (only ${med.qtyLeft} ${med.unit} left)`);
       if (!medDetails[name]?.dose?.trim()) missing.push(`${name} dose`);
       if (!medDetails[name]?.time) missing.push(`${name} time`);
     }
@@ -297,6 +308,22 @@ export function Checkin({
       },
     });
     if (ok) {
+      // Take what was used off this astronaut's own medication stock.
+      if (medications.length)
+        try {
+          recordMedicationsTaken(
+            profile.id,
+            kit
+              .filter((m) => medications.includes(m.name))
+              .map((m) => ({
+                medId: m.id,
+                amount: Number(medDetails[m.name]?.amount),
+              })),
+            profile.missionDay,
+          );
+        } catch (e) {
+          setError(e instanceof Error ? e.message : "Medication count not updated.");
+        }
       if (journal.trim()) saveJournal();
       setValues({});
       setExtras({});
@@ -527,11 +554,12 @@ export function Checkin({
             <FieldSet>
               <FieldLegend>Medications taken</FieldLegend>
               <div className="meds-taken">
-                {getMedicationList().map((m) => (
+                {getMedicationList(profile.id).map((m) => (
                   <div className="medication-taken-card" key={m.id}>
                     <label className="check-label">
                       <input
                         type="checkbox"
+                        disabled={m.qtyLeft === 0 && !medications.includes(m.name)}
                         checked={medications.includes(m.name)}
                         onChange={(e) =>
                           setMedications((x) =>
@@ -544,8 +572,39 @@ export function Checkin({
                       {m.name}
                       <Status status={m.status} />
                     </label>
+                    <small className="medication-left">
+                      {m.qtyLeft === 0
+                        ? "None left"
+                        : `${m.qtyLeft} ${m.unit} left`}
+                    </small>
                     {medications.includes(m.name) && (
                       <div className="medication-dose-fields">
+                        <label>
+                          <span className="required-field-heading">
+                            Amount taken ({m.unit})
+                            <RequiredMark />
+                          </span>
+                          <input
+                            aria-label={`${m.name} amount taken`}
+                            required
+                            type="number"
+                            inputMode="numeric"
+                            min={1}
+                            max={m.qtyLeft}
+                            step={1}
+                            value={medDetails[m.name]?.amount ?? ""}
+                            placeholder="e.g. 2"
+                            onChange={(e) =>
+                              setMedDetails((x) => ({
+                                ...x,
+                                [m.name]: {
+                                  ...x[m.name],
+                                  amount: e.target.value,
+                                },
+                              }))
+                            }
+                          />
+                        </label>
                         <label>
                           <span className="required-field-heading">
                             Dose

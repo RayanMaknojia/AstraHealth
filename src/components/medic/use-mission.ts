@@ -32,6 +32,7 @@ import {
   getDueCheckins,
 } from "@/services/checkinService";
 import { syncOverrides } from "@/services/alertService";
+import { missionDayFromDate } from "@/services/missionTimeline";
 import { formatOnboardTime } from "./checkin-schedule";
 import {
   createWearableStream,
@@ -376,6 +377,26 @@ export function useMission(initialProfile: AstronautProfile) {
       );
     }
   };
+  // Real mission clock: the day goes up at 00:00 UTC every 24 hours (mission elapsed time,
+  // counted in Earth days like ISS operations). Checked every minute while the app is open.
+  const changeDayRef = useRef(changeDay);
+  useEffect(() => {
+    changeDayRef.current = changeDay;
+  });
+  const realDay = useRef(initialProfile.missionDay);
+  useEffect(() => {
+    const tick = () => {
+      const day = missionDayFromDate(current.current.profile.mission.launchDate);
+      if (day > realDay.current) {
+        realDay.current = day;
+        void changeDayRef.current(day);
+        notify(`Mission day ${day}`, "A new mission day has started (00:00 UTC).");
+      }
+    };
+    tick();
+    const id = window.setInterval(tick, 60_000);
+    return () => window.clearInterval(id);
+  }, []);
   const submit = async (input: IngestionInput) => {
     const ticket = generation.current;
     setBusy(true);

@@ -44,6 +44,12 @@ interface Store {
   /** Astronauts created by admin (demo crew live in src/data). */
   created: EmptyProfileSeed[]
   missionEdits: Record<string, MissionEdit>
+  /**
+   * Demo crew launch dates, saved the first time each demo profile is opened on this device
+   * (UTC midnight, minus the seeded mission day). From then on the mission day is real
+   * mission elapsed time: it goes up by one at 00:00 UTC every 24 hours.
+   */
+  demoLaunch?: Record<string, string>
   session: AuthSession | null
 }
 
@@ -196,13 +202,49 @@ function withMissionDay(profile: AstronautProfile, missionDay: number): Astronau
   return { ...profile, missionDay, environment: phase.environment, habitat: phase.habitat, missionLengthDays: profile.mission.totalDays }
 }
 
+/** UTC midnight today minus the seeded day, saved once per demo profile (see Store.demoLaunch). */
+function demoLaunchDate(store: Store, demo: AstronautProfile): string {
+  const saved = store.demoLaunch?.[demo.id]
+  if (saved) return saved
+  const today = new Date()
+  const launch = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()) - demo.missionDay * 86_400_000)
+  const date = launch.toISOString().slice(0, 10)
+  save({ ...store, demoLaunch: { ...(store.demoLaunch ?? {}), [demo.id]: date } })
+  store.demoLaunch = { ...(store.demoLaunch ?? {}), [demo.id]: date }
+  return date
+}
+
+/** Start a demo crew member's mission clock again from the seeded day (e.g. before a pitch). */
+export function resetDemoClock(astronautId?: string): void {
+  const store = load()
+  const next = { ...(store.demoLaunch ?? {}) }
+  if (astronautId) delete next[astronautId]
+  else for (const k of Object.keys(next)) delete next[k]
+  save({ ...store, demoLaunch: next })
+}
+
+/** Launch dates: exactly YYYY-MM-DD with a 4-digit year from 1957 to 2099, and a real calendar day. */
+export const LAUNCH_DATE_MIN = '1957-01-01'
+export const LAUNCH_DATE_MAX = '2099-12-31'
+export function isValidLaunchDate(value: string): boolean {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value.trim())
+  if (!m) return false
+  const [y, mo, d] = [Number(m[1]), Number(m[2]), Number(m[3])]
+  if (y < 1957 || y > 2099) return false
+  const date = new Date(Date.UTC(y, mo - 1, d))
+  return date.getUTCFullYear() === y && date.getUTCMonth() === mo - 1 && date.getUTCDate() === d
+}
+const LAUNCH_DATE_ERROR = 'Launch date must be a real date written as YYYY-MM-DD, with a 4-digit year between 1957 and 2099.'
+
 function buildProfile(store: Store, astronautId: string): AstronautProfile | null {
   const edit = store.missionEdits[astronautId]
   const demo = CREW_PROFILES.find((p) => p.id === astronautId)
   if (demo) {
-    const mission = applyMissionEdit(demo.mission, edit)
-    // Demo crew: launch dates are "N days ago", so the day derived from the date equals the seeded day.
-    return withMissionDay({ ...demo, mission }, edit?.launchDate ? missionDayFromDate(mission.launchDate) : demo.missionDay)
+    // Demo crew: the launch date is fixed the first time this profile is opened, so the
+    // mission day starts at the seeded day (e.g. 45) and then counts up with real time.
+    const launchDate = edit?.launchDate ?? demoLaunchDate(store, demo)
+    const mission = applyMissionEdit({ ...demo.mission, launchDate }, edit)
+    return withMissionDay({ ...demo, mission }, missionDayFromDate(mission.launchDate))
   }
   const seed = store.created.find((c) => c.id === astronautId)
   if (!seed) return null
@@ -263,7 +305,7 @@ export function createAstronaut(input: NewAstronautInput): AstronautProfile {
   if (!/^[a-z0-9_]{3,24}$/.test(login)) throw new AccountError('Login must be 3-24 letters, numbers or underscores.')
   if (!/^\d{4,8}$/.test(input.pin)) throw new AccountError('PIN must be 4-8 digits.')
   if (!input.name.trim()) throw new AccountError('Name is required.')
-  if (Number.isNaN(Date.parse(input.launchDate))) throw new AccountError('Launch date must be a valid date (YYYY-MM-DD).')
+  if (!isValidLaunchDate(input.launchDate)) throw new AccountError(LAUNCH_DATE_ERROR)
   if (store.accounts.some((a) => a.login.toLowerCase() === login)) throw new AccountError(`Login "${login}" already exists.`)
 
   const id = `crew-${login}`
@@ -295,8 +337,7 @@ export function createAstronaut(input: NewAstronautInput): AstronautProfile {
 /** Handle delays: edit launch date / mission length; the trip bar updates. */
 export function updateMissionDates(astronautId: string, changes: { launchDate?: string; totalDays?: number }): AstronautProfile {
   const store = load()
-  if (changes.launchDate !== undefined && Number.isNaN(Date.parse(changes.launchDate)))
-    throw new AccountError('Launch date must be a valid date (YYYY-MM-DD).')
+  if (changes.launchDate !== undefined && !isValidLaunchDate(changes.launchDate)) throw new AccountError(LAUNCH_DATE_ERROR)
   if (changes.totalDays !== undefined && !(changes.totalDays > 0)) throw new AccountError('Mission length must be positive.')
   const prev = store.missionEdits[astronautId] ?? {}
   const edit: MissionEdit = {

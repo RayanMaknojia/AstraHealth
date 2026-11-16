@@ -8255,3 +8255,80 @@ body:has(.medic-app) {
     animation: none;
   }
 }
+
+/* Notification box (bell in the top bar) */
+.notification-bell {
+  position: relative;
+}
+.notification-count {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 5px;
+  border-radius: 999px;
+  background: var(--destructive);
+  color: #fff;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  text-align: center;
+}
+.notification-sheet {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  overflow-y: auto;
+}
+.notification-actions {
+  display: flex;
+  gap: 8px;
+}
+.notification-empty {
+  color: var(--muted-foreground);
+}
+.notification-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.notification-item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+}
+.notification-item > div {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.notification-item small {
+  color: var(--muted-foreground);
+  font-size: 12px;
+}
+.notification-item p {
+  margin: 0;
+  font-size: 13px;
+}
+.notification-item.unread {
+  border-left: 3px solid #8b5cf6;
+}
+.notification-item.kind-sos {
+  border-left: 3px solid var(--destructive);
+}
+
+.medication-left {
+  display: block;
+  color: var(--muted-foreground);
+  font-size: 12px;
+}

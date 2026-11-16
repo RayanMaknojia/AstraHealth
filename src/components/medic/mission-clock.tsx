@@ -17,20 +17,22 @@ export function MissionClock({ model }: { model: MissionModel }) {
     state.phase.environment === "DEEP_SPACE" ||
     state.phase.habitat === "spacecraft";
   const mars = state.phase.environment === "MARS_SURFACE";
-  const sol = Math.floor(elapsed / 88775.244);
+  // Mars rover convention: touchdown is Sol 1. A sol is 24 h 39 min 35.244 s.
+  const sinceLanding = elapsed - state.phase.startDay * 86400;
+  const sol = Math.floor(Math.max(0, sinceLanding) / 88775.244) + 1;
   const local = transit
     ? `MET ${Math.floor(elapsed / 86400)}d ${hhmm(elapsed)}`
     : mars
-      ? `${hhmm(((elapsed % 88775.244) * 86400) / 88775.244)} Sol ${sol}`
+      ? `${hhmm(((Math.max(0, sinceLanding) % 88775.244) * 86400) / 88775.244)} Sol ${sol}`
       : `${earth} ${state.plan.destination === "ISS" ? "GMT" : "UTC"}`;
   return (
     <div
       className="mission-clocks"
       title={
         mars
-          ? "Approximate mission-sol clock using a 24h 39m 35s sol; landing longitude is not configured."
+          ? "Mars local solar time. Sol 1 is the landing day; a sol is 24 h 39 min 35 s. Landing longitude is not configured, so the time of day is approximate."
           : transit
-            ? "Mission elapsed time follows the onboard demo day and time."
+            ? "Mission elapsed time since launch. The mission day goes up at 00:00 UTC."
             : "ISS and Moon local clocks use Earth UTC."
       }
     >

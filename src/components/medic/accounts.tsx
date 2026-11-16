@@ -15,6 +15,8 @@ import {
   listProfiles,
   createAstronaut,
   updateMissionDates,
+  LAUNCH_DATE_MIN,
+  LAUNCH_DATE_MAX,
 } from "@/services/accountService";
 import type { NewAstronautInput } from "@/services/accountService";
 import { evaluateProfile, STATUS_LABELS } from "@/services/healthEvaluator";
@@ -188,6 +190,8 @@ function MissionDates({
         Launch date
         <input
           type="date"
+          min={LAUNCH_DATE_MIN}
+          max={LAUNCH_DATE_MAX}
           value={date}
           onChange={(e) => setDate(e.target.value)}
           required
@@ -337,7 +341,14 @@ export function Admin({ onLogout }: { onLogout: () => void }) {
               </Field>
               <Field>
                 <FieldLabel htmlFor="new-date">Launch date</FieldLabel>
-                <Input id="new-date" name="date" type="date" required />
+                <Input
+                  id="new-date"
+                  name="date"
+                  type="date"
+                  min={LAUNCH_DATE_MIN}
+                  max={LAUNCH_DATE_MAX}
+                  required
+                />
               </Field>
               <Field>
                 <FieldLabel htmlFor="new-notes">Medical notes</FieldLabel>
