@@ -39,6 +39,7 @@ import type { MissionModel } from "./use-mission";
 import { MyRecords } from "./my-records";
 import { GhostRun } from "./ghost-run";
 import { StationGarden } from "./station-garden";
+import { OrbitLab } from "./orbit-lab";
 import {
   NASA_DATA_CREDITS,
   SAA_THRESHOLD_UGY_PER_H,
@@ -79,6 +80,7 @@ export function More({
           "My records",
           "Ghost Run",
           "Station Garden",
+          "Orbit Lab",
           "Past journal entries",
           "Guidance & triage",
           "References",
@@ -111,6 +113,14 @@ export function More({
       {tab === "Station Garden" && (
         <div role="tabpanel" aria-label="Station Garden">
           <StationGarden model={model} />
+        </div>
+      )}
+      {tab === "Orbit Lab" && (
+        <div role="tabpanel" aria-label="Orbit Lab">
+          <OrbitLab
+            astronautId={model.profile.id}
+            missionDay={model.profile.missionDay}
+          />
         </div>
       )}
       {tab === "Past journal entries" && (
