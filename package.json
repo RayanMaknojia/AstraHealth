@@ -13,7 +13,6 @@
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview",
-    "start:prod": "node scripts/prod.mjs",
     "qa": "vitest run qa --exclude \"qa/e2e/**\"",
     "qa:ui": "playwright test"
   },
@@ -32,6 +31,7 @@
     "date-fns": "^4.4.0",
     "lucide-react": "^1.52.0",
     "next-themes": "^0.4.6",
+    "onnxruntime-web": "^1.31.1",
     "react": "^19.3.0",
     "react-day-picker": "^10.0.2",
     "react-dom": "^19.3.0",

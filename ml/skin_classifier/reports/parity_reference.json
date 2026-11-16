@@ -1,0 +1,57 @@
+[
+  {
+    "path": "wound/Abrasion/abrasions (12).jpg",
+    "label": "abrasion",
+    "probs": [
+      0.58538,
+      0.10259,
+      0.24173,
+      0.06624,
+      0.00406
+    ]
+  },
+  {
+    "path": "wound/Abrasion/abrasions (13).jpg",
+    "label": "abrasion",
+    "probs": [
+      0.99602,
+      0.00282,
+      4e-05,
+      0.00044,
+      0.00068
+    ]
+  },
+  {
+    "path": "wound/Abrasion/abrasions (2).jpg",
+    "label": "abrasion",
+    "probs": [
+      0.95552,
+      0.00313,
+      0.00369,
+      0.01444,
+      0.02323
+    ]
+  },
+  {
+    "path": "wound/Abrasion/abrasions (22).jpg",
+    "label": "abrasion",
+    "probs": [
+      0.99193,
+      0.00193,
+      0.00102,
+      0.0012,
+      0.00392
+    ]
+  },
+  {
+    "path": "wound/Abrasion/abrasions (23).jpg",
+    "label": "abrasion",
+    "probs": [
+      0.99014,
+      0.00801,
+      0.00013,
+      0.00012,
+      0.0016
+    ]
+  }
+]
