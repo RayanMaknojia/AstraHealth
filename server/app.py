@@ -35,6 +35,7 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from scan import generate_scan  # noqa: E402
+import garden  # noqa: E402
 
 HERE = Path(__file__).resolve().parent
 GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/openai/chat/completions"
@@ -186,6 +187,8 @@ class RateLimiter:
 
 
 ai_limiter = RateLimiter(AI_PER_IP, AI_PER_IP_WINDOW, AI_GLOBAL_PER_HOUR)
+# Station Garden: at most 60 plantings per visitor per 10 minutes.
+garden_limiter = RateLimiter(60, 600, 0)
 
 # Types the browser needs for the built site (3D models, fonts, images).
 for _ext, _mime in {".js": "text/javascript", ".mjs": "text/javascript", ".css": "text/css", ".glb": "model/gltf-binary",
@@ -269,8 +272,16 @@ class Handler(BaseHTTPRequestHandler):
             self.end_headers()
 
     def do_GET(self):
+        route, _, query = self.path.partition("?")
         if self.path.rstrip("/") == "/api/health":
             self._send(200, {"ok": True, "ai": api_key() is not None, "models": MODELS})
+        elif route.rstrip("/") == "/api/garden":
+            params = dict(p.split("=", 1) for p in query.split("&") if "=" in p)
+            crew = garden.clean_crew(params.get("crew"))
+            if crew is None:
+                self._send(400, {"ok": False, "error": "bad_crew"})
+            else:
+                self._send(200, {"ok": True, "crew": crew, "plants": garden.get_garden(crew)})
         elif STATIC_DIR and not self.path.startswith("/api/"):
             self._static()
         else:
@@ -287,6 +298,16 @@ class Handler(BaseHTTPRequestHandler):
                 self._send(200, {"ok": True, **generate_scan(body)})
             except (TypeError, ValueError, KeyError) as e:
                 self._send(400, {"ok": False, "error": f"bad_scan_input: {e}"})
+        elif path == "/api/garden/plant":
+            crew = garden.clean_crew(body.get("crew"))
+            plant = garden.clean_plant(body.get("plant"))
+            if crew is None or plant is None:
+                self._send(400, {"ok": False, "error": "bad_plant"})
+            elif not garden_limiter.allow(self._client()):
+                self._send(429, {"ok": False, "error": "rate_limited"})
+            else:
+                status, payload = garden.add_plant(crew, plant)
+                self._send(status, payload)
         elif path == "/api/ai/json":
             parts = body.get("parts")
             if not isinstance(parts, list) or not parts:

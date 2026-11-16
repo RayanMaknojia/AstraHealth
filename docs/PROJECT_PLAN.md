@@ -284,3 +284,17 @@ Phase 7 Claude (see docs/phases/phase7Claude.md):
 [x] Login page first (session per browser tab).
 [x] `npm run dev` starts the Python server and Vite; quiet fallback when the server is down; AI model order Lite → Flash with failure reasons logged.
 [x] SI disclosure: visible watermarks, labelled AI text, file metadata, README.md, docs/si-metadata.json; docs/SUBMISSION.md for the Space Apps form.
+
+
+Ghost Run - Reaction test (ghost-racing game; replaces the 30-second reaction test):
+[x] One seeded course per mission day (12 docking lights, about 36 s); press Space or tap on green. Faster = more points; false starts cost points; never zero-sum.
+[x] Ghosts: crewmates' best runs today on the same course (real runs first, labelled simulated crewmates until then); personal best, station record and a weekly crew target.
+[x] Each light is one reaction trial (false start < 100 ms, slow > 500 ms, missed > 1000 ms), scored with the existing reaction rule, so the weekly check-in and health rules are unchanged. After the race it shows the reaction result against the personal baseline, like the old test. Also in More → Ghost Run; every run shows the reaction result vs the personal baseline and is saved to the health record (check-in runs on submit). Reaction speed is added to the medical briefing (last 24 h and 7 days).
+
+
+Station Garden (shared crew garden, More → Station Garden):
+[x] Healthy habits earn seeds: at most one a day each for a check-in, a workout that meets the goal, 7 h+ sleep, a journal day (count only, text never read) and a Ghost Run, from 7 days before the astronaut first opens the garden.
+[x] One shared garden (12 × 5 plots) through the server (`server/garden.py`: GET /api/garden, POST /api/garden/plant; JSON file at GARDEN_FILE; plot conflicts and re-sends handled). Every device on the deployment sees the same garden; polls every 15 s.
+[x] Offline first: plantings wait on the device and are sent when the server is reachable; a planting that lost its plot to a crewmate is refunded.
+[x] Nine plant types in four growth stages (sprout, young, grown, blooming, by real days), gentle sway; biomes unlock as the crew's garden grows (Forest 10, Water 22, Alpine 36); a weekly crew goal of 12 plants lights up an aurora. A small simulated starter garden, labelled as such. Nothing is zero-sum.
+[x] Render deploy setup restored after PR #14 (static serving, AI limits, tests); garden file in the app user's home on Render.
